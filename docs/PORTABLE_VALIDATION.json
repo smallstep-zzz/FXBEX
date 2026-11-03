@@ -6,7 +6,7 @@
   "adapter_preflight": "passed from extracted package",
   "unit_tests_passed": 39,
   "inference_verified": false,
-  "minimum_loader": "0.3.0 (not yet on PyPI)",
+  "minimum_loader": "0.3.0",
   "host_requires": [
     "compatible RNGD driver",
     "SDK 2026.4.0",
@@ -14,5 +14,6 @@
   ],
   "storage": "/root/.cache/huggingface/fxbex-deliveries",
   "application_path": "/root/rngd-model-forge/fxbex/*__portable.fxbex",
-  "note": "Application path is a symlink to large persistent filesystem; copy file contents when transferring."
+  "note": "Application path is a symlink to large persistent filesystem; copy file contents when transferring.",
+  "inference_test_decision": "User requested skipping additional real-model tests; isolated portable NPU inference remains unverified."
 }

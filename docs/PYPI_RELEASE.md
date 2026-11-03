@@ -1,13 +1,13 @@
 # Publishing FXBEX to PyPI
 
-Package: `fxbex` · published version: `0.2.1` · development version: `0.3.0` · license: Apache-2.0.
+Package: `fxbex` · published version: `0.3.0` · license: Apache-2.0.
 The GitHub repository is private; **every wheel and sdist uploaded to PyPI is public**.
 Only the Python core is included. Furiosa SDK, model weights, compiled EDF/FXB files,
 private adapters, logs and credentials must never be included.
 
-Version 0.2.1 was verified on PyPI on 2026-11-03 (wheel and sdist). Users can now
+Version 0.3.0 was verified on PyPI on 2026-11-03 (wheel and sdist). Users can now
 run `python -m pip install fxbex`. The steps below are for maintainers publishing
-future versions; do not republish 0.2.1.
+future versions; do not republish 0.3.0.
 
 ## 1. Prepare PyPI authentication: Trusted Publishing (recommended)
 
@@ -61,7 +61,7 @@ After the PyPI project page exists, use a **clean environment**:
 
 ```bash
 python3 -m venv /tmp/fxbex-pypi-check
-/tmp/fxbex-pypi-check/bin/python -m pip install --index-url https://pypi.org/simple fxbex==0.2.1
+/tmp/fxbex-pypi-check/bin/python -m pip install --index-url https://pypi.org/simple fxbex==0.3.0
 /tmp/fxbex-pypi-check/bin/python -c "from fxbex import LLM; print(LLM)"
 /tmp/fxbex-pypi-check/bin/fxbex --help
 ```
@@ -88,6 +88,5 @@ References:
 - https://docs.pypi.org/trusted-publishers/using-a-publisher/
 - https://packaging.python.org/en/latest/tutorials/packaging-projects/
 
-0.3.0 adds executable bundled model adapters. Do not advertise its availability
-until a new release is published. Portable-model NPU relocation acceptance is a
+0.3.0 adds executable bundled model adapters. Portable-model NPU relocation acceptance is a
 separate gate from package unit tests and static preflight.

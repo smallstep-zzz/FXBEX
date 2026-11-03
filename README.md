@@ -22,8 +22,8 @@ PYTHON=python3.10 bash scripts/install.sh
 
 This package does not install/upgrade Furiosa SDK, PyTorch or drivers. Build/inspect
 and integrity-only validation use the Python standard library; NPU execution requires
-the package's exact compatible SDK. Version 0.2.1 is published on
-[PyPI](https://pypi.org/project/fxbex/0.2.1/); pin with `python -m pip install fxbex==0.2.1` for reproducibility.
+the package's exact compatible SDK. Version 0.3.0 is published on
+[PyPI](https://pypi.org/project/fxbex/0.3.0/); pin with `python -m pip install fxbex==0.3.0` for reproducibility.
 
 ## Commands
 
@@ -133,7 +133,7 @@ No model download, automatic compilation, or CPU fallback is introduced.
 Build with `python -m pip wheel --no-deps --no-build-isolation . -w dist`, then:
 
 ```bash
-python -m pip install dist/fxbex-0.2.1-py3-none-any.whl
+python -m pip install dist/fxbex-0.3.0-py3-none-any.whl
 ```
 
 `pip install fxbex` installs the published Python core.
@@ -142,9 +142,9 @@ Maintainer authentication is needed only to publish future releases, not to inst
 
 Release preparation and keyless GitHub OIDC authentication: [docs/PYPI_RELEASE.md](docs/PYPI_RELEASE.md).
 The Python core is Apache-2.0 licensed; Furiosa SDK and model assets are not bundled.
-Actual NPU testing of the new LLM wrapper is deferred; its API unit tests pass.
+Additional NPU testing of the LLM wrapper and isolated portable reload was skipped at the user's request. API unit tests and portable integrity/source/adapter preflight pass; this does not prove isolated portable inference.
 
-## Single-file model delivery (0.3.0 development)
+## Single-file model delivery (0.3.0)
 
 A small reference package is not a complete model: it can reference external
 weights and an installed adapter. `build --standalone` includes indexed weights,
@@ -167,7 +167,7 @@ compiled kernels and Python adapter. It avoids downloads and separate Model Forg
 installation on the receiving host. A compatible RNGD driver, Furiosa SDK and
 Python dependencies are still host prerequisites; they are not bundled or silently
 installed. Thus `pip install fxbex` plus one file is sufficient **only on an already
-compatible RNGD host**, and only after this 0.3.0 loader is published. PyPI 0.2.1
+compatible RNGD host**, with FXBEX 0.3.0 or newer. PyPI 0.2.1
 does not support the bundled adapter feature. Full relocation NPU acceptance is
 required before advertising a model as portable; static checks are not inference.
 Allow space for both the package and its extracted contents on the temporary disk.
