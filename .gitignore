@@ -6,6 +6,7 @@ dist/
 .venv/
 .env
 .env.*
+# Compiled model deliveries; fxbex/ itself is the tracked Python source package.
 *.fxbex
 *.fxb
 *.runnable
