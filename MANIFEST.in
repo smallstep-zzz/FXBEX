@@ -1,4 +1,4 @@
-include README.md pyproject.toml
+include README.md LICENSE pyproject.toml
 recursive-include fxbex *.py
 prune tests
 prune docs

@@ -8,10 +8,12 @@ Linux CLI for packaging and running precompiled Furiosa RNGD artifacts.
 Python3.10+ is required. Install a compatible Furiosa SDK separately for NPU execution.
 
 ```bash
-cd /root/FXBEX
-pip install -e .
+# Once the first public PyPI release has completed:
+python -m pip install fxbex
 fxbex --help
 ```
+
+For local development from a checkout, use `python -m pip install -e .` instead.
 
 To avoid changing any existing SDK dependencies:
 
@@ -19,9 +21,10 @@ To avoid changing any existing SDK dependencies:
 PYTHON=python3.10 bash scripts/install.sh
 ```
 
-This repository does not install/upgrade Furiosa SDK, PyTorch or drivers. Build/inspect
+This package does not install/upgrade Furiosa SDK, PyTorch or drivers. Build/inspect
 and integrity-only validation use the Python standard library; NPU execution requires
-the package's exact compatible SDK. No PyPI publication is claimed.
+the package's exact compatible SDK. Public PyPI installation is available only after
+the first trusted publishing workflow has completed successfully.
 
 ## Commands
 
@@ -134,9 +137,10 @@ Build with `python -m pip wheel --no-deps --no-build-isolation . -w dist`, then:
 python -m pip install dist/fxbex-0.2.1-py3-none-any.whl
 ```
 
-Public `pip install fxbex` requires a PyPI release and is not available yet.
+`pip install fxbex` is available only after the first successful PyPI publication.
 GitHub remains private. Publishing a wheel to PyPI exposes its source publicly;
 PyPI authentication and explicit release approval are required separately.
 
-Release preparation and credential setup: [docs/PYPI_RELEASE.md](docs/PYPI_RELEASE.md).
+Release preparation and keyless GitHub OIDC authentication: [docs/PYPI_RELEASE.md](docs/PYPI_RELEASE.md).
+The Python core is Apache-2.0 licensed; Furiosa SDK and model assets are not bundled.
 Actual NPU testing of the new LLM wrapper is deferred; its API unit tests pass.

@@ -1,0 +1,66 @@
+name: Publish to PyPI
+
+# Explicit manual action only; pushes and tags never release to PyPI.
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_version:
+        description: "Enter exact version from pyproject.toml (e.g. 0.2.1)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Check exact package version
+        env:
+          CONFIRM_VERSION: ${{ inputs.confirm_version }}
+        run: |
+          python - <<'PY'
+          import os
+          import tomllib
+          from pathlib import Path
+          version = tomllib.loads(Path("pyproject.toml").read_text())["project"]["version"]
+          if version != os.environ["CONFIRM_VERSION"]:
+              raise SystemExit(f"Version mismatch: pyproject={version}, confirmation={os.environ['CONFIRM_VERSION']}")
+          print("Publishing version", version)
+          PY
+      - name: Install release tools and package
+        run: python -m pip install build twine .
+      - name: Run unit tests
+        run: python -m unittest discover -s tests -v
+      - name: Build distributions
+        run: python -m build
+      - name: Validate metadata and archive members
+        run: |
+          python -m twine check dist/*
+          python scripts/check_dist.py dist/*
+      - uses: actions/upload-artifact@v4
+        with:
+          name: python-package-distributions
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: python-package-distributions
+          path: dist/
+      - name: Publish via PyPI trusted publishing (OIDC)
+        uses: pypa/gh-action-pypi-publish@release/v1
