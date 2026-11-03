@@ -109,17 +109,17 @@ shell with its coordinated service. Packages remain excluded from Git.
 from fxbex import LLM
 
 package = '/root/rngd-model-forge/fxbex/RedHatAI--Qwen3.5-9B-FP8-dynamic__text-bf16__fusion8__ctx512__sdk2026.4.0.fxbex'
-with LLM('RedHatAI/Qwen3.5-9B-FP8-dynamic', fxbex=package) as llm:
+with LLM(package) as llm:
     print(llm.generate('What is 2+2? Reply briefly.')['text'])
     print(llm.converse('What is 2+2?')['text'])
     print(llm.converse('Multiply that answer by 3.')['text'])
     llm.reset()
 ```
 
-`fxb=package` is an alias for `fxbex=package`; supply exactly one. `LLM(fxbex=package)`
-reads model identity from the package. Explicit model names must match; naming
-Qwen3-8B does not turn a Qwen3.5-9B package into that model. `chat(messages)` accepts
-explicit message history. Results are dictionaries containing `text` and available
+Pass only the package: `LLM(package)` or `LLM(fxbex=package)`.
+`fxb=package` remains an alias; supply exactly one path. Model identity is read from
+the manifest (`llm.model`); no separate model-name argument is accepted.
+`chat(messages)` accepts explicit message history. Results are dictionaries containing `text` and available
 runtime metrics. Without a `with` block, call `llm.close()` (or `unload()`). Model
 execution runs in a persistent subprocess; closing releases its NPU allocations.
 
@@ -171,3 +171,33 @@ compatible RNGD host**, with FXBEX 0.3.0 or newer. PyPI 0.2.1
 does not support the bundled adapter feature. Full relocation NPU acceptance is
 required before advertising a model as portable; static checks are not inference.
 Allow space for both the package and its extracted contents on the temporary disk.
+
+## Package-first model classes (0.4.0 development)
+
+```python
+from fxbex import Model, LLM, YOLO, ImageGeneration
+
+with LLM('chat.fxbex') as model:
+    print(model.generate('Hello')['text'])
+
+with YOLO('detector.fxbex') as model:
+    result = model.predict('/absolute/path/image.jpg')
+    print(result, model.last_timing)
+
+with ImageGeneration('generator.fxbex') as model:
+    result = model.generate('A bird', seed=42)
+
+with Model('tensor.fxbex') as model:
+    result = model.predict({'x': [[1, 2]]})
+```
+
+`ObjectDetection` aliases `YOLO`. All classes share load/close/context management,
+`load_seconds` and `last_timing` (host request wall time, not device-only time).
+Predict inputs/results follow the package adapter contract and must be JSON
+serializable; image paths refer to the runtime server. YOLO forwards `image`,
+ImageGeneration forwards `prompt` and options. The model adapter implements
+preprocessing, decoding/sampling and output files. These classes do not convert
+unsupported models, invent preprocessing or supply a missing image-generation
+adapter. Current YOLO adapter accepts image only; unsupported options fail there.
+0.4.0 API source is available in Git; PyPI 0.3.0 still has the earlier API.
+Old `LLM(model_name, fxbex=path)` now fails: migrate to `LLM(path)`.

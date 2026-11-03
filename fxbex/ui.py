@@ -22,9 +22,9 @@ def save_package(source, directory):
 
 def sample_code(path, mode='chat'):
     operation="model.chat([{'role': 'user', 'content': 'Hello'}], 32)" if mode=='chat' else "model.predict(json.load(open('inputs.json')))"
-    return ('import json, time\nfrom fxbex.runtime import Session\n\n'
+    return ('import json, time\nfrom fxbex import '+('LLM' if mode=='chat' else 'Model')+'\n\n'
             f'PACKAGE = {str(path)!r}  # Change this filename\n'
-            'with Session(PACKAGE) as model:  # Load; release on exit\n'
+            f'with {"LLM" if mode=="chat" else "Model"}(PACKAGE) as model:  # Load; release on exit\n'
             '    started = time.perf_counter()\n'
             f'    result = {operation}\n'
             '    print(result)\n'

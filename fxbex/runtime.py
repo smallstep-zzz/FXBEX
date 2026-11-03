@@ -91,6 +91,7 @@ class Session:
         self.stack.close()
 
     def predict(self, inputs):
+        if not hasattr(self.adapter, 'predict'):raise ValueError('Package does not provide predict')
         return self.adapter.predict(inputs)
 
     def chat(self, messages, max_new_tokens=32):

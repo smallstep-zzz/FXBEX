@@ -1,5 +1,6 @@
 """Independent FXBEX package builder and installed-adapter runtime."""
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 
 from .llm import LLM
-__all__ = ['LLM']
+from .model import Model, YOLO, ObjectDetection, ImageGeneration
+__all__ = ['Model', 'LLM', 'YOLO', 'ObjectDetection', 'ImageGeneration']
