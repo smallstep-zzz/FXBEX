@@ -1,0 +1,112 @@
+{
+  "scope": "fresh_process_Qwen_package_and_two_kernel_DAG",
+  "qwen_unique_runnables": 25,
+  "qwen_reload": {
+    "acceptance": {
+      "cosine": 0.9999294281005859,
+      "rmse": 0.04470288008451462,
+      "top1_match": true,
+      "npu_tasks": 1562,
+      "cpu_routes": 0,
+      "unknown_graphs": 0,
+      "load_seconds": 190.52131911111064
+    },
+    "api_conversation": [
+      {
+        "text": "4",
+        "seconds": 8.494779651984572,
+        "runtime": {
+          "text": "4",
+          "metrics": {
+            "prompt_tokens": 22,
+            "reused_input_tokens": 0,
+            "output_tokens": 1,
+            "prefill_s": 8.013502043904737,
+            "request_s": 8.396937787998468,
+            "weight_mode": "FP8 checkpoint dequantized to BF16; BF16 NPU compute",
+            "context_limit": 512
+          },
+          "compiler_calls": 0,
+          "replay_hits": 511
+        }
+      },
+      {
+        "text": "12",
+        "seconds": 17.341422697063535,
+        "runtime": {
+          "text": "12",
+          "metrics": {
+            "prompt_tokens": 43,
+            "reused_input_tokens": 0,
+            "output_tokens": 2,
+            "prefill_s": 16.567259654169902,
+            "request_s": 17.315647531067953,
+            "weight_mode": "FP8 checkpoint dequantized to BF16; BF16 NPU compute",
+            "context_limit": 512
+          },
+          "compiler_calls": 0,
+          "replay_hits": 511
+        }
+      }
+    ],
+    "repeat": [
+      {
+        "text": "4",
+        "metrics": {
+          "prompt_tokens": 22,
+          "reused_input_tokens": 0,
+          "output_tokens": 1,
+          "prefill_s": 8.391184728126973,
+          "request_s": 8.806028814055026,
+          "weight_mode": "FP8 checkpoint dequantized to BF16; BF16 NPU compute",
+          "context_limit": 512
+        },
+        "compiler_calls": 0,
+        "replay_hits": 511
+      },
+      {
+        "text": "4",
+        "metrics": {
+          "prompt_tokens": 22,
+          "reused_input_tokens": 0,
+          "output_tokens": 1,
+          "prefill_s": 8.34998813085258,
+          "request_s": 8.756377511890605,
+          "weight_mode": "FP8 checkpoint dequantized to BF16; BF16 NPU compute",
+          "context_limit": 512
+        },
+        "compiler_calls": 0,
+        "replay_hits": 511
+      },
+      {
+        "text": "4",
+        "metrics": {
+          "prompt_tokens": 22,
+          "reused_input_tokens": 0,
+          "output_tokens": 1,
+          "prefill_s": 8.505377399967983,
+          "request_s": 8.898582979803905,
+          "weight_mode": "FP8 checkpoint dequantized to BF16; BF16 NPU compute",
+          "context_limit": 512
+        },
+        "compiler_calls": 0,
+        "replay_hits": 511
+      }
+    ],
+    "compiler_calls": 0,
+    "replay_hits": 511
+  },
+  "dag": {
+    "exact": true,
+    "compiler_calls": 0,
+    "npu_tasks": 4,
+    "cpu_routes": 0,
+    "warm_seconds": [
+      0.000429689884185791,
+      0.0002871961332857609,
+      0.00029415683820843697
+    ],
+    "package": "/root/rea_image_gen/FXB/multiply-chain-bf16__fusion8__sdk2026.4.0.fxbex"
+  },
+  "qwen_profiling": "trace enabled; normal UI latency measured separately"
+}

@@ -1,0 +1,42 @@
+{
+  "date": "2026-11-03",
+  "runtime": "/root/FXBEX",
+  "sdk": "2026.4.0",
+  "unit_tests_passed": 30,
+  "cli_dag": {
+    "build": true,
+    "run": true,
+    "output_all": 4,
+    "compiler_calls": 0,
+    "seconds": 0.002884
+  },
+  "qwen_static_validate": {
+    "valid": true,
+    "statically_ready": true,
+    "inference_validated": false
+  },
+  "web": {
+    "url": "http://127.0.0.1:7860/",
+    "load_seconds": 209.1964522751514,
+    "answers": [
+      "4",
+      "12",
+      "4",
+      "4",
+      "4"
+    ],
+    "request_seconds": [
+      3.678536,
+      6.789075,
+      3.588913,
+      3.673783,
+      3.627203
+    ],
+    "unloaded": true
+  },
+  "limits": [
+    "FXBEX build packages prepared compiled-model directories, not arbitrary Hugging Face checkpoints.",
+    "Qwen replay requires the separately installed forge adapter and pinned SDK/source/weights.",
+    "Static validation does not establish NPU execution or numerical accuracy."
+  ]
+}

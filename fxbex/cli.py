@@ -1,0 +1,124 @@
+"""CLI for local FXB_EX packages; SDK is imported only for runtime operations."""
+import argparse
+import json
+from pathlib import Path
+import sys
+from .package import build, inspect
+from .validation import validate
+
+
+def _main(argv=None):
+    parser = argparse.ArgumentParser(
+        prog='fxbex', description='Build, inspect and run compiled FXB_EX model packages.',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""Examples:
+  fxbex build ./compiled_model -o model.fxbex
+  fxbex inspect model.fxbex
+  fxbex validate model.fxbex --integrity-only
+  fxbex validate model.fxbex --weights-dir ./weights
+  fxbex run model.fxbex --input inputs.json -o result.json
+  fxbex chat model.fxbex
+  fxbex serve model.fxbex --port 8000
+  fxbex doctor
+
+Validation checks static readiness; it does not run inference or prove NPU execution.
+Model-specific exporters and capture commands belong to their adapter plugins.""")
+    sub = parser.add_subparsers(dest='action', required=True)
+    p = sub.add_parser('build', help='Pack a compiled directory with checksums (no compilation)')
+    p.add_argument('source', help='Compiled directory containing manifest and required JSON configurations')
+    p.add_argument('-o', '--output', required=True, help='New .fxbex file; existing files are never overwritten')
+    p.add_argument('--standalone', action='store_true', help='Copy referenced external weights into the archive')
+    p = sub.add_parser('inspect', help='Verify integrity and display the manifest; no SDK needed')
+    p.add_argument('package', help='Path to a .fxbex archive')
+    p = sub.add_parser('validate', help='Check integrity, SDK, adapter, weights and device availability without inference')
+    p.add_argument('package', help='Path to a .fxbex archive')
+    p.add_argument('--integrity-only', action='store_true', help='Verify archive only; skip SDK, weights and device checks')
+    p.add_argument('--weights-dir', help='Override the external checkpoint/weights directory')
+    sub.add_parser('doctor', help='Report installed SDK versions and RNGD device status')
+    p = sub.add_parser('ui', help='Launch the local package interface')
+    p.add_argument('--port', type=int, default=7861, help='HTTP port (default: 7861)')
+    for name, help_text in (
+        ('run', 'Run JSON inputs or start interactive chat for a chat adapter'),
+        ('chat', 'Chat interactively, or process a messages JSON file'),
+        ('predict', 'Run a tensor DAG with named JSON inputs'),
+        ('serve', 'Serve the loaded package over local HTTP'),
+    ):
+        p = sub.add_parser(name, help=help_text, description=help_text)
+        p.add_argument('package', help='Path to a .fxbex archive')
+        p.add_argument('--report-dir', help='Directory for runtime logs and evidence')
+        p.add_argument('--weights-dir', help='Override external checkpoint/weights directory')
+        if name != 'serve':
+            p.add_argument('--input', help='JSON file: named tensors for predict, or {"messages": [...]} for chat')
+            p.add_argument('-o', '--output', help='Write response JSON to this file')
+            p.add_argument('--max-new-tokens', type=int, default=32, help='Chat token limit (default: 32)')
+        else:
+            p.add_argument('--port', type=int, default=8000, help='HTTP port (default: 8000)')
+    args=parser.parse_args(argv)
+    if args.action=='build':result={'package':str(build(args.source,args.output,standalone=args.standalone))}
+    elif args.action == 'inspect':
+        m=inspect(args.package)
+        result={'model':m['model'],'runtime':m['runtime'],'compatibility':m['compatibility'],
+                'standalone':m['standalone'],'files':len(m['files']),
+                'artifact_bytes':sum(x['size'] for x in m['files'].values()),'integrity_verified':True}
+    elif args.action == 'validate':
+        result = validate(args.package, integrity_only=args.integrity_only, weights_dir=args.weights_dir)
+    elif args.action=='doctor':
+        from .runtime import doctor
+        result=doctor()
+    elif args.action=='ui':
+        from .ui import launch
+        launch(args.port);return
+    else:
+        from .runtime import Session
+        # SDK/compiler diagnostics may print; keep JSON results on stdout.
+        import contextlib
+        if args.action == 'predict' and not args.input:
+            raise ValueError('--input JSON file is required for tensor prediction')
+        session=Session(args.package,report_dir=args.report_dir,weights_dir=args.weights_dir)
+        log_path=session.report_dir/'runtime.log'
+        print(f'Loading package; diagnostics: {log_path}',file=sys.stderr,flush=True)
+        with log_path.open('w') as log, contextlib.redirect_stdout(log), contextlib.redirect_stderr(log):
+            session.__enter__()
+        print(f'NPU package ready; reports: {session.report_dir}',file=sys.stderr,flush=True)
+        try:
+            if args.action=='serve':
+                from .server import serve
+                serve(session,args.port);return
+            if args.action=='predict' or (args.action=='run' and session.manifest['runtime']['adapter']=='runnable_dag'):
+                if not args.input:raise ValueError('--input JSON file is required for tensor prediction')
+                result=session.predict(json.loads(Path(args.input).read_text()))
+            elif args.input:
+                data=json.loads(Path(args.input).read_text())
+                result=session.chat(data['messages'],data.get('max_new_tokens',args.max_new_tokens))
+            else:
+                messages=[]
+                print('FXB_EX chat: /reset clears history, /quit unloads.',flush=True)
+                while True:
+                    try:prompt=input('you> ')
+                    except EOFError:break
+                    if prompt.strip()=='/quit':break
+                    if prompt.strip()=='/reset':messages=[];continue
+                    if not prompt.strip():continue
+                    candidate=messages+[{'role':'user','content':prompt}]
+                    result=session.chat(candidate,args.max_new_tokens)
+                    messages=candidate+[{'role':'assistant','content':result['text']}]
+                    print(result['text'],flush=True)
+                return
+        finally:session.__exit__(None,None,None)
+        if args.output:Path(args.output).write_text(json.dumps(result,ensure_ascii=False,indent=2))
+        result['report_dir']=str(session.report_dir)
+    print(json.dumps(result,ensure_ascii=False,indent=2))
+    return 0 if result.get('valid', True) else 1
+
+def main(argv=None):
+    try:
+        return _main(argv) or 0
+    except Exception as exc:
+        print(f'fxbex: {exc}', file=sys.stderr)
+        return 1
+    except KeyboardInterrupt:
+        return 130
+
+
+if __name__ == '__main__':
+    sys.exit(main())

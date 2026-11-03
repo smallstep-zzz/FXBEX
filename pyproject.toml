@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fxbex"
+version = "0.2.0"
+description = "Furiosa RNGD compiled artifact packaging and runtime CLI"
+requires-python = ">=3.10"
+
+[project.scripts]
+fxbex = "fxbex.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["fxbex*"]
