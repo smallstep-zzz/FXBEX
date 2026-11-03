@@ -75,6 +75,12 @@ class PackageService:
             if len(json.dumps(messages).encode())>65536:raise ValueError('History exceeds 64KiB')
             return self._request({'action':'chat','messages':messages,'max_new_tokens':max_new_tokens},on_progress)
 
+    def predict(self,inputs):
+        with self.lock:
+            if not self.loaded:raise RuntimeError('Load a package first')
+            if not isinstance(inputs,dict):raise ValueError('Named inputs must be a dictionary')
+            return self._request({'action':'predict','inputs':inputs})
+
     def unload(self,on_progress=None):
         with self.lock:
             try:

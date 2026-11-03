@@ -29,6 +29,9 @@ def main():
                     elif request['action']=='chat':
                         if not session:raise RuntimeError('Load package first')
                         result={'ok':True,**session.chat(request['messages'],request['max_new_tokens'])}
+                    elif request['action']=='predict':
+                        if not session:raise RuntimeError('Load package first')
+                        result={'ok':True,**session.predict(request['inputs'])}
                     elif request['action']=='unload':result={'ok':True}
                     else:raise ValueError('Unknown worker action')
             except Exception as exc:

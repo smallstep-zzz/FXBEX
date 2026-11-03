@@ -85,3 +85,18 @@ not implemented. Historical validation records in `docs/` predate this repositor
 split; current split validation is recorded separately.
 
 Tests: `python3.10 -m unittest discover -s tests`.
+
+## Reusable Gradio model page
+
+Copy `examples/model_page.py`, set `PACKAGE = Path('fxbex/model.fxbex')`, then
+run it on the SDK host. Keep delivery packages in your application's `fxbex/`
+folder: `fxbex build ./compiled_model -o fxbex/model.fxbex`.
+The page lists saved packages, copies uploaded packages there without replacing
+existing files, provides Load/Unload, measures request wall time, and displays a
+Python load/run/release example with the selected filename below the controls.
+Use `mode='chat'` or `mode='predict'`; an agent can supply `controls(run)` for
+image/upscale-specific inputs and outputs without rewriting the lifecycle shell.
+That callback calls `run('predict', named_inputs)` and receives `(result, timing)`.
+Input conversion and output rendering must match a validated model adapter;
+the template does not add model support. Existing Model Forge embeds this same
+shell with its coordinated service. Packages remain excluded from Git.
