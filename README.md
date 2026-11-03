@@ -100,3 +100,43 @@ That callback calls `run('predict', named_inputs)` and receives `(result, timing
 Input conversion and output rendering must match a validated model adapter;
 the template does not add model support. Existing Model Forge embeds this same
 shell with its coordinated service. Packages remain excluded from Git.
+
+## Python LLM API
+
+```python
+from fxbex import LLM
+
+package = '/root/rngd-model-forge/fxbex/RedHatAI--Qwen3.5-9B-FP8-dynamic__text-bf16__fusion8__ctx512__sdk2026.4.0.fxbex'
+with LLM('RedHatAI/Qwen3.5-9B-FP8-dynamic', fxbex=package) as llm:
+    print(llm.generate('What is 2+2? Reply briefly.')['text'])
+    print(llm.converse('What is 2+2?')['text'])
+    print(llm.converse('Multiply that answer by 3.')['text'])
+    llm.reset()
+```
+
+`fxb=package` is an alias for `fxbex=package`; supply exactly one. `LLM(fxbex=package)`
+reads model identity from the package. Explicit model names must match; naming
+Qwen3-8B does not turn a Qwen3.5-9B package into that model. `chat(messages)` accepts
+explicit message history. Results are dictionaries containing `text` and available
+runtime metrics. Without a `with` block, call `llm.close()` (or `unload()`). Model
+execution runs in a persistent subprocess; closing releases its NPU allocations.
+
+This API accepts FXBEX content even if the filename ends in `.fxb`, but **official
+Furiosa FXB content is not supported by this loader**; use `furiosa_llm.LLM` for it.
+The compatible SDK, original weights and model adapter plugin are still required.
+No model download, automatic compilation, or CPU fallback is introduced.
+
+### Wheel installation
+
+Build with `python -m pip wheel --no-deps --no-build-isolation . -w dist`, then:
+
+```bash
+python -m pip install dist/fxbex-0.2.1-py3-none-any.whl
+```
+
+Public `pip install fxbex` requires a PyPI release and is not available yet.
+GitHub remains private. Publishing a wheel to PyPI exposes its source publicly;
+PyPI authentication and explicit release approval are required separately.
+
+Release preparation and credential setup: [docs/PYPI_RELEASE.md](docs/PYPI_RELEASE.md).
+Actual NPU testing of the new LLM wrapper is deferred; its API unit tests pass.

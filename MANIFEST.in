@@ -1,0 +1,9 @@
+include README.md pyproject.toml
+recursive-include fxbex *.py
+prune tests
+prune docs
+prune examples
+prune reports
+prune dist
+prune build
+global-exclude *.fxbex *.fxb *.runnable *.edf *.safetensors *.pt *.bin *.log *.pyc
