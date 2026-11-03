@@ -5,6 +5,10 @@ The GitHub repository is private; **every wheel and sdist uploaded to PyPI is pu
 Only the Python core is included. Furiosa SDK, model weights, compiled EDF/FXB files,
 private adapters, logs and credentials must never be included.
 
+Version 0.2.1 was verified on PyPI on 2026-11-03 (wheel and sdist). Users can now
+run `python -m pip install fxbex`. The steps below are for maintainers publishing
+future versions; do not republish 0.2.1.
+
 ## 1. Prepare PyPI authentication: Trusted Publishing (recommended)
 
 Use **https://pypi.org/** (not TestPyPI). Sign up / sign in, verify email,
@@ -42,7 +46,7 @@ After the release PR is merged into `main` and the CI tests pass:
 
 1. Open `https://github.com/smallstep-zzz/FXBEX/actions/workflows/publish-pypi.yml`.
 2. Click **Run workflow** and select **main**.
-3. Enter `0.2.1` in `confirm_version`.
+3. Enter the new version from `pyproject.toml` in `confirm_version`.
 4. Click **Run workflow**. This tests, builds, audits and uploads wheel + sdist.
 5. Verify that the GitHub Actions `publish` job succeeded.
 
@@ -62,7 +66,7 @@ python3 -m venv /tmp/fxbex-pypi-check
 /tmp/fxbex-pypi-check/bin/fxbex --help
 ```
 
-Only then advertise `pip install fxbex` as available.
+Repeat this verification for each future release.
 `import`, `--help` and unit tests **do not validate actual NPU inference**:
 runtime use requires a compatible Furiosa SDK, driver, weight files and adapter.
 
