@@ -58,7 +58,8 @@ Model-specific exporters and capture commands belong to their adapter plugins.""
     elif args.action == 'inspect':
         m=inspect(args.package)
         result={'model':m['model'],'runtime':m['runtime'],'compatibility':m['compatibility'],
-                'standalone':m['standalone'],'files':len(m['files']),
+                'standalone':m['standalone'],'bundled_python':bool(m['runtime'].get('bundled_python')),
+                'delivery':m.get('delivery'), 'files':len(m['files']),
                 'artifact_bytes':sum(x['size'] for x in m['files'].values()),'integrity_verified':True}
     elif args.action == 'validate':
         result = validate(args.package, integrity_only=args.integrity_only, weights_dir=args.weights_dir)

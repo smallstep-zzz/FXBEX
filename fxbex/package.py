@@ -124,6 +124,8 @@ def _validate(archive, max_total_size, max_json_size):
                 digest.update(chunk)
         if digest.hexdigest() != entry['sha256']:
             raise PackageError(f'Checksum mismatch: {name}')
+    from .bundled import specification
+    specification(manifest)
     configs = {name: _json(archive.read(name), name) for name in REQUIRED}
     _weights(configs['weights_index.json'], manifest)
     return manifest

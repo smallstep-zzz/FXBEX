@@ -143,3 +143,31 @@ Maintainer authentication is needed only to publish future releases, not to inst
 Release preparation and keyless GitHub OIDC authentication: [docs/PYPI_RELEASE.md](docs/PYPI_RELEASE.md).
 The Python core is Apache-2.0 licensed; Furiosa SDK and model assets are not bundled.
 Actual NPU testing of the new LLM wrapper is deferred; its API unit tests pass.
+
+## Single-file model delivery (0.3.0 development)
+
+A small reference package is not a complete model: it can reference external
+weights and an installed adapter. `build --standalone` includes indexed weights,
+tokenizer/config files, but an external adapter may still be required.
+A portable delivery additionally embeds the exact Python model runtime under
+`python/`, selected by `runtime.bundled_python`. Use only trusted packages: loading
+this form executes its Python code. Checksums detect corruption, not authorship.
+The built-in loader uses an isolated worker and rejects already-imported runtime
+module conflicts. Package Python must not replace the `fxbex` core.
+
+For the validated Model Forge Qwen source:
+
+```bash
+cd /root/rngd-model-forge
+python -m tools.export_portable_qwen fxbex/model.fxbex -o /large-disk/model-portable.fxbex
+```
+
+This checks pinned project sources and embeds checkpoint files, tokenizer,
+compiled kernels and Python adapter. It avoids downloads and separate Model Forge
+installation on the receiving host. A compatible RNGD driver, Furiosa SDK and
+Python dependencies are still host prerequisites; they are not bundled or silently
+installed. Thus `pip install fxbex` plus one file is sufficient **only on an already
+compatible RNGD host**, and only after this 0.3.0 loader is published. PyPI 0.2.1
+does not support the bundled adapter feature. Full relocation NPU acceptance is
+required before advertising a model as portable; static checks are not inference.
+Allow space for both the package and its extracted contents on the temporary disk.

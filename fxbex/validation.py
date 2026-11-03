@@ -68,9 +68,11 @@ def _weights(root, weights_dir):
 
 
 def _adapter_preflight(runtime, manifest, root, weights_dir):
-    adapter = runtime.resolve_adapter(manifest['runtime']['adapter'])
+    from .bundled import activate
     if manifest['runtime']['adapter'] != 'runnable_dag':
-        adapter.preflight(root, weights_dir=weights_dir)
+        with activate(root,manifest) as bundled:
+            adapter = bundled or runtime.resolve_adapter(manifest['runtime']['adapter'])
+            adapter.preflight(root, weights_dir=weights_dir)
         return
     from .package import PackageError
     plan = json.loads((root / 'execution_plan.json').read_text())

@@ -1,6 +1,6 @@
 # Publishing FXBEX to PyPI
 
-Package: `fxbex` · current version: `0.2.1` · license: Apache-2.0.
+Package: `fxbex` · published version: `0.2.1` · development version: `0.3.0` · license: Apache-2.0.
 The GitHub repository is private; **every wheel and sdist uploaded to PyPI is public**.
 Only the Python core is included. Furiosa SDK, model weights, compiled EDF/FXB files,
 private adapters, logs and credentials must never be included.
@@ -87,3 +87,7 @@ References:
 - https://docs.pypi.org/trusted-publishers/creating-a-project-through-oidc/
 - https://docs.pypi.org/trusted-publishers/using-a-publisher/
 - https://packaging.python.org/en/latest/tutorials/packaging-projects/
+
+0.3.0 adds executable bundled model adapters. Do not advertise its availability
+until a new release is published. Portable-model NPU relocation acceptance is a
+separate gate from package unit tests and static preflight.

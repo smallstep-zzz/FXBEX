@@ -43,7 +43,8 @@ def check_compatibility(manifest):
             raise PackageError(f'SDK mismatch {name}: package={expected}, installed={actual.get(name)}; rebuild explicitly')
     if manifest['compatibility'].get('hardware', 'rngd') != 'rngd' or manifest['compatibility'].get('fusion',8) != 8:
         raise PackageError('This adapter version requires RNGD fusion8')
-    resolve_adapter(manifest['runtime']['adapter'])
+    from .bundled import specification
+    if specification(manifest) is None:resolve_adapter(manifest['runtime']['adapter'])
 
 
 class Session:
@@ -68,7 +69,8 @@ class Session:
             try: fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
             except BlockingIOError: raise RuntimeError('NPU busy: unload the web model before loading FXB_EX')
             kind = self.manifest['runtime']['adapter']
-            adapter=resolve_adapter(kind)
+            from .bundled import activate
+            adapter=self.stack.enter_context(activate(self.root,self.manifest)) or resolve_adapter(kind)
             if kind=='runnable_dag':
                 self.adapter=adapter(self.root,weights_dir=self.weights_dir)
             else:
