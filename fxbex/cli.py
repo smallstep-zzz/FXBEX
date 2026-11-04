@@ -57,6 +57,13 @@ Model-specific exporters and capture commands belong to their adapter plugins.""
         else:
             p.add_argument('--port', type=int, default=8000, help='HTTP port (default: 8000)')
     args=parser.parse_args(argv)
+    if args.action in ('run','chat','predict','serve','describe','sample','inspect','validate'):
+        from .hub import resolve_package
+        args.package=str(resolve_package(args.package))
+    sample_contract=None
+    if args.action=='run' and not args.input:
+        from .schema import describe
+        sample_contract=describe(args.package)
     if args.action=='build':result={'package':str(build(args.source,args.output,standalone=args.standalone))}
     elif args.action == 'inspect':
         m=inspect(args.package)
@@ -91,7 +98,13 @@ Model-specific exporters and capture commands belong to their adapter plugins.""
             if args.action=='serve':
                 from .server import serve
                 serve(session,args.port);return
-            if args.action=='predict' or (args.action=='run' and session.manifest['runtime']['adapter']=='runnable_dag'):
+            if sample_contract is not None:
+                from .schema import resolve_sample
+                data=resolve_sample(sample_contract,session.root,session.manifest)
+                if sample_contract['method']=='chat':
+                    result=session.chat(data['messages'],data.get('max_new_tokens',args.max_new_tokens))
+                else:result=session.predict(data)
+            elif args.action=='predict' or (args.action=='run' and session.manifest['runtime']['adapter']=='runnable_dag'):
                 if not args.input:raise ValueError('--input JSON file is required for tensor prediction')
                 result=session.predict(json.loads(Path(args.input).read_text()))
             elif args.input:

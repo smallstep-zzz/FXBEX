@@ -17,3 +17,20 @@ def describe(package):
 
 def example_inputs(package):
     return describe(package)['example_input']
+
+def resolve_sample(contract,root,manifest):
+    """Resolve explicit packaged assets only; plain strings remain ordinary text."""
+    from pathlib import Path
+    root=Path(root).resolve()
+    def visit(value):
+        if isinstance(value,dict):
+            if set(value)=={'$asset'}:
+                name=value['$asset']
+                if not isinstance(name,str) or name not in manifest['files']:raise PackageError('Sample asset is not in integrity map')
+                path=(root/name).resolve()
+                if not path.is_relative_to(root) or not path.is_file():raise PackageError('Invalid sample asset')
+                return str(path)
+            return {k:visit(v) for k,v in value.items()}
+        if isinstance(value,list):return [visit(v) for v in value]
+        return value
+    return visit(contract['example_input'])

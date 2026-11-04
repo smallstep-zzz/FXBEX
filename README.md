@@ -180,3 +180,28 @@ JSON dictionaries suitable for editor integrations; automatic IDE completion is
 not yet implemented. No package code executes while reading these hints.
 These new commands are available from this repository's source version; a new
 PyPI release is required before they can be assumed in `pip install fxbex`.
+
+### Run a catalog model by name (source version)
+
+On a host with the matching RNGD SDK and dependencies:
+
+```bash
+pip install "git+https://github.com/smallstep-zzz/FXBEX.git@main" huggingface_hub
+fxbex run "SOURCE_ORG/MODEL@RELEASE_VERSION"
+```
+
+Use the source model ID and version listed in FuryAwesome. FXBEX resolves the
+catalog's immutable HF commit, reuses the HF download cache, and verifies SHA256
+before loading. Ambiguous names require `@version`. Downloading can consume many
+GB; the package includes executable adapter code, so select a trusted publisher.
+
+`run` without `--input` executes one `io_contract.example_input` and prints the
+result/report location; `-o result.json` saves the response. `chat MODEL_ID` remains
+interactive. The same behavior applies to local `.fxbex` paths. Legacy packages
+without I/O metadata report the missing contract; use `chat` for a legacy LLM or
+`predict --input inputs.json` for an image model as its HF instructions specify.
+
+Exporters can include sample images in the archive and reference them as
+`{"$asset":"samples/example.png"}` within `example_input`. Only integrity-listed
+files inside the extracted package are resolved. Plain strings remain text.
+No arbitrary shell commands or sample-generation code is executed from metadata.
