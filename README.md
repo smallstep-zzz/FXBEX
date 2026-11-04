@@ -219,3 +219,7 @@ need `chat` or explicit inputs as described above.
 ## 0.4.0 release
 
 Install with `python -m pip install --upgrade fxbex==0.4.0` on Python 3.10–3.14. This release includes catalog model-ID downloads (including `./org/model`), integrity checks, package I/O descriptions and sample execution. `huggingface_hub` is installed automatically. Legacy model packages still require their documented input or `chat` command when sample metadata is absent.
+
+### 0.4.1 download location fix
+
+Model IDs (with or without `./`) now create a directory under the current working directory and save `model.fxbex` there. HF transfer and local-copy progress are displayed. Existing `model.fxbex` files are reused. The HF cache and local copy may both occupy disk space. Upgrade using `python -m pip install --upgrade fxbex==0.4.1`.
