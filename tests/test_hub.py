@@ -53,3 +53,12 @@ class Hub(unittest.TestCase):
   (base/'model.fxbex').unlink()
   with self.assertRaisesRegex(ValueError,'Multiple installed versions'):resolve_package('org/model')
   with self.assertRaises(ValueError):resolve_package('org/model@../bad')
+
+ def test_download_uses_canonical_model_filename(self):
+  with tempfile.TemporaryDirectory() as d:
+   payload=Path(d)/'download';payload.write_bytes(b'fixture')
+   entry={'model':{'name':'Readable alias','source_repo':'org/QwenName'},'release':{'version':'opt2','artifact_url':'https://huggingface.co/org/model/resolve/'+'a'*40+'/model.fxbex','author_sha256':hashlib.sha256(b'fixture').hexdigest()}}
+   with patch('fxbex.hub.urlopen',side_effect=lambda *a,**k:io.BytesIO(json.dumps({'models':[entry]}).encode())),patch.dict(sys.modules,{'huggingface_hub':SimpleNamespace(hf_hub_download=lambda *a,**k:str(payload))}):
+    expected=(Path('org/QwenName/opt2/QwenName.fxbex')).resolve()
+    self.assertEqual(resolve_package('Readable alias'),expected)
+    self.assertEqual(resolve_package('Readable alias'),expected)

@@ -64,7 +64,12 @@ def resolve_package(value):
     destination=Path(source_id)/selected_version
     destination.mkdir(parents=True,exist_ok=True)
     target=destination/(source_id.split('/')[-1]+'.fxbex')
-    if target.exists():raise FileExistsError(target)
+    if target.exists():
+        local_hash=hashlib.sha256()
+        with target.open('rb') as stream:
+            for block in iter(lambda:stream.read(1024*1024),b''):local_hash.update(block)
+        if local_hash.hexdigest()!=expected:raise ValueError('Installed release differs from catalog checksum; refusing to overwrite')
+        return target.resolve()
     fd,temp=tempfile.mkstemp(prefix='.download-',dir=destination);os.close(fd)
     try:
         from tqdm.auto import tqdm
