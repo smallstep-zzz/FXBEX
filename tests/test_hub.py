@@ -21,5 +21,5 @@ class Hub(unittest.TestCase):
    root=Path(d);(root/'image.png').write_bytes(b'fixture')
    c={'example_input':{'image':{'$asset':'image.png'},'prompt':'image.png'}}
    r=resolve_sample(c,root,{'files':{'image.png':{}}})
-   self.assertEqual(r['image'],str(root/'image.png'));self.assertEqual(r['prompt'],'image.png')
+   self.assertEqual(r['image'],str((root/'image.png').resolve()));self.assertEqual(r['prompt'],'image.png')
    with self.assertRaises(ValueError):resolve_sample(c,root,{'files':{}})

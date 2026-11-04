@@ -19,7 +19,7 @@ def resolve_package(value):
     if len(matches)!=1:raise ValueError('Model ID is missing or ambiguous; use exact source_repo@version from FuryAwesome')
     release=matches[0]['release'];u=urlsplit(release['artifact_url']);parts=u.path.strip('/').split('/')
     import re
-    if u.scheme!='https' or u.netloc!='huggingface.co' or u.query or u.fragment or len(parts)<6 or parts[2]!='resolve' or not re.fullmatch('[0-9a-f]{40}',parts[3]) or any(x in ('.','..','') for x in parts):raise ValueError('Expected immutable HF artifact URL')
+    if u.scheme!='https' or u.netloc!='huggingface.co' or u.query or u.fragment or len(parts)<5 or parts[2]!='resolve' or not re.fullmatch('[0-9a-f]{40}',parts[3]) or any(x in ('.','..','') for x in parts):raise ValueError('Expected immutable HF artifact URL')
     expected=release['author_sha256']
     if not re.fullmatch('[0-9a-f]{64}',expected):raise ValueError('Missing SHA256')
     try:from huggingface_hub import hf_hub_download
