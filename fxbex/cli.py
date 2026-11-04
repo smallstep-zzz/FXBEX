@@ -57,6 +57,10 @@ Model-specific exporters and capture commands belong to their adapter plugins.""
         else:
             p.add_argument('--port', type=int, default=8000, help='HTTP port (default: 8000)')
     args=parser.parse_args(argv)
+    if args.action=='chat' and not args.input:
+        print('Welcome to FXBEX Chat!\nModel: '+args.package+
+              '\n모델을 준비하고 있습니다. 적재가 완료되면 >>> 뒤에 질문을 입력하세요.'+
+              '\n/reset: 대화 초기화 · /quit: 종료 및 모델 해제\n',file=sys.stderr,flush=True)
     if args.action in ('run','chat','predict','serve','describe','sample','inspect','validate'):
         from .hub import resolve_package
         args.package=str(resolve_package(args.package))
@@ -115,9 +119,9 @@ Model-specific exporters and capture commands belong to their adapter plugins.""
                 result=session.chat(data['messages'],data.get('max_new_tokens',args.max_new_tokens))
             else:
                 messages=[]
-                print('FXB_EX chat: /reset clears history, /quit unloads.',flush=True)
+                print('모델 적재 완료. 대화를 시작하세요. (/reset: 초기화 · /quit: 종료)',flush=True)
                 while True:
-                    try:prompt=input('you> ')
+                    try:prompt=input('>>> ')
                     except EOFError:break
                     if prompt.strip()=='/quit':break
                     if prompt.strip()=='/reset':messages=[];continue
