@@ -36,11 +36,22 @@ def resolve_adapter(name):
     return entries[0].load()
 
 
-def check_compatibility(manifest):
-    actual = environment()
+def package_compatibility(manifest):
+    actual = environment(); notices=[]
     for name, expected in manifest['compatibility'].get('packages', {}).items():
-        if actual.get(name) != expected:
-            raise PackageError(f'SDK mismatch {name}: package={expected}, installed={actual.get(name)}; rebuild explicitly')
+        installed=actual.get(name)
+        if installed == expected:continue
+        if (name=='transformers' and isinstance(installed,str) and isinstance(expected,str)
+                and installed.split('.')[0].isdigit() and installed.split('.')[0]==expected.split('.')[0]):
+            notices.append(f'transformers differs: package={expected}, installed={installed}; proceeding with adapter validation; compatibility is not yet established')
+        else:
+            raise PackageError(f'SDK mismatch {name}: package={expected}, installed={installed}; rebuild explicitly')
+    return notices
+
+
+def check_compatibility(manifest):
+    import warnings
+    for message in package_compatibility(manifest):warnings.warn(message,RuntimeWarning,stacklevel=2)
     if manifest['compatibility'].get('hardware', 'rngd') != 'rngd' or manifest['compatibility'].get('fusion',8) != 8:
         raise PackageError('This adapter version requires RNGD fusion8')
     from .bundled import specification

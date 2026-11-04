@@ -88,6 +88,9 @@ Model-specific exporters and capture commands belong to their adapter plugins.""
         import contextlib
         if args.action == 'predict' and not args.input:
             raise ValueError('--input JSON file is required for tensor prediction')
+        from .runtime import package_compatibility
+        for message in package_compatibility(inspect(args.package)):
+            print('Warning: '+message,file=sys.stderr,flush=True)
         session=Session(args.package,report_dir=args.report_dir,weights_dir=args.weights_dir)
         log_path=session.report_dir/'runtime.log'
         print(f'Loading package; diagnostics: {log_path}',file=sys.stderr,flush=True)
