@@ -18,8 +18,13 @@ class Model:
     def _call(self,method,*args):
         with self._lock:
             started=time.perf_counter()
-            try:return getattr(self._service,method)(*args)
-            finally:self.last_timing={'operation':method,'wall_seconds':time.perf_counter()-started,'scope':'host request including transfers/waits; not NPU-only'}
+            status='failed'
+            try:
+                result=getattr(self._service,method)(*args)
+                status='succeeded'
+                return result
+            finally:
+                self.last_timing={'operation':method,'status':status,'wall_seconds':time.perf_counter()-started,'scope':'host request including transfers/waits; not NPU-only'}
 
     def predict(self,inputs):return self._call('predict',inputs)
     def close(self):

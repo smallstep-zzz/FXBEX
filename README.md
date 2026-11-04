@@ -201,3 +201,35 @@ unsupported models, invent preprocessing or supply a missing image-generation
 adapter. Current YOLO adapter accepts image only; unsupported options fail there.
 0.4.0 API source is available in Git; PyPI 0.3.0 still has the earlier API.
 Old `LLM(model_name, fxbex=path)` now fails: migrate to `LLM(path)`.
+
+### Execution receipts for model enablement / optimization
+
+The source version adds a common `fxbex_execution` field to worker `predict` and
+`chat` responses without changing adapter outputs or the package format:
+
+```python
+with YOLO("detector.fxbex") as model:
+    result = model.predict("image.jpg")
+    receipt = result["fxbex_execution"]
+    print(receipt["status"], receipt["wall_seconds"], receipt["report_path"])
+```
+
+Each session appends small records to `executions.jsonl` in its report directory.
+The record contains a hash of the validated manifest (including artifact hashes),
+operation/sequence, success or failure, host wall time and selected adapter-reported
+trace metadata. Direct `Session` callers can inspect `session.execution.last`.
+Prompts, messages, tensor outputs and exception contents are not copied into receipts.
+A write failure is returned as `persisted: false` and never hides the model exception.
+
+`npu_verdict` remains `unknown`: a successful Python call or an adapter's old
+`validated_audit` path does not prove this request ran on NPU. The coordinator must
+validate official current-run traces, numerical accuracy, complete graph coverage,
+input/environment contracts and repeated unprofiled timings before promoting a
+result to supported or selecting an optimized variant. Adapter-reported fields are
+explicitly unverified; a manifest identity is not a complete tuning contract or a
+signature of trust. Host timings include dispatch/transfers/waits, and completion
+is adapter-defined. `Model.last_timing.status` excludes failures from valid samples.
+
+ChunSik, kernel matching, candidate generation and tuning policy stay in
+Furiosa-Hug-Anything; FXBEX only packages, runs and reports. Existing `.fxbex` files
+need no rebuild for these receipts. This source addition is not a new PyPI release.

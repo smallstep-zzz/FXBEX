@@ -15,5 +15,12 @@ class ModelTest(unittest.TestCase):
     m.generate('a bird',seed=42)
     svc.return_value.predict.assert_called_with({'prompt':'a bird','seed':42})
    svc.return_value.unload.assert_called()
+ def test_failed_call_is_not_a_successful_latency_sample(self):
+  with patch('fxbex.model.inspect',return_value={'model':{'name':'test'}}),patch('fxbex.model.PackageService') as svc:
+   svc.return_value.predict.side_effect=RuntimeError('failed')
+   with Model('x.fxbex') as m:
+    with self.assertRaises(RuntimeError):m.predict({})
+    self.assertEqual(m.last_timing['status'],'failed')
+
  def test_ambiguous_arguments(self):
   with self.assertRaises(ValueError):Model('x',fxbex='y')

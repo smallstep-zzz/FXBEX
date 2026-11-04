@@ -1,0 +1,55 @@
+import json
+import tempfile
+import unittest
+from pathlib import Path
+from unittest.mock import patch
+from fxbex.execution import ExecutionRecorder, manifest_identity
+from fxbex.runtime import Session
+
+class ExecutionTests(unittest.TestCase):
+    def test_identity_and_receipt_do_not_promote_old_trace(self):
+        with tempfile.TemporaryDirectory() as d:
+            recorder = ExecutionRecorder(d, {'model': 'x', 'files': {'a': 'hash'}})
+            result = {'messages': ['private'], 'npu_tasks': None,
+                      'current_request_traced': False, 'validated_audit': '/old/summary.json'}
+            self.assertIs(recorder.call('chat', lambda: result), result)
+            row = json.loads((Path(d)/'executions.jsonl').read_text())
+            self.assertEqual(row['npu_verdict'], 'unknown')
+            self.assertEqual(row['status'], 'succeeded')
+            self.assertNotIn('private', json.dumps(row))
+            self.assertFalse(row['adapter_reported']['current_request_traced'])
+            self.assertEqual(manifest_identity({'a':1,'b':2}), manifest_identity({'b':2,'a':1}))
+            self.assertNotEqual(manifest_identity({'a':1}), manifest_identity({'a':2}))
+
+    def test_failed_execution_is_recorded_without_exception_content(self):
+        with tempfile.TemporaryDirectory() as d:
+            recorder=ExecutionRecorder(d,{})
+            def fail(): raise ValueError('private prompt')
+            with self.assertRaisesRegex(ValueError,'private prompt'):
+                recorder.call('predict',fail)
+            self.assertEqual(recorder.last['status'],'failed')
+            self.assertEqual(recorder.last['error_type'],'ValueError')
+            self.assertNotIn('private',Path(recorder.path).read_text())
+
+    def test_session_routes_calls_and_cleanup_survives_reset_failure(self):
+        with tempfile.TemporaryDirectory() as d:
+            from unittest.mock import Mock
+            session=Session('unused',report_dir=d)
+            session.execution=ExecutionRecorder(d,{})
+            session.adapter=Mock();session.adapter.predict.return_value={'outputs':[]}
+            self.assertEqual(session.predict({}),{'outputs':[]})
+            self.assertEqual(session.execution.last['operation'],'predict')
+            released=[];session.stack.callback(lambda:released.append(True))
+            torch=Mock();torch._dynamo.reset.side_effect=RuntimeError('reset')
+            with patch.dict('sys.modules',{'torch':torch}):
+                with self.assertRaisesRegex(RuntimeError,'reset'):session.__exit__()
+            self.assertEqual(released,[True])
+
+    def test_recording_failure_preserves_model_error(self):
+        with tempfile.TemporaryDirectory() as d:
+            recorder=ExecutionRecorder(d,{})
+            def fail(): raise ValueError('model failure')
+            with patch('pathlib.Path.open',side_effect=OSError('full disk')):
+                with self.assertRaisesRegex(ValueError,'model failure'):
+                    recorder.call('predict',fail)
+            self.assertFalse(recorder.last['persisted'])

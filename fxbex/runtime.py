@@ -61,6 +61,8 @@ class Session:
             self.root = self.stack.enter_context(extract(self.path))
             self.manifest = json.loads((self.root/'manifest.json').read_text())
             check_compatibility(self.manifest)
+            from .execution import ExecutionRecorder
+            self.execution = ExecutionRecorder(self.report_dir, self.manifest)
             # Share the canonical lock with web workers. Never assume PE partitioning.
             import fcntl
             canonical = lock_path()
@@ -85,18 +87,20 @@ class Session:
         # Release graph caches before yielding the canonical device lock.
         import sys, gc
         torch = sys.modules.get('torch')
-        if torch is not None:
-            torch._dynamo.reset()
-        gc.collect()
-        self.stack.close()
+        try:
+            if torch is not None:
+                torch._dynamo.reset()
+            gc.collect()
+        finally:
+            self.stack.close()
 
     def predict(self, inputs):
         if not hasattr(self.adapter, 'predict'):raise ValueError('Package does not provide predict')
-        return self.adapter.predict(inputs)
+        return self.execution.call('predict', lambda: self.adapter.predict(inputs))
 
     def chat(self, messages, max_new_tokens=32):
         if not hasattr(self.adapter, 'chat'): raise ValueError('Package does not provide chat')
-        return self.adapter.chat(messages, max_new_tokens)
+        return self.execution.call('chat', lambda: self.adapter.chat(messages, max_new_tokens))
 
 
 class RunnableDAG:
