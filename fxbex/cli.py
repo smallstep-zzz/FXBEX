@@ -7,6 +7,14 @@ from .package import build, inspect
 from .validation import validate
 
 
+def _runtime_call(callback, log_path, verbose=False):
+    """Keep framework diagnostics separate from answers and JSON results."""
+    if verbose:return callback()
+    import contextlib
+    with log_path.open('a') as log, contextlib.redirect_stdout(log), contextlib.redirect_stderr(log):
+        return callback()
+
+
 def _main(argv=None):
     parser = argparse.ArgumentParser(
         prog='fxbex', description='Build, inspect and run compiled FXB_EX model packages.',
@@ -48,6 +56,7 @@ Model-specific exporters and capture commands belong to their adapter plugins.""
     ):
         p = sub.add_parser(name, help=help_text, description=help_text)
         p.add_argument('package', help='Path to a .fxbex archive')
+        p.add_argument('--verbose',action='store_true',help='Show internal SDK/compiler diagnostics on the terminal')
         p.add_argument('--report-dir', help='Directory for runtime logs and evidence')
         p.add_argument('--weights-dir', help='Override external checkpoint/weights directory')
         if name != 'serve':
@@ -98,8 +107,8 @@ Model-specific exporters and capture commands belong to their adapter plugins.""
         session=Session(args.package,report_dir=args.report_dir,weights_dir=args.weights_dir)
         log_path=session.report_dir/'runtime.log'
         print(f'Loading package; diagnostics: {log_path}',file=sys.stderr,flush=True)
-        with log_path.open('w') as log, contextlib.redirect_stdout(log), contextlib.redirect_stderr(log):
-            session.__enter__()
+        def invoke(callback):return _runtime_call(callback,log_path,args.verbose)
+        invoke(session.__enter__)
         print(f'NPU package ready; reports: {session.report_dir}',file=sys.stderr,flush=True)
         try:
             if args.action=='serve':
@@ -109,14 +118,14 @@ Model-specific exporters and capture commands belong to their adapter plugins.""
                 from .schema import resolve_sample
                 data=resolve_sample(sample_contract,session.root,session.manifest)
                 if sample_contract['method']=='chat':
-                    result=session.chat(data['messages'],data.get('max_new_tokens',args.max_new_tokens))
-                else:result=session.predict(data)
+                    result=invoke(lambda: session.chat(data['messages'],data.get('max_new_tokens',args.max_new_tokens)))
+                else:result=invoke(lambda: session.predict(data))
             elif args.action=='predict' or (args.action=='run' and session.manifest['runtime']['adapter']=='runnable_dag'):
                 if not args.input:raise ValueError('--input JSON file is required for tensor prediction')
-                result=session.predict(json.loads(Path(args.input).read_text()))
+                result=invoke(lambda: session.predict(json.loads(Path(args.input).read_text())))
             elif args.input:
                 data=json.loads(Path(args.input).read_text())
-                result=session.chat(data['messages'],data.get('max_new_tokens',args.max_new_tokens))
+                result=invoke(lambda: session.chat(data['messages'],data.get('max_new_tokens',args.max_new_tokens)))
             else:
                 messages=[]
                 print('모델 적재 완료. 대화를 시작하세요. (/reset: 초기화 · /quit: 종료)',flush=True)
@@ -127,11 +136,11 @@ Model-specific exporters and capture commands belong to their adapter plugins.""
                     if prompt.strip()=='/reset':messages=[];continue
                     if not prompt.strip():continue
                     candidate=messages+[{'role':'user','content':prompt}]
-                    result=session.chat(candidate,args.max_new_tokens)
+                    result=invoke(lambda: session.chat(candidate,args.max_new_tokens))
                     messages=candidate+[{'role':'assistant','content':result['text']}]
                     print(result['text'],flush=True)
                 return
-        finally:session.__exit__(None,None,None)
+        finally:invoke(lambda: session.__exit__(None,None,None))
         if args.output:Path(args.output).write_text(json.dumps(result,ensure_ascii=False,indent=2))
         result['report_dir']=str(session.report_dir)
     print(json.dumps(result,ensure_ascii=False,indent=2))
