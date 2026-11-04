@@ -39,6 +39,10 @@ class PackageTests(unittest.TestCase):
             for info, data in transform(members):
                 archive.writestr(info, data)
 
+    def test_original_source_is_stored(self):
+        build(self.source,self.output,standalone=True,source_url='stabilityai/TripoSR',source_revision='a'*40)
+        self.assertEqual(inspect(self.output)['provenance'],{'source_url':'https://huggingface.co/stabilityai/TripoSR','revision':'a'*40,'status':'recorded'})
+
     def test_roundtrip_and_cleanup(self):
         build(self.source, self.output, standalone=True)
         manifest = inspect(self.output)

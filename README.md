@@ -348,3 +348,17 @@ exact file path; no lexical guess of the newest/best optimization is made. Exist
 legacy `model.fxbex` files remain usable and are not renamed or deleted. Explicit
 versions never accidentally reuse an unversioned legacy package. The hug adapter
 uses the same resolution rules. HF caches remain separate from local copies.
+
+## Original model provenance (0.5.2)
+
+```bash
+fxbex build ./compiled_model -o model.fxbex --standalone --source-model stabilityai/TripoSR --source-revision ORIGINAL_COMMIT
+fxbex inspect model.fxbex
+```
+
+The manifest records `provenance.source_url`, optional `revision`, and `status`.
+Python builders pass `source_url=` and `source_revision=` to `build()`. Explicit
+existing provenance is preserved. Missing provenance is `unknown`; a display name
+is never treated as evidence of origin. FHA fills this from intake/download records
+and requires it before publishing. Old packages still load without this field;
+metadata edits require a new artifact hash/release, not in-place rewriting.

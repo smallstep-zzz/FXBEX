@@ -170,7 +170,7 @@ def extract(path, *, max_total_size=DEFAULT_MAX_TOTAL_SIZE, max_json_size=DEFAUL
         raise PackageError(f'Unreadable archive: {exc}') from exc
 
 
-def build(source, output, standalone=False, *, max_total_size=DEFAULT_MAX_TOTAL_SIZE, max_json_size=DEFAULT_MAX_JSON_SIZE):
+def build(source, output, standalone=False, *, max_total_size=DEFAULT_MAX_TOTAL_SIZE, max_json_size=DEFAULT_MAX_JSON_SIZE, source_url=None, source_revision=None):
     """Build atomically without overwriting; source is an unpacked package tree.
 
     Source manifest supplies model, compatibility and runtime. Integrity entries and
@@ -194,6 +194,8 @@ def build(source, output, standalone=False, *, max_total_size=DEFAULT_MAX_TOTAL_
     if manifest_path.stat().st_size > max_json_size:
         raise PackageError('Manifest exceeds JSON size limit')
     manifest = _json(manifest_path.read_bytes(), 'manifest.json')
+    from .provenance import source_metadata
+    manifest['provenance']=source_metadata(source_url,source_revision,manifest.get('provenance'))
     manifest.update(schema_version=1, format='FXB_EX', standalone=bool(standalone), files={})
     inputs = {}
     for path in sorted(source.rglob('*')):

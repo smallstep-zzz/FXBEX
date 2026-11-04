@@ -35,6 +35,8 @@ Model-specific exporters and capture commands belong to their adapter plugins.""
     p = sub.add_parser('build', help='Pack a compiled directory with checksums (no compilation)')
     p.add_argument('source', help='Compiled directory containing manifest and required JSON configurations')
     p.add_argument('-o', '--output', required=True, help='New .fxbex file; existing files are never overwritten')
+    p.add_argument('--source-model',help='Original HF model ID or HTTPS model URL')
+    p.add_argument('--source-revision',help='Original checkpoint revision (prefer immutable commit)')
     p.add_argument('--standalone', action='store_true', help='Copy referenced external weights into the archive')
     p = sub.add_parser('inspect', help='Verify integrity and display the manifest; no SDK needed')
     p.add_argument('package', help='Path to a .fxbex archive')
@@ -77,12 +79,12 @@ Model-specific exporters and capture commands belong to their adapter plugins.""
     if args.action=='run' and not args.input:
         from .schema import describe
         sample_contract=describe(args.package)
-    if args.action=='build':result={'package':str(build(args.source,args.output,standalone=args.standalone))}
+    if args.action=='build':result={'package':str(build(args.source,args.output,standalone=args.standalone,source_url=args.source_model,source_revision=args.source_revision))}
     elif args.action == 'inspect':
         m=inspect(args.package)
         result={'model':m['model'],'runtime':m['runtime'],'compatibility':m['compatibility'],
                 'standalone':m['standalone'],'bundled_python':bool(m['runtime'].get('bundled_python')),
-                'delivery':m.get('delivery'), 'files':len(m['files']),
+                'delivery':m.get('delivery'), 'provenance':m.get('provenance',{'status':'unknown'}), 'files':len(m['files']),
                 'artifact_bytes':sum(x['size'] for x in m['files'].values()),'integrity_verified':True}
     elif args.action == 'validate':
         result = validate(args.package, integrity_only=args.integrity_only, weights_dir=args.weights_dir)
