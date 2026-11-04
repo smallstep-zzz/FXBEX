@@ -163,3 +163,20 @@ with YOLO('detector.fxbex') as model:
 `npu_verdict`는 `unknown`으로 유지됩니다. Python 호출 성공이나 어댑터의 이전 `validated_audit` 기록만으로 해당 요청이 NPU에서 실행됐다고 볼 수 없습니다. 지원 판정을 내리거나 최적 구성을 선택하려면 현재 실행에서 수집한 공식 trace, 수치 정확도, 전체 그래프 범위, 입력·환경 계약과 프로파일링되지 않은 반복 시간까지 검증해야 합니다. 어댑터가 보고한 값은 검증 전까지 증거로 간주하지 않습니다. 호스트 시간에는 실행 요청·전송·대기가 포함되고 완료 기준은 어댑터별로 다릅니다. `Model.last_timing.status`가 실패한 요청은 유효한 시간 표본에서 제외됩니다.
 
 ChunSik, 커널 매칭, 후보 생성과 튜닝 정책은 Furiosa-Hug-Anything이 담당합니다. FXBEX는 패키징, 실행과 보고를 맡습니다. 기존 `.fxbex` 파일은 실행 영수증을 위해 다시 만들 필요가 없습니다. 이 소스 변경은 PyPI 새 릴리스가 아닙니다.
+
+### Discover model inputs and outputs (source version)
+
+```bash
+fxbex describe model.fxbex
+fxbex sample model.fxbex > inputs.json
+fxbex run model.fxbex --input inputs.json -o result.json
+```
+
+Exporters provide an optional `manifest.io_contract` with schema_version=1,
+method (`chat`/`predict`), `inputs`, `outputs`, `example_input`, and an honest
+`expected_result` description. Missing metadata is reported, never guessed.
+Python users can call `from fxbex import describe, example_inputs`. These return
+JSON dictionaries suitable for editor integrations; automatic IDE completion is
+not yet implemented. No package code executes while reading these hints.
+These new commands are available from this repository's source version; a new
+PyPI release is required before they can be assumed in `pip install fxbex`.

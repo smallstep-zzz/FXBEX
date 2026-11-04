@@ -34,6 +34,9 @@ Model-specific exporters and capture commands belong to their adapter plugins.""
     p.add_argument('package', help='Path to a .fxbex archive')
     p.add_argument('--integrity-only', action='store_true', help='Verify archive only; skip SDK, weights and device checks')
     p.add_argument('--weights-dir', help='Override the external checkpoint/weights directory')
+    for name in ('describe','sample'):
+        p=sub.add_parser(name,help='Show I/O contract or example input without running the model')
+        p.add_argument('package')
     sub.add_parser('doctor', help='Report installed SDK versions and RNGD device status')
     p = sub.add_parser('ui', help='Launch the local package interface')
     p.add_argument('--port', type=int, default=7861, help='HTTP port (default: 7861)')
@@ -63,6 +66,9 @@ Model-specific exporters and capture commands belong to their adapter plugins.""
                 'artifact_bytes':sum(x['size'] for x in m['files'].values()),'integrity_verified':True}
     elif args.action == 'validate':
         result = validate(args.package, integrity_only=args.integrity_only, weights_dir=args.weights_dir)
+    elif args.action in ('describe','sample'):
+        from .schema import describe,example_inputs
+        result=describe(args.package) if args.action=='describe' else example_inputs(args.package)
     elif args.action=='doctor':
         from .runtime import doctor
         result=doctor()
