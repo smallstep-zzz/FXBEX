@@ -22,7 +22,11 @@ from .service import PackageService
 def _is_package(value):
     value = str(value)
     path = Path(value).expanduser()
-    if value.endswith('.fxbex') or (path.is_dir() and (path / 'model.fxbex').is_file()):
+    if value.endswith('.fxb') or (path.is_file() and not value.endswith('.fxbex')):return False
+    identifier=value[2:] if value.startswith('./') else value
+    name,separator,version=identifier.partition('@')
+    local_path=Path(name).expanduser()/version if separator else path
+    if value.endswith('.fxbex') or hub._local_package(local_path) is not None:
         return True
     if value.endswith('.fxb') or path.exists():
         return False

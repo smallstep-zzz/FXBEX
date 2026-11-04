@@ -120,3 +120,13 @@ class ClassSemantics(unittest.TestCase):
         class Derived(wrapped):
             def __init__(self):self.value='derived'
         self.assertEqual(Derived().value,'derived')
+
+class LocalRouting(unittest.TestCase):
+    def test_native_fxb_not_intercepted_and_local_version_is(self):
+        import tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d);native=root/'official.fxb';native.write_bytes(b'native')
+            self.assertFalse(facade._is_package(native))
+            folder=root/'model'/'opt2';folder.mkdir(parents=True);(folder/'model.fxbex').write_bytes(b'package')
+            self.assertTrue(facade._is_package(str(root/'model')+'@opt2'))

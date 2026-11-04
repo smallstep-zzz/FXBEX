@@ -20,7 +20,7 @@ class Hub(unittest.TestCase):
     self.assertEqual(resolve_package('org/model@v1').read_bytes(),b'package')
     self.assertEqual(resolve_package('./org/model@v1').read_bytes(),b'package')
     self.assertEqual(resolve_package('./org/model').read_bytes(),b'package')
-    (Path('org/model')/'model.fxbex').unlink()
+    (Path('org/model/v1')/'model.fxbex').unlink()
     p.write_bytes(b'changed')
     with self.assertRaisesRegex(ValueError,'checksum'):resolve_package('org/model')
  def test_assets_are_explicit_and_confined(self):
@@ -40,3 +40,16 @@ class Hub(unittest.TestCase):
   with tempfile.TemporaryDirectory() as d,patch('fxbex.hub.urlopen') as network:
    path=Path(d)/'model';path.write_bytes(b'local')
    self.assertEqual(resolve_package(path),path.resolve());network.assert_not_called()
+
+ def test_version_selection_and_legacy(self):
+  base=Path('org/model');base.mkdir(parents=True)
+  (base/'model.fxbex').write_bytes(b'legacy')
+  for version in ('opt1','opt2'):
+   folder=base/version;folder.mkdir();(folder/'model.fxbex').write_bytes(version.encode())
+  with patch('fxbex.hub.urlopen') as network:
+   self.assertEqual(resolve_package('org/model').read_bytes(),b'legacy')
+   self.assertEqual(resolve_package('org/model@opt2').read_bytes(),b'opt2')
+   network.assert_not_called()
+  (base/'model.fxbex').unlink()
+  with self.assertRaisesRegex(ValueError,'Multiple installed versions'):resolve_package('org/model')
+  with self.assertRaises(ValueError):resolve_package('org/model@../bad')

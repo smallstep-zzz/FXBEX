@@ -6,14 +6,31 @@ from urllib.parse import urlsplit
 
 CATALOG='https://raw.githubusercontent.com/smallstep-zzz/furyawesome/main/catalog.json'
 
-def resolve_package(value):
-    path=Path(value).expanduser()
+def _local_package(path):
     if path.is_file():return path.resolve()
-    if path.is_dir():
-        installed=path/'model.fxbex'
-        if installed.is_file():return installed.resolve()
+    if not path.is_dir():return None
+    for filename in (path.name+'.fxbex','model.fxbex'):
+        candidate=path/filename
+        if candidate.is_file():return candidate.resolve()
+    candidates=list(path.glob('*.fxbex'))
+    if len(candidates)==1:return candidates[0].resolve()
+    if len(candidates)>1:raise ValueError('Multiple model files; select the exact .fxbex path')
+    versions=[p for p in path.glob('*/*.fxbex') if p.is_file()]
+    if len(versions)==1:return versions[0].resolve()
+    if len(versions)>1:raise ValueError('Multiple installed versions; select MODEL@VERSION or an exact file')
+    return None
+
+
+def resolve_package(value):
+    import re
     identifier=str(value)
     if identifier.startswith('./'):identifier=identifier[2:]
+    name,sep,version=identifier.partition('@')
+    if sep and not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]{0,59}',version):raise ValueError('Invalid release version')
+    path=Path(value).expanduser()
+    # An explicit version never reuses an unversioned legacy file.
+    local=_local_package(Path(name).expanduser()/version) if sep else _local_package(path)
+    if local:return local
     if identifier.endswith('.fxbex') or identifier.startswith(('.', '/', '~')):raise FileNotFoundError(path)
     with urlopen(CATALOG,timeout=30) as response:
         raw=response.read(4_000_001)
@@ -40,9 +57,13 @@ def resolve_package(value):
     with path.open('rb') as stream:
         for block in iter(lambda:stream.read(1024*1024),b''):h.update(block)
     if h.hexdigest()!=expected:raise ValueError('Downloaded package checksum mismatch')
-    destination=Path(value).expanduser()
+    source_id=matches[0]['model']['source_repo']
+    if not re.fullmatch(r'[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+',source_id) or any(x in ('.','..') for x in source_id.split('/')):raise ValueError('Invalid source model ID')
+    selected_version=release['version']
+    if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]{0,59}',selected_version):raise ValueError('Invalid release version')
+    destination=Path(source_id)/selected_version
     destination.mkdir(parents=True,exist_ok=True)
-    target=destination/'model.fxbex'
+    target=destination/(source_id.split('/')[-1]+'.fxbex')
     if target.exists():raise FileExistsError(target)
     fd,temp=tempfile.mkstemp(prefix='.download-',dir=destination);os.close(fd)
     try:

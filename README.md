@@ -323,3 +323,28 @@ separate officially supported model. Native constructor/functionality preservati
 is covered by forwarding/class-semantics regression tests. The open native crash
 in the Python3.11 worker was reproduced and is not fixed by hug; select the verified
 worker environment explicitly. See `examples/hug_llm.py` for a runnable example.
+
+## Versioned local models (0.5.1)
+
+New downloads use readable, version-separated paths:
+
+```text
+RedHatAI/Qwen3.5-9B-FP8-dynamic/
+  2026.4.0-portable2/
+    Qwen3.5-9B-FP8-dynamic.fxbex
+  opt3/
+    Qwen3.5-9B-FP8-dynamic.fxbex
+```
+
+```bash
+fxbex chat RedHatAI/Qwen3.5-9B-FP8-dynamic@2026.4.0-portable2
+# A future locally installed or published optimization can be selected explicitly:
+# fxbex chat RedHatAI/Qwen3.5-9B-FP8-dynamic@opt3
+```
+
+Release labels are explicit; opt3 above is illustrative, not a published model.
+Local versions work offline. Multiple local versions require `@VERSION` or an
+exact file path; no lexical guess of the newest/best optimization is made. Existing
+legacy `model.fxbex` files remain usable and are not renamed or deleted. Explicit
+versions never accidentally reuse an unversioned legacy package. The hug adapter
+uses the same resolution rules. HF caches remain separate from local copies.

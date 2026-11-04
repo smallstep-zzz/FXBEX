@@ -1,1 +1,33 @@
-sed: -e expression #1, char 2: unexpected `,'
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fxbex"
+version = "0.5.1"
+description = "Furiosa RNGD 사전 컴파일 아티팩트 패키징 및 실행 CLI"
+readme = "README.md"
+requires-python = ">=3.10,<3.15"
+dependencies = ["huggingface_hub>=0.24,<2", "tqdm>=4.66"]
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+keywords = ["furiosa", "rngd", "npu", "compiled-artifacts"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+[project.scripts]
+fxbex = "fxbex.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["fxbex*"]
