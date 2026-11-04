@@ -227,3 +227,99 @@ Model IDs (with or without `./`) now create a directory under the current workin
 ### Qwen runtime compatibility finding
 
 Qwen3.5-9B portable with SDK 2026.4.0 / PyTorch 2.10.0+cpu / Python 3.11 / transformers 5.22.1 produced intermittent native crashes during load validation. Limiting CPU threads and excluding CPU profiling did not resolve them. Keeping Python 3.11 and changing only transformers to 5.20.2 completed numerical/NPU acceptance and two chats (4 and Hello). Use `python -m pip install --no-deps transformers==5.20.2` for this observed combination. The native SDK fault itself has not been localized; one successful comparison is not a stability guarantee. Other same-major transformers differences retain the warning policy.
+
+## Add FXBEX to the official Furiosa LLM API
+
+```python
+from furiosa_llm import LLM, SamplingParams
+from fxbex import hug
+
+LLM = hug(LLM)
+# Official models retain the original constructor, options, methods and objects.
+# llm = LLM("your-official-model", ...)
+llm = LLM("./model.fxbex", max_model_len=512)
+try:
+    output = llm.generate("The numbers are one, two,", SamplingParams(temperature=0, max_tokens=16))
+    print(output.outputs[0].text)
+    answers = llm.chat([{"role": "user", "content": "Hello!"}],
+                       SamplingParams(temperature=0, max_tokens=16))
+    print(answers[0].outputs[0].text)
+finally:
+    llm.shutdown()
+```
+
+The wrapper does not patch the official class globally. Official construction
+returns the original object; a wrapped class keeps its inherited class helpers and
+instance checks. Local `.fxbex` paths, folders containing `model.fxbex`, or exact
+FuryAwesome IDs select FXBEX. `fxbex=True` requires that route; `fxbex=False` forces
+native dispatch (useful when a model ID exists in both places). Offline unknown
+catalog IDs fall back to the official constructor with a warning. Catalog IDs use
+the existing verified download/cache mechanism. The native engine still needs its
+own weights/SDK and licenses; this wrapper does not enable unsupported models there.
+
+### Live streaming
+
+```python
+import asyncio
+
+async def show(llm):
+    async for text in llm.stream_generate(
+        "Once upon a time", SamplingParams(temperature=0, max_tokens=32)
+    ):
+        print(text, end="", flush=True)
+    print()
+
+# Call while llm is loaded, before shutdown:
+# asyncio.run(show(llm))
+```
+
+FXBEX streams actual decoder callbacks through its isolated worker. It does not
+split a completed answer to simulate streaming. Unicode byte fragments are buffered.
+
+### Compatibility boundary in 0.5.0
+
+|Path|Supported behavior|
+|---|---|
+|Official model / official FXB|Original constructor and engine, all original functionality forwarded|
+|Qwen FXBEX `generate`|Raw string or list of strings, actual official RequestOutput/CompletionOutput, real token IDs|
+|Qwen FXBEX `chat`|Single or sequential batches of text messages, list of official RequestOutput|
+|Qwen FXBEX `stream_generate`|Async text deltas from greedy decoder, bounded generation|
+|FXBEX sampling|Greedy (`temperature=0`), `max_tokens` 1–256; default call uses greedy16|
+|FXBEX context|512 tokens; only max_model_len=512 is accepted|
+|Unsupported FXBEX options|Nondefault sampling, logprobs, tools/templates, embeddings/scoring, custom tokenizer, pretokenized input, device/parallel/scheduler options raise errors|
+
+Batches are sequential, not native-engine batching. Official model throughput and
+stream scheduling are unaffected. This first hug adapter targets furiosa_llm 2026.4.0
+and the validated Qwen replay runtime; diffusers, Ultralytics and ONNX Runtime are
+not yet hug adapters. The separate package-first `from fxbex import LLM` API remains
+available with its original dictionary-returning convenience methods.
+
+For an environment affected by the open native-crash issue, keep the application
+interpreter and select a separately installed, verified worker interpreter explicitly:
+
+```bash
+export FXBEX_WORKER_PYTHON=/usr/bin/python3.10
+```
+
+That interpreter must have FXBEX 0.5.0 and the compatible SDK/adapter dependencies.
+The parent still returns its official Python output classes. There is no automatic
+interpreter switching or suppression of a crash. Python3.11 + transformers5.20.2
+also crashed in a subsequent cold load; the version pin is not a complete fix.
+See FXBEX issue #2 for the continuing native-runtime investigation.
+
+### Real model validation
+
+`docs/HUG_NPU_VALIDATION.json` records a Python3.10 test and
+`docs/HUG_CROSS_ENV_VALIDATION.json` records a conda Python3.11 parent with a
+Python3.10 worker. Both loaded the existing Qwen portable2 and passed numerical
+acceptance (cosine0.999929, top1 match, 1,562 official NPU tasks, zero CPU routes/
+unknown graphs). Generate returned official output objects with real token IDs,
+chat answered `4`, and streaming yielded successive fragments before completion.
+Cross-environment first delta arrived at 1.18s and the final delta at 2.82s.
+
+Raw `generate` is completion, matching the official API; use `chat` for instruct
+questions. These tests do not establish general answer quality or benchmark a
+separate officially supported model. Native constructor/functionality preservation
+is covered by forwarding/class-semantics regression tests. The open native crash
+in the Python3.11 worker was reproduced and is not fixed by hug; select the verified
+worker environment explicitly. See `examples/hug_llm.py` for a runnable example.

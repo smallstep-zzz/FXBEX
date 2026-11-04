@@ -1,0 +1,72 @@
+{
+  "load_s": 251.81145810312591,
+  "load_result": {
+    "ok": true,
+    "metrics": {
+      "cosine": 0.9999294281005859,
+      "rmse": 0.04470288008451462,
+      "top1_match": true,
+      "npu_tasks": 1562,
+      "cpu_routes": 0,
+      "unknown_graphs": 0,
+      "load_seconds": 199.68893627403304
+    },
+    "report_dir": "/root/rngd-model-forge/reports/rngd_porting/runs/fxbex_1793781980392877184"
+  },
+  "generate": [
+    " 5.\nThe above equation is obviously false.\n",
+    ", I am trying to create a simple program that will take"
+  ],
+  "chat": "4",
+  "stream": [
+    {
+      "delta": " three",
+      "s": 1.2193004309665412
+    },
+    {
+      "delta": ",",
+      "s": 1.3661131209228188
+    },
+    {
+      "delta": " four",
+      "s": 1.5144490299280733
+    },
+    {
+      "delta": ",",
+      "s": 1.6623128969222307
+    },
+    {
+      "delta": " five",
+      "s": 1.8246403629891574
+    },
+    {
+      "delta": ",",
+      "s": 1.972113983007148
+    },
+    {
+      "delta": " six",
+      "s": 2.1180492318235338
+    },
+    {
+      "delta": ",",
+      "s": 2.263890229864046
+    },
+    {
+      "delta": " seven",
+      "s": 2.411382502876222
+    },
+    {
+      "delta": ",",
+      "s": 2.576041705906391
+    },
+    {
+      "delta": " eight",
+      "s": 2.7295939549803734
+    },
+    {
+      "delta": ",",
+      "s": 2.8726077638566494
+    }
+  ],
+  "native_class_unchanged": true
+}

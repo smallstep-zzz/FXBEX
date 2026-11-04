@@ -39,22 +39,28 @@ class PackageService:
         run=runs_path()/f'ui_{time.time_ns()}';run.mkdir(parents=True)
         self.log_path=run/'worker.log';self.log=self.log_path.open('w')
         env=dict(os.environ,OMP_NUM_THREADS='8',MKL_NUM_THREADS='8')
-        self.process=subprocess.Popen([sys.executable,'-u','-m','fxbex.worker',self.package],env=env,
+        worker_python=os.environ.get('FXBEX_WORKER_PYTHON',sys.executable)
+        if not Path(worker_python).is_absolute():raise ValueError('FXBEX_WORKER_PYTHON must be an absolute interpreter path')
+        self.process=subprocess.Popen([worker_python,'-u','-m','fxbex.worker',self.package],env=env,
             stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=self.log,text=True,bufsize=1)
 
-    def _request(self,request,on_progress=None):
+    def _request(self,request,on_progress=None,on_token=None):
         try:
             self.process.stdin.write(json.dumps(request)+'\n');self.process.stdin.flush()
             for line in self.process.stdout:
                 if line.startswith('@@FXBEX_PROGRESS@@'):
                     event=json.loads(line[len('@@FXBEX_PROGRESS@@'):])
                     if on_progress:on_progress(event['phase'],event['label'])
+                elif line.startswith('@@FXBEX_TOKEN@@'):
+                    event=json.loads(line[len('@@FXBEX_TOKEN@@'):])
+                    if on_token:on_token(event)
                 elif line.startswith('@@FXBEX_RESPONSE@@'):
                     response=json.loads(line[len('@@FXBEX_RESPONSE@@'):])
                     if not response.get('ok'):raise RuntimeError(response.get('error','Worker failed'))
                     return response
                 else:self.log.write(line);self.log.flush()
-            raise RuntimeError(f'FXBEX worker exited ({self.process.poll()}); see {self.log_path}')
+            code=self.process.wait()
+            raise RuntimeError(f'FXBEX worker exited ({code}); see {self.log_path}')
         except BaseException:self.stop();raise
 
     def load(self,on_progress=None):
@@ -80,6 +86,15 @@ class PackageService:
             if not self.loaded:raise RuntimeError('Load a package first')
             if not isinstance(inputs,dict):raise ValueError('Named inputs must be a dictionary')
             return self._request({'action':'predict','inputs':inputs})
+
+    def generate(self, prompt, max_tokens=16, on_token=None):
+        with self.lock:
+            if not self.loaded:raise RuntimeError('Load a package first')
+            if type(max_tokens) is not int or not 1<=max_tokens<=256:
+                raise ValueError('max_tokens must be 1..256')
+            if not isinstance(prompt,(str,list)) or len(json.dumps(prompt).encode())>65536:
+                raise ValueError('Expected bounded prompt text or chat messages')
+            return self._request({'action':'generate','prompt':prompt,'max_tokens':max_tokens},on_token=on_token)
 
     def unload(self,on_progress=None):
         with self.lock:

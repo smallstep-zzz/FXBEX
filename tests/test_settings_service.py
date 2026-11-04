@@ -38,4 +38,14 @@ class IntegrationContracts(unittest.TestCase):
         with patch('importlib.metadata.entry_points',return_value=[Plugin(),Plugin()]):
             with self.assertRaisesRegex(ValueError,'found 2'):resolve_adapter('duplicate')
 
+class TokenProtocol(unittest.TestCase):
+    def test_tokens_arrive_before_final_response(self):
+        from types import SimpleNamespace
+        service=PackageService('/tmp/fixture.fxbex');service.loaded=True
+        service.process=SimpleNamespace(stdin=io.StringIO(),stdout=io.StringIO('@@FXBEX_TOKEN@@{"text":"a","token_ids":[1]}\n@@FXBEX_RESPONSE@@{"ok":true,"text":"ab"}\n'))
+        service.log=io.StringIO();events=[]
+        result=service.generate('prompt',max_tokens=2,on_token=events.append)
+        self.assertEqual(events,[{'text':'a','token_ids':[1]}]);self.assertEqual(result['text'],'ab')
+        service.process=None;service.log=None
+
 if __name__=='__main__':unittest.main()
