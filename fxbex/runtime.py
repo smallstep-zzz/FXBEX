@@ -38,6 +38,11 @@ def resolve_adapter(name):
 
 def package_compatibility(manifest):
     actual = environment(); notices=[]
+    import sys
+    if (manifest.get('model',{}).get('name')=='RedHatAI/Qwen3.5-9B-FP8-dynamic'
+            and sys.version_info[:2]==(3,11) and actual.get('furiosa-torch')=='2026.4.0'
+            and actual.get('torch')=='2.10.0+cpu' and actual.get('transformers')=='5.22.1'):
+        raise PackageError('Known unstable Qwen runtime combination: Python 3.11, SDK 2026.4.0, transformers 5.22.1 caused native crashes. Use the validated transformers==5.20.2 in this environment.')
     for name, expected in manifest['compatibility'].get('packages', {}).items():
         installed=actual.get(name)
         if installed == expected:continue

@@ -223,3 +223,7 @@ Install with `python -m pip install --upgrade fxbex==0.4.0` on Python 3.10–3.1
 ### 0.4.1 download location fix
 
 Model IDs (with or without `./`) now create a directory under the current working directory and save `model.fxbex` there. HF transfer and local-copy progress are displayed. Existing `model.fxbex` files are reused. The HF cache and local copy may both occupy disk space. Upgrade using `python -m pip install --upgrade fxbex==0.4.1`.
+
+### Qwen runtime compatibility finding
+
+Qwen3.5-9B portable with SDK 2026.4.0 / PyTorch 2.10.0+cpu / Python 3.11 / transformers 5.22.1 produced intermittent native crashes during load validation. Limiting CPU threads and excluding CPU profiling did not resolve them. Keeping Python 3.11 and changing only transformers to 5.20.2 completed numerical/NPU acceptance and two chats (4 and Hello). Use `python -m pip install --no-deps transformers==5.20.2` for this observed combination. The native SDK fault itself has not been localized; one successful comparison is not a stability guarantee. Other same-major transformers differences retain the warning policy.
