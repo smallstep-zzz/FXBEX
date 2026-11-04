@@ -215,3 +215,7 @@ fxbex run ./RedHatAI/Qwen3.5-9B-FP8-dynamic
 An existing local file takes precedence. Missing `.fxbex` file paths remain file
 errors. Downloads use the HF cache. Legacy packages without example metadata still
 need `chat` or explicit inputs as described above.
+
+## 0.4.0 release
+
+Install with `python -m pip install --upgrade fxbex==0.4.0` on Python 3.10–3.14. This release includes catalog model-ID downloads (including `./org/model`), integrity checks, package I/O descriptions and sample execution. `huggingface_hub` is installed automatically. Legacy model packages still require their documented input or `chat` command when sample metadata is absent.

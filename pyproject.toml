@@ -8,6 +8,7 @@ version = "0.4.0"
 description = "Furiosa RNGD 사전 컴파일 아티팩트 패키징 및 실행 CLI"
 readme = "README.md"
 requires-python = ">=3.10,<3.15"
+dependencies = ["huggingface_hub>=0.24,<2"]
 license = "Apache-2.0"
 license-files = ["LICENSE"]
 keywords = ["furiosa", "rngd", "npu", "compiled-artifacts"]
