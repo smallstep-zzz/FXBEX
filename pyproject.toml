@@ -5,9 +5,9 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "fxbex"
 version = "0.4.0"
-description = "Furiosa RNGD compiled artifact packaging and runtime CLI"
+description = "Furiosa RNGD 사전 컴파일 아티팩트 패키징 및 실행 CLI"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.10,<3.15"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
 keywords = ["furiosa", "rngd", "npu", "compiled-artifacts"]
@@ -20,6 +20,8 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 

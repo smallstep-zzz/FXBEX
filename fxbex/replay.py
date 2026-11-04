@@ -46,6 +46,18 @@ def _compatibility(torch, sdk):
             'torch': torch.__version__, 'sdk': versions, 'sdk_sources': sources}
 
 
+def _compatible_runtime(recorded, current):
+    """Allow Python minor-version changes, while pinning the SDK/torch ABI."""
+    if not isinstance(recorded, dict) or not isinstance(current, dict):
+        return False
+    recorded_python = recorded.get('python', '')
+    current_python = current.get('python', '')
+    if str(recorded_python).split('.', 1)[0] != str(current_python).split('.', 1)[0]:
+        return False
+    return ({key: value for key, value in recorded.items() if key != 'python'} ==
+            {key: value for key, value in current.items() if key != 'python'})
+
+
 def _value(value, torch, *, tensor_data=False):
     if value is None or type(value) in (str, int, bool):
         return value
@@ -134,7 +146,7 @@ def _session(root, recording, guard_native=True):
     else:
         plan = json.loads(plan_path.read_text())
         if (plan.get('format') != 'sdk-runnable' or plan.get('version') != 1
-                or plan.get('compatibility') != compatibility):
+                or not _compatible_runtime(plan.get('compatibility'), compatibility)):
             raise ReplayError('Runnable plan format or environment compatibility mismatch')
     records = {}
     for record in plan['steps']:
