@@ -14,6 +14,8 @@ class Hub(unittest.TestCase):
     self.assertEqual(revision,'a'*40);return str(p)
    with patch('fxbex.hub.urlopen',side_effect=lambda *a,**k:response()),patch.dict(sys.modules,{'huggingface_hub':SimpleNamespace(hf_hub_download=download)}):
     self.assertEqual(resolve_package('org/model@v1'),p)
+    self.assertEqual(resolve_package('./org/model@v1'),p)
+    self.assertEqual(resolve_package('./org/model'),p)
     p.write_bytes(b'changed')
     with self.assertRaisesRegex(ValueError,'checksum'):resolve_package('org/model')
  def test_assets_are_explicit_and_confined(self):
@@ -23,3 +25,13 @@ class Hub(unittest.TestCase):
    r=resolve_sample(c,root,{'files':{'image.png':{}}})
    self.assertEqual(r['image'],str((root/'image.png').resolve()));self.assertEqual(r['prompt'],'image.png')
    with self.assertRaises(ValueError):resolve_sample(c,root,{'files':{}})
+
+ def test_missing_file_paths_do_not_trigger_download(self):
+  with patch('fxbex.hub.urlopen') as network:
+   for path in ('./missing.fxbex','../org/model','/missing/org/model'):
+    with self.assertRaises(FileNotFoundError):resolve_package(path)
+   network.assert_not_called()
+ def test_local_file_precedes_catalog(self):
+  with tempfile.TemporaryDirectory() as d,patch('fxbex.hub.urlopen') as network:
+   path=Path(d)/'model';path.write_bytes(b'local')
+   self.assertEqual(resolve_package(path),path.resolve());network.assert_not_called()

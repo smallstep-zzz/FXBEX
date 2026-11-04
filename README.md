@@ -205,3 +205,13 @@ Exporters can include sample images in the archive and reference them as
 `{"$asset":"samples/example.png"}` within `example_input`. Only integrity-listed
 files inside the extracted package are resolved. Plain strings remain text.
 No arbitrary shell commands or sample-generation code is executed from metadata.
+
+A leading `./` is also accepted for catalog IDs when no local file exists:
+
+```bash
+fxbex run ./RedHatAI/Qwen3.5-9B-FP8-dynamic
+```
+
+An existing local file takes precedence. Missing `.fxbex` file paths remain file
+errors. Downloads use the HF cache. Legacy packages without example metadata still
+need `chat` or explicit inputs as described above.

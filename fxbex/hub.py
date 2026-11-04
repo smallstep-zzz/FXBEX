@@ -9,12 +9,15 @@ CATALOG='https://raw.githubusercontent.com/smallstep-zzz/furyawesome/main/catalo
 def resolve_package(value):
     path=Path(value).expanduser()
     if path.is_file():return path.resolve()
-    if str(value).endswith('.fxbex') or str(value).startswith(('.', '/')):raise FileNotFoundError(path)
+    if path.exists():raise IsADirectoryError(path)
+    identifier=str(value)
+    if identifier.startswith('./'):identifier=identifier[2:]
+    if identifier.endswith('.fxbex') or identifier.startswith(('.', '/', '~')):raise FileNotFoundError(path)
     with urlopen(CATALOG,timeout=30) as response:
         raw=response.read(4_000_001)
     if len(raw)>4_000_000:raise ValueError('Catalog too large')
     catalog=json.loads(raw)
-    name,sep,version=str(value).partition('@')
+    name,sep,version=identifier.partition('@')
     matches=[p for p in catalog['models'] if name in (p['model']['name'],p['model']['source_repo']) and (not sep or p['release']['version']==version)]
     if len(matches)!=1:raise ValueError('Model ID is missing or ambiguous; use exact source_repo@version from FuryAwesome')
     release=matches[0]['release'];u=urlsplit(release['artifact_url']);parts=u.path.strip('/').split('/')
