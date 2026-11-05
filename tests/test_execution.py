@@ -3,10 +3,17 @@ import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
-from fxbex.execution import ExecutionRecorder, MemoryTelemetry, manifest_identity
+from fxbex.execution import ExecutionRecorder, MemoryTelemetry, manifest_identity, memory_text
 from fxbex.runtime import Session
 
 class ExecutionTests(unittest.TestCase):
+    def test_logical_peak_is_distinct_from_physical_usage(self):
+        value = memory_text({'model_logical_memory': {'execution': {
+            'peak_live_tensor_logical_bytes': 24576, 'released_tensor_bindings': 33}}})
+        self.assertIn('physical HBM unmeasured', value)
+        self.assertIn('live tensor peak=0.02 MiB', value)
+        self.assertIn('released bindings=33', value)
+
     def test_memory_telemetry_records_public_smi_json(self):
         with tempfile.TemporaryDirectory() as d:
             completed=type('Completed',(),{'stdout':'[{"memory":{"DRAM":{"used_size":7}}}]'})()

@@ -8,7 +8,7 @@ import zipfile
 from unittest.mock import patch
 
 from fxbex.cli import main
-from fxbex.package import build
+from fxbex.package import build, PackageError
 from fxbex.validation import validate
 
 
@@ -40,6 +40,9 @@ class CliTests(unittest.TestCase):
     def test_build_alias_inspect_and_integrity_only(self):
         self.assertEqual(self.invoke('build', self.source, '-o', self.package)[0], 0)
         self.assertEqual(json.loads(self.invoke('inspect', self.package)[1])['model']['name'], 'demo')
+        memory = json.loads(self.invoke('inspect', self.package, '--memory')[1])['memory_plan']
+        self.assertEqual(memory['kind'], 'dag-logical-memory-v1')
+        self.assertEqual(memory['estimate']['unknown_tensors_count'], 1)
         with patch('fxbex.runtime.doctor', side_effect=AssertionError('must not inspect device')):
             code, out, _ = self.invoke('validate', self.package, '--integrity-only')
         self.assertEqual(code, 0)
@@ -97,12 +100,16 @@ class CliTests(unittest.TestCase):
         plan = json.loads((self.source / 'execution_plan.json').read_text())
         plan['steps'][0]['inputs'] = ['not_defined']
         (self.source / 'execution_plan.json').write_text(json.dumps(plan))
+        with self.assertRaisesRegex(PackageError, 'forward DAG input'):
+            build(self.source, self.package)
+        plan['steps'][0]['inputs'] = ['x', 'weight']
+        (self.source / 'execution_plan.json').write_text(json.dumps(plan))
         build(self.source, self.package)
         with patch('fxbex.runtime.check_compatibility'), patch('fxbex.runtime.resolve_adapter'), patch('fxbex.runtime.doctor', return_value={'device': {'returncode': 0, 'status': 'RNGD'}}):
             result = validate(self.package)
         self.assertFalse(result['valid'])
         self.assertIn('checksum mismatch', str(result['errors']))
-        self.assertIn('forward DAG input', str(result['errors']))
+        self.assertIn('memory_plan', result['checks'])
 
 
 if __name__ == '__main__':

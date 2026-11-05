@@ -79,6 +79,9 @@ class Session:
             self.root = self.stack.enter_context(extract(self.path))
             self.manifest = json.loads((self.root/'manifest.json').read_text())
             check_compatibility(self.manifest)
+            from .memory import analyze
+            memory_plan = analyze(self.root)
+            (self.report_dir/'memory_plan.json').write_text(json.dumps(memory_plan, indent=2))
             from .execution import ExecutionRecorder, MemoryTelemetry
             self.execution = ExecutionRecorder(self.report_dir, self.manifest)
             self.telemetry = MemoryTelemetry(self.report_dir)
@@ -104,18 +107,22 @@ class Session:
             raise
 
     def __exit__(self, *args):
-        self.adapter = None
-        # Release graph caches before yielding the canonical device lock.
-        import sys, gc
-        torch = sys.modules.get('torch')
         try:
-            if torch is not None:
-                torch._dynamo.reset()
-            gc.collect()
+            if isinstance(self.adapter, RunnableDAG):
+                self.adapter.close()
         finally:
-            self.stack.close()
-            if self.telemetry is not None:
-                self.memory = self.telemetry.sample('after_unload')
+            self.adapter = None
+            # Release graph caches before yielding the canonical device lock.
+            import sys, gc
+            torch = sys.modules.get('torch')
+            try:
+                if torch is not None:
+                    torch._dynamo.reset()
+                gc.collect()
+            finally:
+                self.stack.close()
+                if self.telemetry is not None:
+                    self.memory = self.telemetry.sample('after_unload')
 
     def sample_memory(self, phase):
         if self.telemetry is not None:
@@ -147,6 +154,9 @@ class Session:
 class RunnableDAG:
     """Typed ordered DAG with input/weight/state/output bindings; no model CPU ops."""
     def __init__(self, root, weights_dir=None):
+        from .memory import analyze
+        self.memory_plan = analyze(root)  # Validate/budget before any NPU upload.
+        self.last_memory = None
         import torch
         from furiosa.torch import ir, Runnable
         from furiosa.torch import set_fusion,set_mesh_kind,MeshKind
@@ -155,6 +165,8 @@ class RunnableDAG:
         if get_cpu_fallback():raise RuntimeError('Cannot disable CPU fallback')
         set_fusion(8);set_mesh_kind(MeshKind.Single())
         self.torch = torch
+        import furiosa.torch as sdk
+        self.current_stream = getattr(sdk, 'current_stream', None)
         self.config = json.loads((root/'runtime_config.json').read_text())
         plan = json.loads((root/'execution_plan.json').read_text())
         if plan.get('format') != 'runnable-dag-v1': raise PackageError('Expected runnable-dag-v1 plan')
@@ -173,7 +185,9 @@ class RunnableDAG:
                 expected=json.loads((root/'manifest.json').read_text())['files'][item['path']]['sha256']
             if h.hexdigest() != expected: raise PackageError('External/internal weight checksum mismatch')
             tensors=torch.load(path,map_location='cpu',weights_only=True)
-            for name, tensor in tensors.items(): self.constants[name]=tensor.to('furiosa:0')
+            for name in tensors: self.constants[name]=tensors[name].to('furiosa:0')
+            del tensors
+        self.weight_logical_bytes = sum(t.numel()*t.element_size() for t in self.constants.values())
         known=set(self.config['inputs']) | set(self.constants)
         self.modules={}
         for step in self.steps:
@@ -186,6 +200,7 @@ class RunnableDAG:
         if any(name not in known for name in self.config['outputs']): raise PackageError('Unbound DAG output')
 
     def predict(self, inputs):
+        from .memory import TensorLifetime
         torch=self.torch
         if set(inputs) != set(self.config['inputs']): raise ValueError('Input names do not match package')
         values=dict(self.constants)
@@ -193,12 +208,33 @@ class RunnableDAG:
             tensor=torch.tensor(inputs[name], dtype=getattr(torch,spec['dtype']))
             if list(tensor.shape)!=spec['shape']: raise ValueError(f'Input shape mismatch: {name}')
             values[name]=tensor.to('furiosa:0')
+        if self.config['inputs']:
+            del tensor
+        stream = self.current_stream(torch.device('furiosa:0')) if callable(self.current_stream) else None
+        synchronize = getattr(stream, 'synchronize', None)
+        lifetime = TensorLifetime(self.memory_plan, self.constants, synchronize if callable(synchronize) else None)
         started=time.perf_counter()
         with torch.no_grad():
-            for step in self.steps:
+            for index, step in enumerate(self.steps):
                 outputs=self.modules[step['id']](*(values[n] for n in step['inputs']))
                 if len(outputs)!=len(step['outputs']): raise PackageError('Kernel output arity mismatch')
                 values.update(zip(step['outputs'],outputs))
+                del outputs
+                lifetime.after_step(index, values)
             result={name:values[name].cpu().float().tolist() for name in self.config['outputs']}
+        self.last_memory = lifetime.summary()
         return {'outputs':result,'seconds':time.perf_counter()-started,'compiler_calls':0,
+                'logical_memory':self.last_memory,
                 'npu_evidence':'requires_runtime_trace; device placement alone is not proof'}
+
+    def memory_summary(self):
+        return {'weight_logical_bytes':self.weight_logical_bytes,
+                'execution':self.last_memory, 'physical_allocated_bytes':None}
+
+    def close(self):
+        stream = self.current_stream(self.torch.device('furiosa:0')) if callable(self.current_stream) else None
+        sync = getattr(stream, 'synchronize', None)
+        if callable(sync):
+            sync()
+        self.modules.clear()
+        self.constants.clear()

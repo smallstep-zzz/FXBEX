@@ -40,6 +40,7 @@ Model-specific exporters and capture commands belong to their adapter plugins.""
     p.add_argument('--standalone', action='store_true', help='Copy referenced external weights into the archive')
     p = sub.add_parser('inspect', help='Verify integrity and display the manifest; no SDK needed')
     p.add_argument('package', help='Path to a .fxbex archive')
+    p.add_argument('--memory', action='store_true', help='Show logical memory/lifetime plan without loading the NPU')
     p = sub.add_parser('validate', help='Check integrity, SDK, adapter, weights and device availability without inference')
     p.add_argument('package', help='Path to a .fxbex archive')
     p.add_argument('--integrity-only', action='store_true', help='Verify archive only; skip SDK, weights and device checks')
@@ -86,6 +87,9 @@ Model-specific exporters and capture commands belong to their adapter plugins.""
                 'standalone':m['standalone'],'bundled_python':bool(m['runtime'].get('bundled_python')),
                 'delivery':m.get('delivery'), 'provenance':m.get('provenance',{'status':'unknown'}), 'files':len(m['files']),
                 'artifact_bytes':sum(x['size'] for x in m['files'].values()),'integrity_verified':True}
+        if args.memory:
+            from .memory import inspect_archive, summarize
+            result['memory_plan'] = summarize(inspect_archive(args.package))
     elif args.action == 'validate':
         result = validate(args.package, integrity_only=args.integrity_only, weights_dir=args.weights_dir)
     elif args.action in ('describe','sample'):

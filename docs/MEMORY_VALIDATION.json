@@ -1,0 +1,64 @@
+{
+  "retained": {
+    "numerically_exact": true,
+    "npu_tasks": 64,
+    "sdk_cpu_routes": 0,
+    "unknown_graphs": 0,
+    "warm_host_seconds": [
+      0.31613153708167374,
+      0.32428636215627193,
+      0.32116630021482706
+    ],
+    "logical_memory": {
+      "peak_live_tensor_logical_bytes": 278528,
+      "released_tensor_bindings": 0,
+      "completion_barriers": 0,
+      "physical_allocated_bytes": null,
+      "release_policy": "stream_completed_batches",
+      "note": "Logical tensor references only; storage aliases may be double counted. Dropping references does not prove driver memory was returned."
+    }
+  },
+  "released": {
+    "numerically_exact": true,
+    "npu_tasks": 64,
+    "sdk_cpu_routes": 0,
+    "unknown_graphs": 0,
+    "warm_host_seconds": [
+      0.31400009198114276,
+      0.3151529908645898,
+      0.320267585106194
+    ],
+    "logical_memory": {
+      "peak_live_tensor_logical_bytes": 24576,
+      "released_tensor_bindings": 33,
+      "completion_barriers": 32,
+      "physical_allocated_bytes": null,
+      "release_policy": "stream_completed_batches",
+      "note": "Logical tensor references only; storage aliases may be double counted. Dropping references does not prove driver memory was returned."
+    }
+  },
+  "passed": true,
+  "compiler_calls": 0,
+  "kernel_count": 1,
+  "graph_steps": 32,
+  "physical_peak_bytes": null,
+  "note": "Logical live references only; no driver/SMI memory investigation. Aggressive per-step synchronization tests correctness, not a universal speed optimization.",
+  "environment": {
+    "SDK": "2026.4.0",
+    "python": "3.10",
+    "torch": "2.10.0+cpu",
+    "fusion": 8,
+    "mesh": "Single",
+    "CPU_fallback_enabled": false
+  },
+  "logical_peak_reduction_percent": 91.17647058823529,
+  "runtime_test_scope": "One saved TCL kernel, two 32-step DAG execution plans, 1 traced plus 3 unprofiled calls per plan; all exact. Generic memory planning is not full-model physical-memory validation.",
+  "cpu_tests": {
+    "FXBEX": 96,
+    "FHA_related": 59
+  },
+  "official_sources": [
+    "https://developer.furiosa.ai/v2026.4.0/en/whatsnew/release-2026.4.0.html",
+    "https://developer.furiosa.ai/v2026.4.0/en/furiosa_llm/reference/llm.html"
+  ]
+}

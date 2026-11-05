@@ -395,3 +395,28 @@ logical tensor accounting in `memory_latest.json`. The UI shows logical weights,
 KV and recurrent bytes separately. SMI zero is **not** proof of zero HBM use;
 physical allocator bytes remain unknown when the installed SDK exposes no public
 counter. No SDK/driver upgrade or fabricated utilization is performed.
+
+### Logical memory plans and safe tensor lifetimes (0.6.2)
+
+`fxbex build` now generates a bound memory plan for `runnable-dag-v1` from the
+small graph/shape/index JSON documents. Declare intermediate shapes and dtypes in
+`runtime_config.tensor_specs` and weight tensor metadata in `weights_index`.
+Missing/dynamic sizes stay unknown. `fxbex inspect model.fxbex --memory` displays
+the plan without loading the NPU; full inspect still verifies archive integrity.
+For a metadata-only analysis, use `fxbex.memory.inspect_archive(path)`.
+
+Before uploading weights, the runtime rejects stale bindings or an exceeded
+explicit `memory_plan.policy.budget_bytes` logical envelope. A fitting logical
+estimate is **not** a physical-HBM guarantee: aliases, padding, native executable
+workspace and allocator reserves are not measured. Legacy custom adapters stay
+`unplanned` until they declare real shapes via `fxbex.memory.stateful_plan`.
+
+Built-in DAG execution pins constants/final outputs and releases dead intermediate
+references in batches only after the public current-stream completion barrier.
+The default is 64 MiB or 64 dead bindings. An unavailable completion API preserves
+legacy retention. `release_threshold_bytes=0` tests aggressive release, adding a
+barrier per eligible step; tune against measured latency before deployment.
+The SDK still owns storage allocation/reuse; reference release does not prove
+physical deallocation. No manual arena, buffer aliasing or CPU model fallback is
+introduced. Session `memory_plan.json` and result `logical_memory` record the
+logical peaks, release counts and barriers; physical peak remains unknown.

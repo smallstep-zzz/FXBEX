@@ -11,6 +11,7 @@ def validate(path, *, integrity_only=False, weights_dir=None):
                 'inference_validated': False, 'model': manifest['model'],
                 'checks': {'readiness': 'not executed', 'inference': 'not executed; no NPU execution evidence'}}
     from . import runtime
+    from .memory import analyze, summarize
     checks = {'integrity': 'passed', 'inference': 'not executed; no NPU execution evidence'}
     errors = []
     # extract validates the archive once and bounds the configuration sizes.
@@ -18,6 +19,7 @@ def validate(path, *, integrity_only=False, weights_dir=None):
         manifest = json.loads((root / 'manifest.json').read_text())
         for name, check in (
             ('compatibility', lambda: runtime.check_compatibility(manifest)),
+            ('memory_plan', lambda: summarize(analyze(root))),
             ('external_weights', lambda: _weights(root, weights_dir)),
             ('adapter_preflight', lambda: _adapter_preflight(runtime, manifest, root, weights_dir)),
         ):

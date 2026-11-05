@@ -233,6 +233,23 @@ def build(source, output, standalone=False, *, max_total_size=DEFAULT_MAX_TOTAL_
             del weight['external_path']
             weight['path'] = name
         inputs['weights_index.json'] = (json.dumps(index, sort_keys=True).encode(), None)
+    if manifest['runtime']['adapter'] == 'runnable_dag':
+        from .memory import dag_plan
+        def document(name):
+            item = inputs[name][0]
+            if isinstance(item, bytes):
+                data = item
+            else:
+                if item.stat().st_size > max_json_size:
+                    raise PackageError(f'Oversized memory metadata: {name}')
+                data = item.read_bytes()
+            return _json(data, name)
+        memory = dag_plan(document('execution_plan.json'), document('runtime_config.json'),
+                          document('weights_index.json'), document('memory_plan.json'))
+        data = json.dumps(memory, sort_keys=True).encode()
+        if len(data) > max_json_size:
+            raise PackageError('Generated memory plan exceeds JSON size limit')
+        inputs['memory_plan.json'] = (data, None)
     output.parent.mkdir(parents=True, exist_ok=True)
     fd, temporary = tempfile.mkstemp(prefix='.fxbex-', dir=output.parent)
     os.close(fd)

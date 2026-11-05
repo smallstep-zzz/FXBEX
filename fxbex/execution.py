@@ -11,6 +11,10 @@ def memory_text(snapshot):
     values=[]
     for key,label in [('weight_logical_bytes','weights'),('kv_logical_bytes','KV'),('recurrent_logical_bytes','recurrent')]:
         if key in logical:values.append(f"{label}={logical[key]/1024**3:.3f} GiB")
+    execution=logical.get('execution') or {}
+    if 'peak_live_tensor_logical_bytes' in execution:
+        values.append(f"live tensor peak={execution['peak_live_tensor_logical_bytes']/1024**2:.2f} MiB")
+        values.append(f"released bindings={execution.get('released_tensor_bindings',0)}")
     return 'physical HBM unmeasured; SMI zero is inconclusive. Logical NPU tensors: '+(', '.join(values) or 'not reported')
 
 
