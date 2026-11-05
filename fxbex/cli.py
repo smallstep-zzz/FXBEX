@@ -3,6 +3,8 @@ import argparse
 import json
 from pathlib import Path
 import sys
+import threading
+import time
 from .package import build, inspect
 from .validation import validate
 
@@ -13,6 +15,22 @@ def _runtime_call(callback, log_path, verbose=False):
     import contextlib
     with log_path.open('a') as log, contextlib.redirect_stdout(log), contextlib.redirect_stderr(log):
         return callback()
+
+
+def _load_with_progress(callback, stream, interval=5):
+    """Report elapsed time without inventing a completion percentage."""
+    stopped = threading.Event()
+    started = time.monotonic()
+    def report():
+        while not stopped.wait(interval):
+            print(f'Model loading... {int(time.monotonic() - started)}s elapsed', file=stream, flush=True)
+    thread = threading.Thread(target=report, daemon=True)
+    thread.start()
+    try:
+        return callback()
+    finally:
+        stopped.set()
+        thread.join()
 
 
 def _main(argv=None):
@@ -145,7 +163,8 @@ Model-specific exporters and capture commands belong to their adapter plugins.""
         log_path=session.report_dir/'runtime.log'
         print(f'Loading package; diagnostics: {log_path}',file=sys.stderr,flush=True)
         def invoke(callback):return _runtime_call(callback,log_path,args.verbose)
-        invoke(session.__enter__)
+        progress_stream = sys.stderr
+        _load_with_progress(lambda: invoke(session.__enter__), progress_stream)
         print(f'NPU package ready; reports: {session.report_dir}',file=sys.stderr,flush=True)
         from .execution import memory_text
         print('Memory: '+memory_text(getattr(session,'memory',None)),file=sys.stderr,flush=True)
