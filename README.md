@@ -46,6 +46,29 @@ fxbex doctor
 
 `run`은 채팅 어댑터를 실행합니다. 텐서 모델은 `--input inputs.json -o result.json`을 받습니다. `chat`에서는 `/reset`, `/quit`을 사용할 수 있습니다. `serve`는 채팅 어댑터용 비스트리밍 `/v1/chat/completions`와 텐서 어댑터용 `/predict`를 localhost에 제공합니다. `fxbex ui --port 7861`은 선택 기능이며 Gradio가 필요합니다. 모든 명령은 `--help`를 지원합니다.
 
+### OpenAI Python 클라이언트와 사용하기
+
+```bash
+fxbex serve Qwen3.5-9B-FP8-dynamic --port 8000
+python -m pip install openai
+```
+
+다른 터미널에서 실행합니다. `model`은 서버가 로드한 패키지의 원본 모델 ID입니다.
+
+```python
+from openai import OpenAI
+
+client = OpenAI(base_url="http://127.0.0.1:8000/v1", api_key="local")
+response = client.chat.completions.create(
+    model="RedHatAI/Qwen3.5-9B-FP8-dynamic",
+    messages=[{"role": "user", "content": "안녕!"}],
+    max_tokens=32,
+)
+print(response.choices[0].message.content)
+```
+
+현재 서버는 단일 모델·비스트리밍 채팅과 greedy 생성만 지원합니다. 지원하지 않는 생성 옵션은 오류로 반환합니다. 공식 Furiosa 서버의 모든 엔드포인트와 기능을 제공하는 것은 아닙니다. 패키지의 정밀도는 생성 시 고정되며 명시한 `dtype`이 패키지의 검증된 메타데이터와 다르면 오류가 발생합니다.
+
 `validate`는 체크섬, 외부 가중치, SDK 버전, 어댑터 계약과 RNGD 장치를 확인하지만 **추론을 실행하지 않습니다.** SDK나 NPU가 없는 시스템에서는 다음처럼 무결성만 검사할 수 있습니다.
 
 ```bash
@@ -239,7 +262,7 @@ from fxbex import hug
 LLM = hug(LLM)
 # Official models retain the original constructor, options, methods and objects.
 # llm = LLM("your-official-model", ...)
-llm = LLM("./model.fxbex", max_model_len=512)
+llm = LLM(model="./model.fxbex", dtype="bf16")  # 패키지가 BF16인 경우
 try:
     output = llm.generate("The numbers are one, two,", SamplingParams(temperature=0, max_tokens=16))
     print(output.outputs[0].text)

@@ -1,4 +1,9 @@
 import asyncio
+import hashlib
+import json
+import tempfile
+import zipfile
+from pathlib import Path
 from types import SimpleNamespace
 import sys
 import unittest
@@ -65,6 +70,24 @@ class HugTest(unittest.TestCase):
         with patch.object(facade.hub, 'resolve_package', return_value='/tmp/model.fxbex'), patch.object(facade, 'inspect', return_value={}):
             with self.assertRaises(NotImplementedError):
                 wrapped('test.fxbex', max_model_len=256)
+
+    def test_model_keyword_selects_package(self):
+        with patch.object(facade.hub, 'resolve_package', return_value='/tmp/model.fxbex'), patch.object(facade, 'PackageService') as service, patch.object(facade, 'inspect', return_value={}):
+            model = facade.hug(lambda **kwargs: None)(model='test.fxbex')
+            self.assertIs(model._service, service.return_value)
+
+    def test_dtype_must_match_verified_package_metadata(self):
+        with tempfile.TemporaryDirectory() as d:
+            path=Path(d)/'model.fxbex'
+            raw=json.dumps({'compute_dtype':'bfloat16'}).encode()
+            with zipfile.ZipFile(path,'w') as z:z.writestr('weights_index.json',raw)
+            manifest={'files':{'weights_index.json':{'size':len(raw),'sha256':hashlib.sha256(raw).hexdigest()}}}
+            facade._check_dtype(path,manifest,'bf16')
+            with self.assertRaisesRegex(ValueError,'fixed at'):
+                facade._check_dtype(path,manifest,'fp16')
+            manifest['files']['weights_index.json']['sha256']='0'*64
+            with self.assertRaisesRegex(ValueError,'does not match'):
+                facade._check_dtype(path,manifest,'bf16')
 
     def model(self, context=None, **options):
         service = Mock()

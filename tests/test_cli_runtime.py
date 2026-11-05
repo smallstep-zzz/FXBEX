@@ -21,8 +21,9 @@ class RuntimeCLI(unittest.TestCase):
             session=SimpleNamespace(report_dir=report,memory={},root=report,manifest={'runtime':{'adapter':'chat'}},
                 __enter__=lambda:None,__exit__=lambda *a:None,chat=chat)
             contract={'method':'chat','example_input':{'messages':[{'role':'user','content':'sample'}]}}
-            with patch('fxbex.settings.runtime_python',return_value=sys.executable),patch('fxbex.hub.resolve_package',return_value=report/'model.fxbex'),patch('fxbex.schema.describe',return_value=contract),patch('fxbex.cli.inspect',return_value={}),patch('fxbex.runtime.package_compatibility',return_value=[]),patch('fxbex.runtime.Session',return_value=session),patch('builtins.input',side_effect=['hello','next','/quit']),contextlib.redirect_stdout(io.StringIO()):
+            with patch('fxbex.settings.runtime_python',return_value=sys.executable),patch('fxbex.hub.resolve_package',return_value=report/'model.fxbex'),patch('fxbex.schema.describe',return_value=contract),patch('fxbex.cli.inspect',return_value={}) as inspect,patch('fxbex.runtime.package_compatibility',return_value=[]),patch('fxbex.runtime.Session',return_value=session),patch('builtins.input',side_effect=['hello','next','/quit']),contextlib.redirect_stdout(io.StringIO()):
                 self.assertEqual(main(['run','Model']),0)
+            inspect.assert_not_called()
             self.assertEqual([x['content'] for x in calls[1]],['hello','answer','next'])
 
     def test_configured_interpreter_receives_unchanged_arguments_before_resolution(self):

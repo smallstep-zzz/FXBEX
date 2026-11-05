@@ -1,5 +1,5 @@
 """Independent FXBEX package builder and installed-adapter runtime."""
-__version__ = "0.6.8"
+__version__ = "0.6.9"
 
 from .llm import LLM
 from .model import Model, YOLO, ObjectDetection, ImageGeneration

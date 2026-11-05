@@ -6,10 +6,12 @@ sampling, tensor parallelism, adapters, and tokenizer access are unsupported.
 """
 import asyncio
 from functools import wraps
+import hashlib
 import json
 from pathlib import Path
 import uuid
 import warnings
+import zipfile
 from typing import TypeVar
 
 _LLMType=TypeVar("_LLMType")
@@ -110,6 +112,30 @@ def _max_tokens(params, context_limit):
     return value
 
 
+def _check_dtype(package, manifest, dtype):
+    """Accept an explicit dtype only if verified package metadata declares it."""
+    if dtype is None or dtype == 'auto':
+        return
+    aliases = {'bf16': 'bfloat16', 'fp16': 'float16', 'fp32': 'float32'}
+    if not isinstance(dtype, str):
+        raise TypeError('FXBEX dtype must be a string or None')
+    requested = dtype.lower().removeprefix('torch.')
+    requested = aliases.get(requested, requested)
+    entry = manifest.get('files', {}).get('weights_index.json', {})
+    with zipfile.ZipFile(package) as archive:
+        if archive.getinfo('weights_index.json').file_size > 16 * 1024**2:
+            raise ValueError('FXBEX dtype metadata is too large')
+        raw = archive.read('weights_index.json')
+    if len(raw) != entry.get('size') or hashlib.sha256(raw).hexdigest() != entry.get('sha256'):
+        raise ValueError('FXBEX dtype metadata does not match verified manifest')
+    declared = json.loads(raw).get('compute_dtype')
+    if not isinstance(declared, str):
+        raise NotImplementedError('FXBEX package does not declare compute_dtype')
+    declared = aliases.get(declared.lower(), declared.lower())
+    if requested != declared:
+        raise ValueError(f'FXBEX dtype is fixed at {declared}; requested {requested}')
+
+
 def _output(result, request_id, finished=True):
     from furiosa_llm.outputs import CompletionOutput, RequestOutput
     ids = result['token_ids']
@@ -126,12 +152,15 @@ def _output(result, request_id, finished=True):
 class _PackageLLM:
     def __init__(self, model, **options):
         max_len = options.pop('max_model_len', None)
+        dtype = options.pop('dtype', None)
         native_defaults={'fxb':None,'revision':None,'devices':None,'speculative_config':None,'speculative_method':None,'draft_model_id_or_path':None,'draft_fxb_path':None,'num_speculative_tokens':None,'data_parallel_size':None,'pipeline_parallel_size':None,'max_io_memory_mb':None,'scheduler_config':None,'logger_config':None,'tokenizer':None,'tokenizer_mode':'auto','served_model_name':None,'kv_transfer_config':None,'mm_processor_kwargs':None,'structured_outputs_backend':'auto'}
         options={k:v for k,v in options.items() if k not in native_defaults or v!=native_defaults[k]}
         if options:
             raise NotImplementedError('Unsupported FXBEX constructor options: ' + ', '.join(sorted(options)))
         package = hub.resolve_package(model)
-        capacity = inspect(package).get('context', {}).get('max_tokens', 512)
+        manifest = inspect(package)
+        _check_dtype(package, manifest, dtype)
+        capacity = manifest.get('context', {}).get('max_tokens', 512)
         if type(capacity) is not int or capacity <= 0:
             raise ValueError('FXBEX package context.max_tokens must be a positive integer')
         if max_len is None:

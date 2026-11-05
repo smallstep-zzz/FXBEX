@@ -175,21 +175,21 @@ Model-specific exporters and capture commands belong to their adapter plugins.""
         if args.action == 'predict' and not args.input:
             raise ValueError('--input JSON file is required for tensor prediction')
         from .runtime import package_compatibility
-        for message in package_compatibility(inspect(args.package)):
-            print('Warning: '+message,file=sys.stderr,flush=True)
         session=Session(args.package,report_dir=args.report_dir,weights_dir=args.weights_dir)
         log_path=session.report_dir/'runtime.log'
         print(f'Loading package; diagnostics: {log_path}',file=sys.stderr,flush=True)
         def invoke(callback):return _runtime_call(callback,log_path,args.verbose)
         progress_stream = sys.stderr
         _load_with_progress(lambda: invoke(session.__enter__), progress_stream)
-        print(f'NPU package ready; reports: {session.report_dir}',file=sys.stderr,flush=True)
-        from .execution import memory_text
-        print('Memory: '+memory_text(getattr(session,'memory',None)),file=sys.stderr,flush=True)
         try:
+            for message in package_compatibility(session.manifest):
+                print('Warning: '+message,file=sys.stderr,flush=True)
+            print(f'NPU package ready; reports: {session.report_dir}',file=sys.stderr,flush=True)
+            from .execution import memory_text
+            print('Memory: '+memory_text(getattr(session,'memory',None)),file=sys.stderr,flush=True)
             if args.action=='serve':
                 from .server import serve
-                serve(session,args.port);return
+                serve(session,args.port,invoke=invoke);return
             if sample_contract is not None:
                 from .schema import resolve_sample
                 data=resolve_sample(sample_contract,session.root,session.manifest)
