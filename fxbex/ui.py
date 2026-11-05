@@ -54,14 +54,14 @@ def build_ui(service_factory=None, default_package="", package_dir="fxbex", cont
             except Exception:
                 session.stop();raise
             state['session']=session;progress(1,desc='Ready')
-            return f"Loaded: {path}\nLoad: {time.perf_counter()-started:.3f}s\nSMI memory: {memory_text(loaded.get('memory'))}\nLog: {session.log_path}",[],[]
+            return f"Loaded: {path}\nLoad: {time.perf_counter()-started:.3f}s\nMemory: {memory_text(loaded.get('memory'))}\nLog: {session.log_path}",[],[]
     def run(method,*args):
         with lock:
             if not state['session']:raise gr.Error('Load a package first')
             if method not in ('chat','predict'):raise ValueError('Unsupported operation')
             started=time.perf_counter()
             result=getattr(state['session'],method)(*args)
-            return result,f"Request: {time.perf_counter()-started:.3f}s\n{json.dumps(result.get('metrics',{}),ensure_ascii=False)}\nSMI memory: {memory_text(result.get('memory'))}"
+            return result,f"Request: {time.perf_counter()-started:.3f}s\n{json.dumps(result.get('metrics',{}),ensure_ascii=False)}\nMemory: {memory_text(result.get('memory'))}"
     def chat(text,history):
         history=list(history or [])
         result,timing=run('chat',history+[{'role':'user','content':text}],32)
