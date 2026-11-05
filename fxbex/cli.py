@@ -93,6 +93,9 @@ Model-specific exporters and capture commands belong to their adapter plugins.""
             p.add_argument('--input', help='JSON file: named tensors for predict, or {"messages": [...]} for chat')
             p.add_argument('-o', '--output', help='Write response JSON to this file')
             p.add_argument('--max-new-tokens', type=int, default=32, help='Chat token limit (default: 32)')
+            if name == 'run':
+                p.add_argument('--sample', action='store_true', help='Run the packaged example once, including for chat models')
+                p.add_argument('--image', help='Use an image file instead of the packaged image sample')
         else:
             p.add_argument('--port', type=int, default=8000, help='HTTP port (default: 8000)')
     p=sub.add_parser('fetch', help='Download a catalog release into the shared FXBEX cache')
@@ -133,9 +136,17 @@ Model-specific exporters and capture commands belong to their adapter plugins.""
         from .hub import resolve_package
         args.package=str(resolve_package(args.package))
     sample_contract=None
+    if args.action=='run' and args.image and args.input:
+        raise ValueError('Use --image or --input, not both')
     if args.action=='run' and not args.input:
         from .schema import describe
         sample_contract=describe(args.package)
+        if args.image and (sample_contract['method']!='predict' or 'image' not in sample_contract['inputs']):
+            raise ValueError('This package does not declare an image input; inspect its input contract')
+        if args.image and not Path(args.image).is_file():
+            raise ValueError('Image file does not exist')
+        if sample_contract['method']=='chat' and not args.sample:
+            sample_contract=None
     if args.action=='build':result={'package':str(build(args.source,args.output,standalone=args.standalone,source_url=args.source_model,source_revision=args.source_revision))}
     elif args.action == 'inspect':
         m=inspect(args.package)
@@ -182,6 +193,8 @@ Model-specific exporters and capture commands belong to their adapter plugins.""
             if sample_contract is not None:
                 from .schema import resolve_sample
                 data=resolve_sample(sample_contract,session.root,session.manifest)
+                if args.image:
+                    data['image']=str(Path(args.image).resolve())
                 if sample_contract['method']=='chat':
                     result=invoke(lambda: session.chat(data['messages'],data.get('max_new_tokens',args.max_new_tokens)))
                 else:result=invoke(lambda: session.predict(data))

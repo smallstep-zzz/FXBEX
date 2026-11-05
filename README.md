@@ -438,7 +438,7 @@ Install the same FXBEX release in both environments. Runtime CLI commands and
 workers use that interpreter; `FXBEX_WORKER_PYTHON` overrides it. This neither
 installs the SDK nor enables CPU fallback. Preserve other configuration keys.
 
-`run` executes the packaged example once; `chat` opens the interactive `>>>`
+`run` opens interactive chat for chat packages; `run --sample` executes the packaged example once. For prediction packages `run` uses the bundled example, and `run --image PATH` overrides a declared image input. `chat` opens the interactive `>>>`
 conversation. Default one-shot JSON keeps model outputs/metrics and report paths;
 raw memory/compiler/replay diagnostics are saved to the reported `result.json`.
 Use `--verbose` to display them or `-o result.json` to save full results elsewhere.

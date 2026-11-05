@@ -13,6 +13,18 @@ from fxbex.settings import runtime_python
 
 
 class RuntimeCLI(unittest.TestCase):
+    def test_run_chat_opens_conversation_and_keeps_history(self):
+        with tempfile.TemporaryDirectory() as directory:
+            report=Path(directory); calls=[]
+            def chat(messages, limit):
+                calls.append(list(messages));return {'text':'answer'}
+            session=SimpleNamespace(report_dir=report,memory={},root=report,manifest={'runtime':{'adapter':'chat'}},
+                __enter__=lambda:None,__exit__=lambda *a:None,chat=chat)
+            contract={'method':'chat','example_input':{'messages':[{'role':'user','content':'sample'}]}}
+            with patch('fxbex.settings.runtime_python',return_value=sys.executable),patch('fxbex.hub.resolve_package',return_value=report/'model.fxbex'),patch('fxbex.schema.describe',return_value=contract),patch('fxbex.cli.inspect',return_value={}),patch('fxbex.runtime.package_compatibility',return_value=[]),patch('fxbex.runtime.Session',return_value=session),patch('builtins.input',side_effect=['hello','next','/quit']),contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(main(['run','Model']),0)
+            self.assertEqual([x['content'] for x in calls[1]],['hello','answer','next'])
+
     def test_configured_interpreter_receives_unchanged_arguments_before_resolution(self):
         args=['run','Model','--max-new-tokens','8']
         with patch('fxbex.settings.runtime_python',return_value='/sdk/python'),patch('subprocess.call',return_value=0) as call,patch('fxbex.hub.resolve_package') as resolve:
@@ -49,7 +61,7 @@ class RuntimeCLI(unittest.TestCase):
                 session=SimpleNamespace(report_dir=report,memory={},root=report,manifest={'runtime':{'adapter':'chat'}},
                     __enter__=lambda:None,__exit__=lambda *a:None,chat=lambda *a:dict(result))
                 output=io.StringIO()
-                args=['run','Model']+(['--verbose'] if verbose else [])
+                args=['run','Model','--sample']+(['--verbose'] if verbose else [])
                 contract={'method':'chat','example_input':{'messages':[{'role':'user','content':'2+2?'}]}}
                 with contextlib.redirect_stdout(output),patch('fxbex.settings.runtime_python',return_value=sys.executable),patch('fxbex.hub.resolve_package',return_value=report/'model.fxbex'),patch('fxbex.schema.describe',return_value=contract),patch('fxbex.package.inspect',return_value={}),patch('fxbex.cli.inspect',return_value={}),patch('fxbex.runtime.package_compatibility',return_value=[]),patch('fxbex.runtime.Session',return_value=session):
                     self.assertEqual(main(args),0)
