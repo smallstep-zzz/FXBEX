@@ -70,7 +70,28 @@ Model-specific exporters and capture commands belong to their adapter plugins.""
             p.add_argument('--max-new-tokens', type=int, default=32, help='Chat token limit (default: 32)')
         else:
             p.add_argument('--port', type=int, default=8000, help='HTTP port (default: 8000)')
+    p=sub.add_parser('fetch', help='Download a catalog release into the shared FXBEX cache')
+    p.add_argument('package')
+    p.add_argument('--refresh', action='store_true', help='Recheck catalog and force a fresh HF download')
+    p=sub.add_parser('cache', help='List or clear FXBEX-managed model downloads only')
+    p.add_argument('operation', choices=['list','clear'])
+    p.add_argument('--yes', action='store_true', help='Confirm deletion of managed model downloads')
     args=parser.parse_args(argv)
+    if args.action=='cache':
+        from .settings import cache_root
+        root=cache_root()/'models'
+        files=sorted(root.rglob('*.fxbex')) if root.exists() else []
+        if args.operation=='clear':
+            if not args.yes:raise ValueError('Use cache clear --yes to delete FXBEX-managed downloads')
+            import shutil
+            if root.is_symlink():raise ValueError('Refusing to clear a symlinked cache root')
+            if root.exists():shutil.rmtree(root)
+        print(json.dumps({'cache':str(root),'files':[str(p) for p in files],'cleared':args.operation=='clear'}))
+        return 0
+    if args.action=='fetch':
+        from .hub import resolve_package
+        print(json.dumps({'package':str(resolve_package(args.package,refresh=args.refresh))}))
+        return 0
     if args.action in ('run','chat','predict','serve','doctor') or (args.action=='validate' and not args.integrity_only):
         from .settings import runtime_python
         interpreter=runtime_python()

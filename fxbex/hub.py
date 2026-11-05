@@ -29,7 +29,7 @@ def catalog_matches(catalog,name,version=None):
     return [max(matches,key=rank)]
 
 
-def resolve_package(value):
+def resolve_package(value, *, refresh=False):
     import re
     identifier=str(value)
     if identifier.startswith('./'):identifier=identifier[2:]
@@ -45,7 +45,7 @@ def resolve_package(value):
     # An explicit version never reuses an unversioned legacy file.
     candidate=inferred if inferred else path
     local=_local_package(candidate.parent/candidate.name.split('@')[0]/version if sep else candidate,announce=False)
-    if local and (explicit_local or sep):
+    if local and (explicit_local or sep) and not refresh:
         print('Selected model: '+str(local),file=sys.stderr,flush=True)
         return local
     if explicit_local and (isinstance(value,os.PathLike) or identifier.endswith('.fxbex') or identifier.startswith(('.', '/', '~'))):raise FileNotFoundError(path)
@@ -78,9 +78,10 @@ def resolve_package(value):
     selected_version=release['version']
     if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]{0,59}',selected_version):raise ValueError('Invalid release version')
     print(f'Selected release: {source_id}@{selected_version}',file=sys.stderr,flush=True)
-    destination=Path(source_id)/selected_version
+    from .settings import cache_root
+    destination=cache_root()/"models"/source_id/selected_version
     target=destination/(source_id.split('/')[-1]+'.fxbex')
-    if target.exists():
+    if target.exists() and not refresh:
         local_hash=hashlib.sha256()
         with target.open('rb') as stream:
             for block in iter(lambda:stream.read(1024*1024),b''):local_hash.update(block)
@@ -95,7 +96,7 @@ def resolve_package(value):
             kwargs['disable']=False
             super().__init__(*args,**kwargs)
     print('Downloading model from Hugging Face (cached files are reused)...',file=sys.stderr,flush=True)
-    path=Path(hf_hub_download('/'.join(parts[:2]),'/'.join(parts[4:]),revision=parts[3],tqdm_class=DownloadProgress))
+    path=Path(hf_hub_download('/'.join(parts[:2]),'/'.join(parts[4:]),revision=parts[3],tqdm_class=DownloadProgress,force_download=refresh))
     h=hashlib.sha256()
     with path.open('rb') as stream:
         for block in iter(lambda:stream.read(1024*1024),b''):h.update(block)

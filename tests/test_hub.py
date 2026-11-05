@@ -8,6 +8,7 @@ class Hub(unittest.TestCase):
  def setUp(self):
   self.tmp=tempfile.TemporaryDirectory();self.old=os.getcwd();os.chdir(self.tmp.name)
   self.addCleanup(self.tmp.cleanup);self.addCleanup(os.chdir,self.old)
+  self.cache=patch('fxbex.settings.cache_root',return_value=Path.cwd());self.cache.start();self.addCleanup(self.cache.stop)
 
  def test_pinned_download_and_hash(self):
   with tempfile.TemporaryDirectory() as d:
@@ -20,7 +21,7 @@ class Hub(unittest.TestCase):
     self.assertEqual(resolve_package('org/model@v1').read_bytes(),b'package')
     self.assertEqual(resolve_package('./org/model@v1').read_bytes(),b'package')
     self.assertEqual(resolve_package('./org/model').read_bytes(),b'package')
-    (Path('org/model/v1')/'model.fxbex').unlink()
+    (Path('models/org/model/v1')/'model.fxbex').unlink()
     p.write_bytes(b'changed')
     with self.assertRaisesRegex(ValueError,'checksum'):resolve_package('org/model')
  def test_assets_are_explicit_and_confined(self):
@@ -59,7 +60,7 @@ class Hub(unittest.TestCase):
    payload=Path(d)/'download';payload.write_bytes(b'fixture')
    entry={'model':{'name':'Readable alias','source_repo':'org/QwenName'},'release':{'version':'opt2','artifact_url':'https://huggingface.co/org/model/resolve/'+'a'*40+'/model.fxbex','author_sha256':hashlib.sha256(b'fixture').hexdigest()}}
    with patch('fxbex.hub.urlopen',side_effect=lambda *a,**k:io.BytesIO(json.dumps({'models':[entry]}).encode())),patch.dict(sys.modules,{'huggingface_hub':SimpleNamespace(hf_hub_download=lambda *a,**k:str(payload))}):
-    expected=(Path('org/QwenName/opt2/QwenName.fxbex')).resolve()
+    expected=(Path('models/org/QwenName/opt2/QwenName.fxbex')).resolve()
     self.assertEqual(resolve_package('Readable alias'),expected)
     self.assertEqual(resolve_package('Readable alias'),expected)
 
@@ -81,7 +82,7 @@ class Hub(unittest.TestCase):
   self.assertEqual(catalog_matches(c,'short','opt9'),[a])
 
  def test_catalog_latest_beats_newly_touched_old_local_release(self):
-  root=Path('org/short')
+  root=Path('models/org/short')
   old=root/'old/short.fxbex';new=root/'current/short.fxbex'
   for p,data in [(old,b'old'),(new,b'current')]:
    p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes(data)
@@ -93,12 +94,12 @@ class Hub(unittest.TestCase):
   with patch('fxbex.hub.urlopen',side_effect=lambda *a,**k:io.BytesIO(json.dumps(catalog).encode())),patch.dict(sys.modules,{'huggingface_hub':SimpleNamespace(hf_hub_download=lambda *a,**k:self.fail('already installed current release must not download'))}):
    self.assertEqual(resolve_package('short'),new.resolve())
    self.assertEqual(resolve_package('org/short'),new.resolve())
-   self.assertEqual(resolve_package('./org/short'),old.resolve())
+   self.assertEqual(resolve_package('./models/org/short'),old.resolve())
    self.assertEqual(resolve_package(root),old.resolve())
-   self.assertEqual(resolve_package('short@old'),old.resolve())
+   self.assertEqual(resolve_package('./models/org/short@old'),old.resolve())
 
  def test_catalog_checksum_failure_does_not_fall_back_to_older_local(self):
-  root=Path('org/short/current');root.mkdir(parents=True);(root/'short.fxbex').write_bytes(b'changed')
+  root=Path('models/org/short/current');root.mkdir(parents=True);(root/'short.fxbex').write_bytes(b'changed')
   entry={'model':{'name':'Display','source_repo':'org/short'},'release':{'version':'current','artifact_url':'https://huggingface.co/org/release/resolve/'+'a'*40+'/model.fxbex','author_sha256':'b'*64}}
   with patch('fxbex.hub.urlopen',return_value=io.BytesIO(json.dumps({'models':[entry]}).encode())):
    with self.assertRaisesRegex(ValueError,'checksum'):resolve_package('short')

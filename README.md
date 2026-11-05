@@ -442,3 +442,18 @@ installs the SDK nor enables CPU fallback. Preserve other configuration keys.
 conversation. Default one-shot JSON keeps model outputs/metrics and report paths;
 raw memory/compiler/replay diagnostics are saved to the reported `result.json`.
 Use `--verbose` to display them or `-o result.json` to save full results elsewhere.
+
+### Shared downloads and refresh
+
+Model IDs download to `~/.cache/fxbex/models/PUBLISHER/MODEL/VERSION/`
+(or `$XDG_CACHE_HOME/fxbex/models`). Explicit local paths stay local.
+
+```bash
+fxbex fetch Qwen3.5-9B-FP8-dynamic --refresh
+fxbex cache list
+fxbex cache clear --yes
+```
+
+Refresh forces an HF download and verifies the catalog SHA256 before replacing
+the managed file. Clear removes only FXBEX-managed model downloads, not explicit
+local files or the Hugging Face cache. Unload running models before clearing.
