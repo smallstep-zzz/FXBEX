@@ -4,6 +4,7 @@ from pathlib import Path
 import stat
 import tempfile
 import unittest
+from unittest.mock import patch
 import warnings
 import zipfile
 
@@ -59,6 +60,25 @@ class PackageTests(unittest.TestCase):
                                      for i, data in members])
         with self.assertRaisesRegex(PackageError, 'Checksum mismatch'):
             validate(self.output)
+        exposed = False
+        with self.assertRaisesRegex(PackageError, 'Checksum mismatch'):
+            with extract(self.output):
+                exposed = True
+        self.assertFalse(exposed, 'corrupted contents must never be yielded')
+
+    def test_extract_reads_large_member_once(self):
+        build(self.source, self.output)
+        calls = []
+        original = zipfile.ZipFile.open
+
+        def record(archive, name, *args, **kwargs):
+            calls.append(name.filename if isinstance(name, zipfile.ZipInfo) else name)
+            return original(archive, name, *args, **kwargs)
+
+        with patch.object(zipfile.ZipFile, 'open', record):
+            with extract(self.output):
+                pass
+        self.assertEqual(calls.count('weights/data.bin'), 1)
 
     def test_missing_required(self):
         (self.source / 'memory_plan.json').unlink()

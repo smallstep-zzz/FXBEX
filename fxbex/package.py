@@ -87,7 +87,7 @@ def _weights(index, manifest):
             raise PackageError('external_path must be a nonempty string')
 
 
-def _validate(archive, max_total_size, max_json_size):
+def _validate(archive, max_total_size, max_json_size, *, verify_hashes=True):
     if max_total_size <= 0 or max_json_size <= 0:
         raise ValueError('Size limits must be positive')
     members = {}
@@ -118,12 +118,13 @@ def _validate(archive, max_total_size, max_json_size):
     for name, entry in manifest['files'].items():
         if members[name].file_size != entry['size']:
             raise PackageError(f'Size mismatch: {name}')
-        digest = hashlib.sha256()
-        with archive.open(name) as stream:
-            while chunk := stream.read(CHUNK):
-                digest.update(chunk)
-        if digest.hexdigest() != entry['sha256']:
-            raise PackageError(f'Checksum mismatch: {name}')
+        if verify_hashes:
+            digest = hashlib.sha256()
+            with archive.open(name) as stream:
+                while chunk := stream.read(CHUNK):
+                    digest.update(chunk)
+            if digest.hexdigest() != entry['sha256']:
+                raise PackageError(f'Checksum mismatch: {name}')
     from .bundled import specification
     specification(manifest)
     configs = {name: _json(archive.read(name), name) for name in REQUIRED}
@@ -156,15 +157,19 @@ def extract(path, *, max_total_size=DEFAULT_MAX_TOTAL_SIZE, max_json_size=DEFAUL
     """
     try:
         with zipfile.ZipFile(path) as archive:
-            _validate(archive, max_total_size, max_json_size)
+            manifest = _validate(archive, max_total_size, max_json_size, verify_hashes=False)
             with tempfile.TemporaryDirectory(prefix='fxbex-') as directory:
                 root = Path(directory)
                 for info in archive.infolist():
                     target = root.joinpath(*PurePosixPath(info.filename).parts)
                     target.parent.mkdir(parents=True, exist_ok=True)
+                    digest = hashlib.sha256()
                     with archive.open(info) as source, target.open('xb') as dest:
                         while chunk := source.read(CHUNK):
                             dest.write(chunk)
+                            digest.update(chunk)
+                    if info.filename != 'manifest.json' and digest.hexdigest() != manifest['files'][info.filename]['sha256']:
+                        raise PackageError(f'Checksum mismatch: {info.filename}')
                 yield root
     except (zipfile.BadZipFile, RuntimeError, NotImplementedError) as exc:
         raise PackageError(f'Unreadable archive: {exc}') from exc

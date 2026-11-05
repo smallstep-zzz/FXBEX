@@ -29,6 +29,8 @@ PYTHON=python3.11 bash scripts/install.sh
 
 이 패키지는 Furiosa SDK, PyTorch, 드라이버를 설치하거나 업그레이드하지 않습니다. 빌드, 검사, 무결성 전용 검증은 표준 라이브러리만 사용하지만 NPU 실행에는 모델과 호환되는 SDK 및 의존성이 필요합니다. `fxbex`는 [PyPI](https://pypi.org/project/fxbex/)에서 설치합니다. 재현 가능한 설치에는 `python -m pip install fxbex==0.6.1`처럼 검증한 버전을 고정하세요. SDK가 지원되는 Python 환경에서 실행하세요.
 
+소스 버전 0.6.8부터 패키지를 추출하면서 각 파일의 SHA-256을 동시에 검증합니다. 모든 검증이 끝나기 전에는 모델을 실행하지 않습니다. 설치된 PyPI 버전에 이 변경이 있는지는 해당 릴리스를 확인하세요.
+
 ## 명령어
 
 ```bash
