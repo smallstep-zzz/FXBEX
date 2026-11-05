@@ -25,7 +25,11 @@ def _is_package(value):
     if value.endswith('.fxb') or (path.is_file() and not value.endswith('.fxbex')):return False
     identifier=value[2:] if value.startswith('./') else value
     name,separator,version=identifier.partition('@')
-    local_path=Path(name).expanduser()/version if separator else path
+    base=Path(name).expanduser()
+    if '/' not in name and not base.exists():
+        folders=[p for p in Path('.').glob('*/'+name) if p.is_dir()]
+        if len(folders)==1:base=folders[0]
+    local_path=base/version if separator else base
     if value.endswith('.fxbex') or hub._local_package(local_path) is not None:
         return True
     if value.endswith('.fxb') or path.exists():
@@ -36,11 +40,11 @@ def _is_package(value):
             raw = response.read(4_000_001)
         if len(raw) > 4_000_000:
             raise ValueError('Catalog too large')
-        models = json.loads(raw)['models']
+        catalog = json.loads(raw)
+        models = catalog['models']
         identifier=value[2:] if value.startswith('./') else value
         name, separator, version = identifier.partition('@')
-        return any(name in (item['model']['name'], item['model']['source_repo'])
-                   and (not separator or version == item['release']['version']) for item in models)
+        return bool(hub.catalog_matches(catalog,name,version if separator else None))
     except Exception as exc:
         warnings.warn(f'FuryAwesome catalog unavailable; using native LLM ({exc}). Use fxbex=True to require FXBEX.', RuntimeWarning, stacklevel=3)
         return False

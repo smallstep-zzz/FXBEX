@@ -362,3 +362,21 @@ existing provenance is preserved. Missing provenance is `unknown`; a display nam
 is never treated as evidence of origin. FHA fills this from intake/download records
 and requires it before publishing. Old packages still load without this field;
 metadata edits require a new artifact hash/release, not in-place rewriting.
+
+## Short names and newest local model (0.5.3)
+
+```bash
+fxbex chat Qwen3.5-9B-FP8-dynamic
+fxbex run yolo11-onnx
+fxbex run ./models
+```
+
+A unique final component of the original source repository is a short model ID.
+Ambiguous publisher names require the full ID. A folder selects the recursively
+newest `.fxbex` by filesystem modification time (lexical path breaks ties), and
+prints the selected path. This includes folders holding different models. Exact
+file paths and `@version` still select explicitly. Local timestamps can change
+when files are copied; newest is a convenience choice, not a performance ranking.
+Remote releases use the catalog's recorded registration order; older catalogs
+without order require explicit versions when multiple releases match. Existing
+files take precedence over remote releases.

@@ -9,16 +9,24 @@ CATALOG='https://raw.githubusercontent.com/smallstep-zzz/furyawesome/main/catalo
 def _local_package(path):
     if path.is_file():return path.resolve()
     if not path.is_dir():return None
-    for filename in (path.name+'.fxbex','model.fxbex'):
-        candidate=path/filename
-        if candidate.is_file():return candidate.resolve()
-    candidates=list(path.glob('*.fxbex'))
-    if len(candidates)==1:return candidates[0].resolve()
-    if len(candidates)>1:raise ValueError('Multiple model files; select the exact .fxbex path')
-    versions=[p for p in path.glob('*/*.fxbex') if p.is_file()]
-    if len(versions)==1:return versions[0].resolve()
-    if len(versions)>1:raise ValueError('Multiple installed versions; select MODEL@VERSION or an exact file')
-    return None
+    candidates=[p for p in path.rglob('*.fxbex') if p.is_file()]
+    if not candidates:return None
+    selected=max(candidates,key=lambda p:(p.stat().st_mtime_ns,str(p)))
+    print('Selected model: '+str(selected.resolve()),file=sys.stderr,flush=True)
+    return selected.resolve()
+
+
+def catalog_matches(catalog,name,version=None):
+    matches=[p for p in catalog['models'] if name in (p['model']['name'],p['model']['source_repo'],p['model']['source_repo'].split('/')[-1]) and (version is None or p['release']['version']==version)]
+    sources={p['model']['source_repo'] for p in matches}
+    if len(sources)>1:raise ValueError('Short model name is ambiguous; include the publisher/model ID')
+    if len(matches)<=1:return matches
+    order=catalog.get('release_order',[])
+    def rank(p):
+        key=p['model']['source_repo']+'@'+p['release']['version']+'#'+p['release']['author_sha256']
+        return order.index(key) if key in order else -1
+    if max(map(rank,matches))<0:raise ValueError('No catalog release order available; select MODEL@VERSION')
+    return [max(matches,key=rank)]
 
 
 def resolve_package(value):
@@ -28,8 +36,12 @@ def resolve_package(value):
     name,sep,version=identifier.partition('@')
     if sep and not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]{0,59}',version):raise ValueError('Invalid release version')
     path=Path(value).expanduser()
+    if '/' not in name and not path.exists():
+        folders=[p for p in Path('.').glob('*/'+name) if p.is_dir()]
+        if len(folders)==1:path=folders[0]
+        elif len(folders)>1:raise ValueError('Short model name is ambiguous locally; include publisher/model ID')
     # An explicit version never reuses an unversioned legacy file.
-    local=_local_package(Path(name).expanduser()/version) if sep else _local_package(path)
+    local=_local_package(path.parent/path.name.split('@')[0]/version) if sep else _local_package(path)
     if local:return local
     if identifier.endswith('.fxbex') or identifier.startswith(('.', '/', '~')):raise FileNotFoundError(path)
     with urlopen(CATALOG,timeout=30) as response:
@@ -37,7 +49,7 @@ def resolve_package(value):
     if len(raw)>4_000_000:raise ValueError('Catalog too large')
     catalog=json.loads(raw)
     name,sep,version=identifier.partition('@')
-    matches=[p for p in catalog['models'] if name in (p['model']['name'],p['model']['source_repo']) and (not sep or p['release']['version']==version)]
+    matches=catalog_matches(catalog,name,version if sep else None)
     if len(matches)!=1:raise ValueError('Model ID is missing or ambiguous; use exact source_repo@version from FuryAwesome')
     release=matches[0]['release'];u=urlsplit(release['artifact_url']);parts=u.path.strip('/').split('/')
     import re

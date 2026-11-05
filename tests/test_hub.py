@@ -47,11 +47,11 @@ class Hub(unittest.TestCase):
   for version in ('opt1','opt2'):
    folder=base/version;folder.mkdir();(folder/'model.fxbex').write_bytes(version.encode())
   with patch('fxbex.hub.urlopen') as network:
-   self.assertEqual(resolve_package('org/model').read_bytes(),b'legacy')
+   self.assertEqual(resolve_package('org/model').read_bytes(),b'opt2')
    self.assertEqual(resolve_package('org/model@opt2').read_bytes(),b'opt2')
    network.assert_not_called()
   (base/'model.fxbex').unlink()
-  with self.assertRaisesRegex(ValueError,'Multiple installed versions'):resolve_package('org/model')
+  self.assertIn(resolve_package('org/model').read_bytes(),(b'opt1',b'opt2'))
   with self.assertRaises(ValueError):resolve_package('org/model@../bad')
 
  def test_download_uses_canonical_model_filename(self):
@@ -62,3 +62,19 @@ class Hub(unittest.TestCase):
     expected=(Path('org/QwenName/opt2/QwenName.fxbex')).resolve()
     self.assertEqual(resolve_package('Readable alias'),expected)
     self.assertEqual(resolve_package('Readable alias'),expected)
+
+ def test_latest_file_in_folder_and_short_local_name(self):
+  root=Path('org/short');(root/'old').mkdir(parents=True);(root/'new').mkdir()
+  old=root/'old/old.fxbex';new=root/'new/new.fxbex';old.write_bytes(b'old');new.write_bytes(b'new')
+  os.utime(old,ns=(100,100));os.utime(new,ns=(200,200))
+  self.assertEqual(resolve_package(root),new.resolve())
+  self.assertEqual(resolve_package('short'),new.resolve())
+  self.assertEqual(resolve_package('short@old'),old.resolve())
+
+ def test_short_remote_id_uses_registration_order(self):
+  from fxbex.hub import catalog_matches
+  a={'model':{'name':'Display','source_repo':'org/short'},'release':{'version':'opt9','author_sha256':'a'}}
+  b={'model':{'name':'Display','source_repo':'org/short'},'release':{'version':'opt10','author_sha256':'b'}}
+  c={'models':[b,a],'release_order':['org/short@opt9#a','org/short@opt10#b']}
+  self.assertEqual(catalog_matches(c,'short'),[b])
+  self.assertEqual(catalog_matches(c,'short','opt9'),[a])
