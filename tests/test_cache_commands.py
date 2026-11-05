@@ -20,5 +20,5 @@ class CacheCommands(unittest.TestCase):
    entry={'model':{'name':'fixture','source_repo':'org/model'},'release':{'version':'v1','artifact_url':'https://huggingface.co/org/release/resolve/'+'a'*40+'/model.fxbex','author_sha256':hashlib.sha256(b'fresh').hexdigest()}}
    def get(*args,**kwargs):self.assertTrue(kwargs['force_download']);return str(download)
    with patch('fxbex.settings.cache_root',return_value=root/'cache'),patch('fxbex.hub.urlopen',return_value=io.BytesIO(json.dumps({'models':[entry]}).encode())),patch.dict('sys.modules',{'huggingface_hub':SimpleNamespace(hf_hub_download=get)}):
-    self.assertEqual(resolve_package('fixture',refresh=True),target)
+    self.assertEqual(resolve_package('fixture',refresh=True),target.resolve())
     self.assertEqual(target.read_bytes(),b'fresh')
