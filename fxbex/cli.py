@@ -21,9 +21,14 @@ def _load_with_progress(callback, stream, interval=5):
     """Report elapsed time without inventing a completion percentage."""
     stopped = threading.Event()
     started = time.monotonic()
+    interactive = stream.isatty()
+    displayed = False
     def report():
+        nonlocal displayed
         while not stopped.wait(interval):
-            print(f'Model loading... {int(time.monotonic() - started)}s elapsed', file=stream, flush=True)
+            message = f'Model loading... {int(time.monotonic() - started)}s elapsed'
+            print(('\r' if interactive else '') + message, end='' if interactive else '\n', file=stream, flush=True)
+            displayed = True
     thread = threading.Thread(target=report, daemon=True)
     thread.start()
     try:
@@ -31,6 +36,8 @@ def _load_with_progress(callback, stream, interval=5):
     finally:
         stopped.set()
         thread.join()
+        if interactive and displayed:
+            print(file=stream, flush=True)
 
 
 def _main(argv=None):
