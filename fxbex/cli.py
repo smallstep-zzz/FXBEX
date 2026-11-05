@@ -32,6 +32,8 @@ def _main(argv=None):
 Validation checks static readiness; it does not run inference or prove NPU execution.
 Model-specific exporters and capture commands belong to their adapter plugins.""")
     sub = parser.add_subparsers(dest='action', required=True)
+    from . import __version__
+    parser.add_argument('--version',action='version',version='%(prog)s '+__version__)
     p = sub.add_parser('build', help='Pack a compiled directory with checksums (no compilation)')
     p.add_argument('source', help='Compiled directory containing manifest and required JSON configurations')
     p.add_argument('-o', '--output', required=True, help='New .fxbex file; existing files are never overwritten')
@@ -69,6 +71,14 @@ Model-specific exporters and capture commands belong to their adapter plugins.""
         else:
             p.add_argument('--port', type=int, default=8000, help='HTTP port (default: 8000)')
     args=parser.parse_args(argv)
+    if args.action in ('run','chat','predict','serve','doctor') or (args.action=='validate' and not args.integrity_only):
+        from .settings import runtime_python
+        interpreter=runtime_python()
+        if Path(interpreter)!=Path(sys.executable):
+            import subprocess
+            print('Using SDK Python: '+interpreter,file=sys.stderr,flush=True)
+            code=subprocess.call([interpreter,'-m','fxbex',*(sys.argv[1:] if argv is None else map(str,argv))])
+            return code if code>=0 else 128-code
     if args.action=='chat' and not args.input:
         print('Welcome to FXBEX Chat!\nModel: '+args.package+
               '\n모델을 준비하고 있습니다. 적재가 완료되면 >>> 뒤에 질문을 입력하세요.'+
@@ -150,8 +160,14 @@ Model-specific exporters and capture commands belong to their adapter plugins.""
                 return
             if isinstance(result,dict):result.setdefault('memory',getattr(session,'memory',None))
         finally:invoke(lambda: session.__exit__(None,None,None))
-        if args.output:Path(args.output).write_text(json.dumps(result,ensure_ascii=False,indent=2))
         result['report_dir']=str(session.report_dir)
+        result_path=Path(args.output).resolve() if args.output else session.report_dir/'result.json'
+        result['result_file']=str(result_path)
+        result_path.write_text(json.dumps(result,ensure_ascii=False,indent=2))
+        if not args.verbose:
+            # Full raw diagnostics remain in result.json and runtime.log.
+            result={key:value for key,value in result.items() if key not in
+                    ('memory','compiler_calls','replay_hits','npu_tasks','validated_audit','current_request_traced')}
     print(json.dumps(result,ensure_ascii=False,indent=2))
     return 0 if result.get('valid', True) else 1
 

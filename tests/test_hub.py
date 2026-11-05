@@ -47,11 +47,11 @@ class Hub(unittest.TestCase):
   for version in ('opt1','opt2'):
    folder=base/version;folder.mkdir();(folder/'model.fxbex').write_bytes(version.encode())
   with patch('fxbex.hub.urlopen') as network:
-   self.assertEqual(resolve_package('org/model').read_bytes(),b'opt2')
+   self.assertEqual(resolve_package('./org/model').read_bytes(),b'opt2')
    self.assertEqual(resolve_package('org/model@opt2').read_bytes(),b'opt2')
    network.assert_not_called()
   (base/'model.fxbex').unlink()
-  self.assertIn(resolve_package('org/model').read_bytes(),(b'opt1',b'opt2'))
+  self.assertIn(resolve_package('./org/model').read_bytes(),(b'opt1',b'opt2'))
   with self.assertRaises(ValueError):resolve_package('org/model@../bad')
 
  def test_download_uses_canonical_model_filename(self):
@@ -68,7 +68,8 @@ class Hub(unittest.TestCase):
   old=root/'old/old.fxbex';new=root/'new/new.fxbex';old.write_bytes(b'old');new.write_bytes(b'new')
   os.utime(old,ns=(100,100));os.utime(new,ns=(200,200))
   self.assertEqual(resolve_package(root),new.resolve())
-  self.assertEqual(resolve_package('short'),new.resolve())
+  with patch('fxbex.hub.urlopen',side_effect=OSError('offline')):
+   self.assertEqual(resolve_package('short'),new.resolve())
   self.assertEqual(resolve_package('short@old'),old.resolve())
 
  def test_short_remote_id_uses_registration_order(self):
@@ -78,3 +79,26 @@ class Hub(unittest.TestCase):
   c={'models':[b,a],'release_order':['org/short@opt9#a','org/short@opt10#b']}
   self.assertEqual(catalog_matches(c,'short'),[b])
   self.assertEqual(catalog_matches(c,'short','opt9'),[a])
+
+ def test_catalog_latest_beats_newly_touched_old_local_release(self):
+  root=Path('org/short')
+  old=root/'old/short.fxbex';new=root/'current/short.fxbex'
+  for p,data in [(old,b'old'),(new,b'current')]:
+   p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes(data)
+  os.utime(old,ns=(999999999999,999999999999));os.utime(new,ns=(1,1))
+  def entry(version,data):
+   return {'model':{'name':'Display','source_repo':'org/short'},'release':{'version':version,'artifact_url':'https://huggingface.co/org/release/resolve/'+'a'*40+'/model.fxbex','author_sha256':hashlib.sha256(data).hexdigest()}}
+  a,b=entry('old',b'old'),entry('current',b'current')
+  catalog={'models':[a,b],'release_order':['org/short@old#'+a['release']['author_sha256'],'org/short@current#'+b['release']['author_sha256']]}
+  with patch('fxbex.hub.urlopen',side_effect=lambda *a,**k:io.BytesIO(json.dumps(catalog).encode())),patch.dict(sys.modules,{'huggingface_hub':SimpleNamespace(hf_hub_download=lambda *a,**k:self.fail('already installed current release must not download'))}):
+   self.assertEqual(resolve_package('short'),new.resolve())
+   self.assertEqual(resolve_package('org/short'),new.resolve())
+   self.assertEqual(resolve_package('./org/short'),old.resolve())
+   self.assertEqual(resolve_package(root),old.resolve())
+   self.assertEqual(resolve_package('short@old'),old.resolve())
+
+ def test_catalog_checksum_failure_does_not_fall_back_to_older_local(self):
+  root=Path('org/short/current');root.mkdir(parents=True);(root/'short.fxbex').write_bytes(b'changed')
+  entry={'model':{'name':'Display','source_repo':'org/short'},'release':{'version':'current','artifact_url':'https://huggingface.co/org/release/resolve/'+'a'*40+'/model.fxbex','author_sha256':'b'*64}}
+  with patch('fxbex.hub.urlopen',return_value=io.BytesIO(json.dumps({'models':[entry]}).encode())):
+   with self.assertRaisesRegex(ValueError,'checksum'):resolve_package('short')

@@ -31,7 +31,7 @@ def _is_package(value):
         folders=[p for p in Path('.').glob('*/'+name) if p.is_dir()]
         if len(folders)==1:base=folders[0]
     local_path=base/version if separator else base
-    if value.endswith('.fxbex') or hub._local_package(local_path) is not None:
+    if value.endswith('.fxbex') or hub._local_package(local_path,announce=False) is not None:
         return True
     if value.endswith('.fxb') or path.exists():
         return False

@@ -420,3 +420,25 @@ The SDK still owns storage allocation/reuse; reference release does not prove
 physical deallocation. No manual arena, buffer aliasing or CPU model fallback is
 introduced. Session `memory_plan.json` and result `logical_memory` record the
 logical peaks, release counts and barriers; physical peak remains unknown.
+
+### Latest catalog release and SDK environment (0.6.3)
+
+`fxbex run MODEL` and `fxbex chat MODEL` check the current FuryAwesome catalog
+before reusing a model-name cache. Short names and full source IDs use the latest
+registered release, even when an older local file was touched more recently.
+`MODEL@VERSION` pins a release. Explicit files, `./existing-folder`, absolute
+paths and Python `Path` arguments preserve local selection; a folder selects its
+newest file by mtime. Offline fallback clearly warns that latest is unknown.
+An installed matching release is hash-checked and reused without downloading.
+
+Check the actual command with `fxbex --version`. If the CLI environment differs
+from the SDK environment, set user-owned `~/.config/fxbex/config.json` key
+`runtime_python` to the absolute SDK interpreter (e.g. `/usr/bin/python3.10`).
+Install the same FXBEX release in both environments. Runtime CLI commands and
+workers use that interpreter; `FXBEX_WORKER_PYTHON` overrides it. This neither
+installs the SDK nor enables CPU fallback. Preserve other configuration keys.
+
+`run` executes the packaged example once; `chat` opens the interactive `>>>`
+conversation. Default one-shot JSON keeps model outputs/metrics and report paths;
+raw memory/compiler/replay diagnostics are saved to the reported `result.json`.
+Use `--verbose` to display them or `-o result.json` to save full results elsewhere.

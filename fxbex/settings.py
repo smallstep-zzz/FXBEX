@@ -1,6 +1,7 @@
 """User-owned process settings, never read from an untrusted model package."""
 import json
 import os
+import sys
 from pathlib import Path
 
 
@@ -25,3 +26,11 @@ def lock_path():
 
 def runs_path():
     return Path(settings().get('reports_dir',str(cache_root()/'runs'))).expanduser().resolve()
+
+
+def runtime_python():
+    """Host-owned SDK interpreter; never selected by executable package metadata."""
+    value=os.environ.get('FXBEX_WORKER_PYTHON') or settings().get('runtime_python') or sys.executable
+    if not isinstance(value,str) or not Path(value).is_absolute() or not Path(value).is_file():
+        raise ValueError('FXBEX runtime_python must be an existing absolute interpreter path')
+    return str(Path(value))

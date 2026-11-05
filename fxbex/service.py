@@ -9,7 +9,7 @@ import sys
 import threading
 import time
 import weakref
-from .settings import runs_path
+from .settings import runs_path, runtime_python
 
 _services=weakref.WeakSet()
 
@@ -40,8 +40,7 @@ class PackageService:
         run=runs_path()/f'ui_{time.time_ns()}';run.mkdir(parents=True)
         self.log_path=run/'worker.log';self.log=self.log_path.open('w')
         env=dict(os.environ,OMP_NUM_THREADS='8',MKL_NUM_THREADS='8')
-        worker_python=os.environ.get('FXBEX_WORKER_PYTHON',sys.executable)
-        if not Path(worker_python).is_absolute():raise ValueError('FXBEX_WORKER_PYTHON must be an absolute interpreter path')
+        worker_python=runtime_python()
         self.process=subprocess.Popen([worker_python,'-u','-m','fxbex.worker',self.package],env=env,
             stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=self.log,text=True,bufsize=1)
 
