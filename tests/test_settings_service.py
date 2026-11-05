@@ -38,6 +38,19 @@ class IntegrationContracts(unittest.TestCase):
         with patch('importlib.metadata.entry_points',return_value=[Plugin(),Plugin()]):
             with self.assertRaisesRegex(ValueError,'found 2'):resolve_adapter('duplicate')
 
+class ContextProtocol(unittest.TestCase):
+    def test_loaded_capacity_controls_output_and_transport(self):
+        service=PackageService('/tmp/fixture.fxbex')
+        with patch.object(service,'_start'), patch.object(service,'_request',return_value={'ok':True,'context_limit':262144}):
+            service.load()
+            self.assertEqual(service.context_limit,262144)
+            service.generate('a'*70000,max_tokens=1024)
+            service.chat([{'role':'user','content':'a'*70000}],max_new_tokens=1024)
+            with self.assertRaises(ValueError):service.generate('a',max_tokens=262145)
+            with self.assertRaises(ValueError):service.generate('a',max_tokens=True)
+        service.stop()
+
+
 class TokenProtocol(unittest.TestCase):
     def test_tokens_arrive_before_final_response(self):
         from types import SimpleNamespace

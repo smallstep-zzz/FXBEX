@@ -3,10 +3,28 @@ import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
-from fxbex.execution import ExecutionRecorder, manifest_identity
+from fxbex.execution import ExecutionRecorder, MemoryTelemetry, manifest_identity
 from fxbex.runtime import Session
 
 class ExecutionTests(unittest.TestCase):
+    def test_memory_telemetry_records_public_smi_json(self):
+        with tempfile.TemporaryDirectory() as d:
+            completed=type('Completed',(),{'stdout':'[{"memory":{"DRAM":{"used_size":7}}}]'})()
+            with patch('fxbex.execution.subprocess.run',return_value=completed) as run:
+                telemetry=MemoryTelemetry(d)
+                row=telemetry.sample('after_load')
+            run.assert_called_once_with(['furiosa-smi','status','--format','json'],capture_output=True,text=True,timeout=5,check=True)
+            self.assertEqual(row['phase'],'after_load')
+            self.assertEqual(row['devices'][0]['memory']['DRAM']['used_size'],7)
+            self.assertEqual(json.loads((Path(d)/'memory.jsonl').read_text())['source'],'furiosa-smi status --format json')
+
+    def test_missing_smi_is_unknown_not_zero(self):
+        with tempfile.TemporaryDirectory() as d, patch('fxbex.execution.subprocess.run',side_effect=FileNotFoundError):
+            row=MemoryTelemetry(d).sample('after_load')
+            self.assertIsNone(row['physical_allocated_bytes'])
+            self.assertEqual(row['error_type'],'FileNotFoundError')
+            self.assertNotIn('devices',row)
+
     def test_identity_and_receipt_do_not_promote_old_trace(self):
         with tempfile.TemporaryDirectory() as d:
             recorder = ExecutionRecorder(d, {'model': 'x', 'files': {'a': 'hash'}})

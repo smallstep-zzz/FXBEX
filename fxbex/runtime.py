@@ -71,14 +71,18 @@ class Session:
         self.report_dir = Path(report_dir or runs_path()/f'fxbex_{time.time_ns()}').resolve()
         self.report_dir.mkdir(parents=True, exist_ok=True)
         self.adapter = None
+        self.telemetry = None
+        self.memory = None
 
     def __enter__(self):
         try:
             self.root = self.stack.enter_context(extract(self.path))
             self.manifest = json.loads((self.root/'manifest.json').read_text())
             check_compatibility(self.manifest)
-            from .execution import ExecutionRecorder
+            from .execution import ExecutionRecorder, MemoryTelemetry
             self.execution = ExecutionRecorder(self.report_dir, self.manifest)
+            self.telemetry = MemoryTelemetry(self.report_dir)
+            self.memory = self.telemetry.sample('before_load')
             # Share the canonical lock with web workers. Never assume PE partitioning.
             import fcntl
             canonical = lock_path()
@@ -93,6 +97,7 @@ class Session:
                 self.adapter=adapter(self.root,weights_dir=self.weights_dir)
             else:
                 self.adapter=adapter(self.root,self.report_dir,self.stack,weights_dir=self.weights_dir)
+            self.sample_memory('after_load')
             return self
         except BaseException:
             self.__exit__(None,None,None)
@@ -109,14 +114,34 @@ class Session:
             gc.collect()
         finally:
             self.stack.close()
+            if self.telemetry is not None:
+                self.memory = self.telemetry.sample('after_unload')
+
+    def sample_memory(self, phase):
+        if self.telemetry is not None:
+            self.memory = self.telemetry.sample(phase)
+            summary=getattr(self.adapter,'memory_summary',None)
+            if callable(summary):
+                try:
+                    self.memory['model_logical_memory']=summary()
+                    (self.report_dir/'memory_latest.json').write_text(json.dumps(self.memory,indent=2))
+                except Exception as exc:self.memory['model_memory_error']=type(exc).__name__
+        return self.memory
+
+    def _call(self, operation, callback):
+        self.sample_memory(f'before_{operation}')
+        try:
+            return self.execution.call(operation, callback)
+        finally:
+            self.sample_memory(f'after_{operation}')
 
     def predict(self, inputs):
         if not hasattr(self.adapter, 'predict'):raise ValueError('Package does not provide predict')
-        return self.execution.call('predict', lambda: self.adapter.predict(inputs))
+        return self._call('predict', lambda: self.adapter.predict(inputs))
 
     def chat(self, messages, max_new_tokens=32):
         if not hasattr(self.adapter, 'chat'): raise ValueError('Package does not provide chat')
-        return self.execution.call('chat', lambda: self.adapter.chat(messages, max_new_tokens))
+        return self._call('chat', lambda: self.adapter.chat(messages, max_new_tokens))
 
 
 class RunnableDAG:

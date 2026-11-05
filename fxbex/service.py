@@ -19,6 +19,7 @@ class PackageService:
         self.package=str(Path(package).resolve())
         self.lock=threading.RLock()
         self.process=None;self.log=None;self.log_path=None;self.loaded=False
+        self.context_limit=512
         _services.add(self)
 
     def stop(self):
@@ -69,16 +70,19 @@ class PackageService:
             self.stop()
             try:
                 self._start()
-                result=self._request({'action':'load'},on_progress);self.loaded=True
+                result=self._request({'action':'load'},on_progress)
+                capacity=result.get('context_limit',512)
+                if type(capacity) is not int or capacity<1:raise ValueError('Invalid worker context limit')
+                self.context_limit=capacity;self.loaded=True
                 return result
             except BaseException:self.stop();raise
 
     def chat(self,messages,max_new_tokens=32,on_progress=None):
         with self.lock:
             if not self.loaded:raise RuntimeError('Load a package first')
-            if not isinstance(messages,list) or len(messages)>16 or type(max_new_tokens) is not int or not 1<=max_new_tokens<=256:
-                raise ValueError('Bounded text history and 1..256 output tokens required')
-            if len(json.dumps(messages).encode())>65536:raise ValueError('History exceeds 64KiB')
+            if not isinstance(messages,list) or not 1<=len(messages)<=max(16,self.context_limit) or type(max_new_tokens) is not int or not 1<=max_new_tokens<=self.context_limit:
+                raise ValueError(f'Bounded text history and 1..{self.context_limit} output tokens required')
+            if len(json.dumps(messages).encode())>max(65536,self.context_limit*32):raise ValueError('History exceeds package transport budget')
             return self._request({'action':'chat','messages':messages,'max_new_tokens':max_new_tokens},on_progress)
 
     def predict(self,inputs):
@@ -90,9 +94,9 @@ class PackageService:
     def generate(self, prompt, max_tokens=16, on_token=None):
         with self.lock:
             if not self.loaded:raise RuntimeError('Load a package first')
-            if type(max_tokens) is not int or not 1<=max_tokens<=256:
-                raise ValueError('max_tokens must be 1..256')
-            if not isinstance(prompt,(str,list)) or len(json.dumps(prompt).encode())>65536:
+            if type(max_tokens) is not int or not 1<=max_tokens<=self.context_limit:
+                raise ValueError(f'max_tokens must be 1..{self.context_limit}')
+            if not isinstance(prompt,(str,list)) or len(json.dumps(prompt).encode())>max(65536,self.context_limit*32):
                 raise ValueError('Expected bounded prompt text or chat messages')
             return self._request({'action':'generate','prompt':prompt,'max_tokens':max_tokens},on_token=on_token)
 

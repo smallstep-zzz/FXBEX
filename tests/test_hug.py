@@ -62,16 +62,41 @@ class HugTest(unittest.TestCase):
         wrapped = facade.hug(lambda: None)
         with self.assertRaises(NotImplementedError):
             wrapped('test.fxbex', tensor_parallel_size=2)
-        with self.assertRaises(NotImplementedError):
-            wrapped('test.fxbex', max_model_len=256)
+        with patch.object(facade.hub, 'resolve_package', return_value='/tmp/model.fxbex'), patch.object(facade, 'inspect', return_value={}):
+            with self.assertRaises(NotImplementedError):
+                wrapped('test.fxbex', max_model_len=256)
 
-    def model(self):
+    def model(self, context=None, **options):
         service = Mock()
         result = dict(text='answer', token_ids=[31, 32], prompt_token_ids=[4, 5], finish_reason='length')
         service.generate.return_value = result
-        with patch.object(facade.hub, 'resolve_package', return_value='/tmp/model.fxbex'), patch.object(facade, 'PackageService', return_value=service):
-            model = facade.hug(lambda: None)('test.fxbex')
+        with patch.object(facade.hub, 'resolve_package', return_value='/tmp/model.fxbex'), patch.object(facade, 'PackageService', return_value=service), patch.object(facade, 'inspect', return_value={} if context is None else {'context': {'max_tokens': context}}):
+            model = facade.hug(lambda: None)('test.fxbex', **options)
         return model, service, result
+
+    def test_package_context_and_token_limits(self):
+        for capacity in (512, 262144):
+            model, service, _ = self.model(capacity, max_model_len=None)
+            self.assertEqual(model.max_model_len, capacity)
+            model.generate('hello', SamplingParams(temperature=0, max_tokens=capacity))
+            service.generate.assert_called_with(prompt='hello', max_tokens=capacity)
+            for tokens in (True, False, 0, -1, capacity + 1, 1.5):
+                with self.assertRaises(ValueError):
+                    model.generate('hello', SamplingParams(temperature=0, max_tokens=tokens))
+        model, _, _ = self.model()
+        self.assertEqual(model.max_model_len, 512)
+        model, _, _ = self.model(262144, max_model_len=262144)
+        self.assertEqual(model.max_model_len, 262144)
+
+    def test_context_override_validation_before_loading(self):
+        for max_len in (True, False, 0, -1, 262145, '512'):
+            with self.assertRaises(ValueError):
+                self.model(262144, max_model_len=max_len)
+        with self.assertRaises(NotImplementedError):
+            self.model(262144, max_model_len=512)
+        for capacity in (True, 0, -1, '262144'):
+            with self.assertRaises(ValueError):
+                self.model(capacity)
 
     def test_package_real_output_ids_and_batch(self):
         model, service, result = self.model()

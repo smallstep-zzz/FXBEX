@@ -112,6 +112,8 @@ Model-specific exporters and capture commands belong to their adapter plugins.""
         def invoke(callback):return _runtime_call(callback,log_path,args.verbose)
         invoke(session.__enter__)
         print(f'NPU package ready; reports: {session.report_dir}',file=sys.stderr,flush=True)
+        from .execution import memory_text
+        print('Memory: '+memory_text(getattr(session,'memory',None)),file=sys.stderr,flush=True)
         try:
             if args.action=='serve':
                 from .server import serve
@@ -142,6 +144,7 @@ Model-specific exporters and capture commands belong to their adapter plugins.""
                     messages=candidate+[{'role':'assistant','content':result['text']}]
                     print(result['text'],flush=True)
                 return
+            if isinstance(result,dict):result.setdefault('memory',getattr(session,'memory',None))
         finally:invoke(lambda: session.__exit__(None,None,None))
         if args.output:Path(args.output).write_text(json.dumps(result,ensure_ascii=False,indent=2))
         result['report_dir']=str(session.report_dir)

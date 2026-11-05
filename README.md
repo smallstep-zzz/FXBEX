@@ -27,7 +27,7 @@ python -m pip install -e .
 PYTHON=python3.11 bash scripts/install.sh
 ```
 
-이 패키지는 Furiosa SDK, PyTorch, 드라이버를 설치하거나 업그레이드하지 않습니다. 빌드, 검사, 무결성 전용 검증은 표준 라이브러리만 사용하지만 NPU 실행에는 모델과 호환되는 SDK 및 의존성이 필요합니다. `fxbex` 0.3.0이 [PyPI에 공개](https://pypi.org/project/fxbex/0.3.0/)되어 있습니다. 재현 가능한 설치에는 `python -m pip install fxbex==0.3.0`처럼 버전을 고정하세요. Python 3.13·3.14를 포함한 최신 소스는 GitHub의 현재 브랜치를 사용하세요.
+이 패키지는 Furiosa SDK, PyTorch, 드라이버를 설치하거나 업그레이드하지 않습니다. 빌드, 검사, 무결성 전용 검증은 표준 라이브러리만 사용하지만 NPU 실행에는 모델과 호환되는 SDK 및 의존성이 필요합니다. `fxbex`는 [PyPI](https://pypi.org/project/fxbex/)에서 설치합니다. 재현 가능한 설치에는 `python -m pip install fxbex==0.6.0`처럼 검증한 버전을 고정하세요. SDK가 지원되는 Python 환경에서 실행하세요.
 
 ## 명령어
 
@@ -71,7 +71,7 @@ bash tests/install_fxbex.sh /root/FXBEX
 
 ## 범위
 
-현재 내장 런타임은 RNGD fusion8의 고정 텐서 DAG를 지원합니다. Qwen 플러그인은 BF16 텍스트 입력, 최대 512 토큰을 지원합니다. 이전 검증에서 Qwen 패키지를 다시 불러올 때 컴파일 호출은 0회였으며, 최초 로드에는 가중치 준비와 그래프 복원에 약 3분이 걸렸습니다. 다른 모델 어댑터와 자동 메모리 계획은 구현되어 있지 않습니다. 저장소 분리 이전의 과거 검증 자료는 현재 분리된 코드베이스의 검증 기록과 다를 수 있습니다.
+현재 내장 런타임은 RNGD fusion8의 고정 텐서 DAG를 지원합니다. Qwen 플러그인은 BF16 텍스트 입력을 사용하며 컨텍스트는 패키지의 `context.max_tokens`를 따릅니다. 기존 패키지는512토큰이고, 새 길이는 해당 모델 릴리스에서 실제 검증한 범위를 확인하세요. 이전 검증에서 Qwen 패키지를 다시 불러올 때 컴파일 호출은 0회였으며, 최초 로드에는 가중치 준비와 그래프 복원에 약 3분이 걸렸습니다. 다른 모델 어댑터와 자동 메모리 계획은 구현되어 있지 않습니다. 저장소 분리 이전의 과거 검증 자료는 현재 분리된 코드베이스의 검증 기록과 다를 수 있습니다.
 
 테스트 명령은 `python -m unittest discover -s tests`입니다.
 
@@ -380,3 +380,18 @@ when files are copied; newest is a convenience choice, not a performance ranking
 Remote releases use the catalog's recorded registration order; older catalogs
 without order require explicit versions when multiple releases match. Existing
 files take precedence over remote releases.
+
+
+### Package-declared context and memory (0.6)
+
+`hug(LLM)` derives the context limit from the verified package manifest's
+`context.max_tokens` (legacy packages default to512). Output admission and worker
+transport use the loaded runtime capacity; actual tokenized input plus requested
+output must fit. This does not make an old512-token compiled package support a
+longer context. Smaller constructor overrides remain explicitly unsupported.
+
+Runtime reports save raw SMI snapshots in `memory.jsonl` and optional adapter
+logical tensor accounting in `memory_latest.json`. The UI shows logical weights,
+KV and recurrent bytes separately. SMI zero is **not** proof of zero HBM use;
+physical allocator bytes remain unknown when the installed SDK exposes no public
+counter. No SDK/driver upgrade or fabricated utilization is performed.

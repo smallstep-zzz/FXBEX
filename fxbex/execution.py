@@ -3,6 +3,43 @@ import hashlib
 import json
 import time
 from pathlib import Path
+import subprocess
+
+def memory_text(snapshot):
+    snapshot=snapshot or {}
+    logical=snapshot.get('model_logical_memory',{})
+    values=[]
+    for key,label in [('weight_logical_bytes','weights'),('kv_logical_bytes','KV'),('recurrent_logical_bytes','recurrent')]:
+        if key in logical:values.append(f"{label}={logical[key]/1024**3:.3f} GiB")
+    return 'physical HBM unmeasured; SMI zero is inconclusive. Logical NPU tensors: '+(', '.join(values) or 'not reported')
+
+
+
+class MemoryTelemetry:
+    """Best-effort SMI memory snapshots; never an allocator substitute."""
+    def __init__(self, report_dir):
+        self.path = Path(report_dir) / 'memory.jsonl'
+        self.last = None
+
+    def sample(self, phase):
+        row = {'schema': 1, 'phase': phase, 'time_unix': time.time(),
+               'source': 'furiosa-smi status --format json',
+               'physical_allocated_bytes':None,
+               'note':'SMI-reported counters are not allocator proof; zero does not establish zero HBM use.'}
+        try:
+            result = subprocess.run(['furiosa-smi', 'status', '--format', 'json'],
+                                    capture_output=True, text=True, timeout=5, check=True)
+            row['devices'] = json.loads(result.stdout)
+        except (OSError, subprocess.SubprocessError, json.JSONDecodeError) as exc:
+            row['error_type'] = type(exc).__name__
+        self.last = row
+        try:
+            with self.path.open('a') as stream:
+                stream.write(json.dumps(row, allow_nan=False) + '\n')
+        except (OSError,ValueError,TypeError):
+            # A diagnostic must never hide model execution or cleanup failures.
+            pass
+        return row
 
 
 def manifest_identity(manifest):

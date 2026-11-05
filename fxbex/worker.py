@@ -25,15 +25,17 @@ def main():
                         if session:raise RuntimeError('Package already loaded')
                         print('@@FXBEX_PROGRESS@@'+json.dumps({'phase':'loading','label':'FXB_EX: 무결성 검사·가중치 적재·커널 복원 중'}),file=protocol,flush=True)
                         candidate=Session(sys.argv[1]);candidate.__enter__();session=candidate
-                        result={'ok':True,'metrics':getattr(session.adapter,'acceptance',{}),'report_dir':str(session.report_dir)}
+                        result={'ok':True,'metrics':getattr(session.adapter,'acceptance',{}),'report_dir':str(session.report_dir),'context_limit':getattr(getattr(session.adapter,'runtime',None),'capacity',512),'memory':session.memory}
                     elif request['action']=='chat':
                         if not session:raise RuntimeError('Load package first')
                         result={'ok':True,**session.chat(request['messages'],request['max_new_tokens'])}
                         result['fxbex_execution']=session.execution.last
+                        result['memory']=session.memory
                     elif request['action']=='predict':
                         if not session:raise RuntimeError('Load package first')
                         result={'ok':True,**session.predict(request['inputs'])}
                         result['fxbex_execution']=session.execution.last
+                        result['memory']=session.memory
                     elif request['action']=='generate':
                         if not session:raise RuntimeError('Load package first')
                         if session.manifest['runtime']['adapter']!='qwen35_replay':
@@ -41,8 +43,15 @@ def main():
                         from .hug_engine import generate
                         def token(text,token_ids):
                             print('@@FXBEX_TOKEN@@'+json.dumps({'text':text,'token_ids':token_ids},ensure_ascii=False),file=protocol,flush=True)
-                        result={'ok':True,**generate(session.adapter,request['prompt'],request['max_tokens'],on_token=token)}
-                    elif request['action']=='unload':result={'ok':True}
+                        session.sample_memory('before_generate')
+                        try:result={'ok':True,**generate(session.adapter,request['prompt'],request['max_tokens'],on_token=token)}
+                        finally:session.sample_memory('after_generate')
+                        result['memory']=session.memory
+                    elif request['action']=='unload':
+                        memory=None
+                        if session:
+                            session.__exit__(None,None,None);memory=session.memory;session=None
+                        result={'ok':True,'memory':memory}
                     else:raise ValueError('Unknown worker action')
             except Exception as exc:
                 traceback.print_exc(file=sys.stderr);result={'ok':False,'error':str(exc)}

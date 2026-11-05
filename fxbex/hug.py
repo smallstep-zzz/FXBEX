@@ -17,6 +17,7 @@ from urllib.request import urlopen
 
 from . import hub
 from .service import PackageService
+from .package import inspect
 
 
 def _is_package(value):
@@ -92,9 +93,9 @@ def hug(original_class: type[_LLMType]) -> type[_LLMType]:
     return wrapped
 
 
-def _max_tokens(params):
+def _max_tokens(params, context_limit):
     if params is None:
-        return 16
+        return min(16, context_limit)
     from furiosa_llm import SamplingParams
     defaults = SamplingParams()
     fields = set(vars(defaults)) | set(vars(params))
@@ -104,8 +105,8 @@ def _max_tokens(params):
     if getattr(params, 'temperature', None) != 0:
         raise NotImplementedError('FXBEX supports greedy decoding only; set temperature=0')
     value = getattr(params, 'max_tokens', 16)
-    if type(value) is not int or not 1 <= value <= 256:
-        raise ValueError('FXBEX max_tokens must be an integer in 1..256')
+    if type(value) is not int or not 1 <= value <= context_limit:
+        raise ValueError(f'FXBEX max_tokens must be an integer in 1..{context_limit}')
     return value
 
 
@@ -124,16 +125,23 @@ def _output(result, request_id, finished=True):
 
 class _PackageLLM:
     def __init__(self, model, **options):
-        max_len = options.pop('max_model_len', 512)
-        if max_len is None:max_len=512
+        max_len = options.pop('max_model_len', None)
         native_defaults={'fxb':None,'revision':None,'devices':None,'speculative_config':None,'speculative_method':None,'draft_model_id_or_path':None,'draft_fxb_path':None,'num_speculative_tokens':None,'data_parallel_size':None,'pipeline_parallel_size':None,'max_io_memory_mb':None,'scheduler_config':None,'logger_config':None,'tokenizer':None,'tokenizer_mode':'auto','served_model_name':None,'kv_transfer_config':None,'mm_processor_kwargs':None,'structured_outputs_backend':'auto'}
         options={k:v for k,v in options.items() if k not in native_defaults or v!=native_defaults[k]}
-        if type(max_len) is not int or max_len != 512:
-            raise NotImplementedError('FXBEX currently requires max_model_len=512; smaller context overrides are unsupported')
         if options:
             raise NotImplementedError('Unsupported FXBEX constructor options: ' + ', '.join(sorted(options)))
-        self._service = PackageService(hub.resolve_package(model))
-        self.max_model_len=512
+        package = hub.resolve_package(model)
+        capacity = inspect(package).get('context', {}).get('max_tokens', 512)
+        if type(capacity) is not int or capacity <= 0:
+            raise ValueError('FXBEX package context.max_tokens must be a positive integer')
+        if max_len is None:
+            max_len = capacity
+        if type(max_len) is not int or not 1 <= max_len <= capacity:
+            raise ValueError(f'FXBEX max_model_len must be an integer in 1..{capacity}')
+        if max_len != capacity:
+            raise NotImplementedError('FXBEX smaller context overrides are unsupported; use the package context limit')
+        self._service = PackageService(package)
+        self.max_model_len=max_len
         self.is_generative_model=True
         self._closed = False
         self.load_result=self._service.load()
@@ -146,7 +154,7 @@ class _PackageLLM:
         self._check()
         if prompt_token_ids is not None or tokenizer_kwargs not in (None,{}):
             raise NotImplementedError('FXBEX accepts text prompts without prompt_token_ids or tokenizer_kwargs')
-        limit = _max_tokens(sampling_params)
+        limit = _max_tokens(sampling_params, self.max_model_len)
         single = isinstance(prompts, str)
         batch = [prompts] if single else prompts
         if not isinstance(batch, list) or not all(isinstance(item, str) for item in batch):
@@ -160,7 +168,7 @@ class _PackageLLM:
         kwargs={k:v for k,v in kwargs.items() if k not in defaults or v!=defaults[k]}
         if kwargs:
             raise NotImplementedError('Unsupported FXBEX chat options: ' + ', '.join(sorted(kwargs)))
-        limit = _max_tokens(sampling_params)
+        limit = _max_tokens(sampling_params, self.max_model_len)
         if not isinstance(messages, list):
             raise TypeError('messages must be a list')
         batch = messages if messages and isinstance(messages[0], list) else [messages]
@@ -172,7 +180,7 @@ class _PackageLLM:
             raise NotImplementedError('Unsupported FXBEX streaming options: ' + ', '.join(sorted(kwargs)))
         if not isinstance(prompt, str):
             raise TypeError('FXBEX streaming accepts one text prompt')
-        limit = _max_tokens(sampling_params)
+        limit = _max_tokens(sampling_params, self.max_model_len)
         loop = asyncio.get_running_loop()
         queue = asyncio.Queue()
         emitted = ''
