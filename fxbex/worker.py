@@ -38,14 +38,10 @@ def main():
                         result['memory']=session.memory
                     elif request['action']=='generate':
                         if not session:raise RuntimeError('Load package first')
-                        if session.manifest['runtime']['adapter']!='qwen35_replay':
-                            raise NotImplementedError('hug generation currently supports qwen35_replay packages only')
-                        from .hug_engine import generate
                         def token(text,token_ids):
                             print('@@FXBEX_TOKEN@@'+json.dumps({'text':text,'token_ids':token_ids},ensure_ascii=False),file=protocol,flush=True)
-                        session.sample_memory('before_generate')
-                        try:result={'ok':True,**generate(session.adapter,request['prompt'],request['max_tokens'],on_token=token)}
-                        finally:session.sample_memory('after_generate')
+                        result={'ok':True,**session.generate(request['prompt'],request['max_tokens'],on_token=token)}
+                        result['fxbex_execution']=session.execution.last
                         result['memory']=session.memory
                     elif request['action']=='unload':
                         memory=None

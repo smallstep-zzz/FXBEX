@@ -7,6 +7,24 @@ from fxbex.execution import ExecutionRecorder, MemoryTelemetry, manifest_identit
 from fxbex.runtime import Session
 
 class ExecutionTests(unittest.TestCase):
+    def test_generate_is_recorded_and_runtime_failure_blocks_reuse(self):
+        from unittest.mock import Mock
+        with tempfile.TemporaryDirectory() as d:
+            session=Session('unused',report_dir=d)
+            session.manifest={'runtime':{'adapter':'qwen35_replay'}}
+            session.adapter=Mock()
+            session.execution=ExecutionRecorder(d,session.manifest)
+            with patch('fxbex.hug_engine.generate',return_value={'text':'secret'}):
+                session.generate('private',2)
+            self.assertEqual(session.execution.last['operation'],'generate')
+            self.assertNotIn('secret',session.execution.path.read_text())
+            with self.assertRaises(ValueError):session.generate('private',-1)
+            self.assertFalse(session.failed)
+            session.adapter.predict.side_effect=ValueError('ambiguous adapter failure')
+            with self.assertRaisesRegex(ValueError,'ambiguous'):session.predict({})
+            self.assertTrue(session.failed)
+            with self.assertRaisesRegex(RuntimeError,'unload and reload'):session.generate('a',1)
+
     def test_logical_peak_is_distinct_from_physical_usage(self):
         value = memory_text({'model_logical_memory': {'execution': {
             'peak_live_tensor_logical_bytes': 24576, 'released_tensor_bindings': 33}}})

@@ -73,12 +73,15 @@ class Session:
         self.adapter = None
         self.telemetry = None
         self.memory = None
+        self.failed = False
 
     def __enter__(self):
         try:
             self.root = self.stack.enter_context(extract(self.path))
             self.manifest = json.loads((self.root/'manifest.json').read_text())
             check_compatibility(self.manifest)
+            from .validation import preflight
+            preflight(self.root, self.manifest, self.weights_dir)
             from .memory import analyze
             memory_plan = analyze(self.root)
             (self.report_dir/'memory_plan.json').write_text(json.dumps(memory_plan, indent=2))
@@ -88,10 +91,8 @@ class Session:
             self.memory = self.telemetry.sample('before_load')
             # Share the canonical lock with web workers. Never assume PE partitioning.
             import fcntl
-            canonical = lock_path()
-            canonical.parent.mkdir(parents=True, exist_ok=True)
-            lock = self.stack.enter_context(canonical.open('a'))
-            try: fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            from .settings import npu_lock
+            try: self.stack.enter_context(npu_lock())
             except BlockingIOError: raise RuntimeError('NPU busy: unload the web model before loading FXB_EX')
             kind = self.manifest['runtime']['adapter']
             from .bundled import activate
@@ -136,9 +137,16 @@ class Session:
         return self.memory
 
     def _call(self, operation, callback):
+        if self.failed:
+            raise RuntimeError('Session failed during execution; unload and reload before reuse')
         self.sample_memory(f'before_{operation}')
         try:
             return self.execution.call(operation, callback)
+        except BaseException:
+            # Arbitrary adapter exceptions can happen after state mutation; their
+            # Python type alone cannot prove a harmless pre-dispatch input error.
+            self.failed = True
+            raise
         finally:
             self.sample_memory(f'after_{operation}')
 
@@ -149,6 +157,15 @@ class Session:
     def chat(self, messages, max_new_tokens=32):
         if not hasattr(self.adapter, 'chat'): raise ValueError('Package does not provide chat')
         return self._call('chat', lambda: self.adapter.chat(messages, max_new_tokens))
+
+    def generate(self, prompt, max_tokens, on_token=None):
+        if self.manifest['runtime']['adapter'] != 'qwen35_replay':
+            raise NotImplementedError('This adapter does not implement incremental generation')
+        if type(max_tokens) is not int or max_tokens < 0 or not isinstance(prompt,(str,list)):
+            raise ValueError('generate requires text/messages and a nonnegative integer max_tokens')
+        from .hug_engine import generate
+        return self._call('generate', lambda: generate(
+            self.adapter, prompt, max_tokens, on_token=on_token))
 
 
 class RunnableDAG:
@@ -221,7 +238,7 @@ class RunnableDAG:
                 values.update(zip(step['outputs'],outputs))
                 del outputs
                 lifetime.after_step(index, values)
-            result={name:values[name].cpu().float().tolist() for name in self.config['outputs']}
+            result={name:values[name].cpu().tolist() for name in self.config['outputs']}
         self.last_memory = lifetime.summary()
         return {'outputs':result,'seconds':time.perf_counter()-started,'compiler_calls':0,
                 'logical_memory':self.last_memory,

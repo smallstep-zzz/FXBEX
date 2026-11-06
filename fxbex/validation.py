@@ -20,8 +20,7 @@ def validate(path, *, integrity_only=False, weights_dir=None):
         for name, check in (
             ('compatibility', lambda: runtime.check_compatibility(manifest)),
             ('memory_plan', lambda: summarize(analyze(root))),
-            ('external_weights', lambda: _weights(root, weights_dir)),
-            ('adapter_preflight', lambda: _adapter_preflight(runtime, manifest, root, weights_dir)),
+            ('adapter_preflight', lambda: preflight(root, manifest, weights_dir)),
         ):
             try:
                 detail = check()
@@ -69,6 +68,15 @@ def _weights(root, weights_dir):
             raise PackageError(f'External weight checksum mismatch: {path}')
 
 
+def preflight(root, manifest, weights_dir=None):
+    """Shared verified-root checks before device allocation. Never accepts raw archives."""
+    from . import runtime
+    from .optimization import validate_evidence
+    validate_evidence(root,manifest)
+    _weights(root, weights_dir)
+    return _adapter_preflight(runtime, manifest, root, weights_dir)
+
+
 def _adapter_preflight(runtime, manifest, root, weights_dir):
     from .bundled import activate
     if manifest['runtime']['adapter'] != 'runnable_dag':
@@ -84,6 +92,13 @@ def _adapter_preflight(runtime, manifest, root, weights_dir):
         raise PackageError('Expected runnable-dag-v1 plan with ordered steps')
     if not isinstance(config.get('inputs'), dict) or not isinstance(config.get('outputs'), list):
         raise PackageError('DAG runtime config requires inputs object and outputs list')
+    from .memory import tensor_bytes
+    for name,spec in config['inputs'].items():
+        if not isinstance(name,str) or not name or tensor_bytes(spec) is None:
+            raise PackageError('DAG inputs require names, static shapes and supported dtypes')
+    if (any(not isinstance(name,str) or not name for name in config['outputs'])
+            or len(set(config['outputs'])) != len(config['outputs'])):
+        raise PackageError('DAG outputs require unique names')
     known = set(config['inputs'])
     unknown_weights = False
     for item in index['weights']:

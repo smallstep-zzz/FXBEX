@@ -59,6 +59,8 @@ class ExecutionRecorder:
         self.identity = manifest_identity(manifest)
         self.sequence = 0
         self.last = None
+        self.backend=manifest.get('optimization',{}).get('backend',
+            'torch_runnable' if manifest.get('runtime',{}).get('adapter') in ('qwen35_replay','runnable_dag') else 'unknown')
 
     def call(self, operation, callback):
         self.sequence += 1
@@ -68,6 +70,9 @@ class ExecutionRecorder:
                'timing_scope': 'host call including dispatch/transfers/waits; completion is adapter-defined',
                'npu_verdict': 'unknown', 'support_status': 'not_established',
                'optimization_status': 'not_measured', 'adapter_reported': {}}
+        row.update(backend=self.backend,measurement_scope='adapter_defined_return',
+                   unit='seconds',clock_domain='host_monotonic',completion_confirmed=None,
+                   profiling_enabled=None)
         try:
             result = callback()
             row['status'] = 'succeeded'

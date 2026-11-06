@@ -69,6 +69,8 @@ def _manifest(manifest):
                 or any(c not in '0123456789abcdef' for c in digest)
                 or type(item.get('size')) is not int or item['size'] < 0):
             raise PackageError(f'Invalid checksum or size: {name}')
+    from .optimization import specification
+    specification(manifest)
 
 
 def _weights(index, manifest):
