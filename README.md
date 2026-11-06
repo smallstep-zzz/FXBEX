@@ -499,3 +499,29 @@ and unload always refresh. Explicit MemoryTelemetry.sample(...,force=True) force
 a new sample. Execution receipts and logical model memory still update; physical
 HBM/SMI-zero uncertainty is unchanged. Tiny graph timings should separate this
 host bookkeeping from resident-kernel completed timing.
+
+### Opt-in Tensor / PyTorch module API
+
+For a verified RunnableDAG package with declared input/output tensor specifications,
+use tensors directly without a Python-list round trip:
+
+```python
+from fxbex import as_torch
+
+with as_torch('./model.fxbex', output_device='cpu') as model:
+    outputs = model(input_tensor)  # exact compiled shapes and dtypes
+```
+
+`Session.predict_tensors({'input_name': input_tensor})` also returns tensor outputs.
+`output_device='furiosa'` retains outputs on device and requires the public stream
+completion API. The wrapper is inference-only: training, changing compiled weights,
+dtype/device migration and undeclared inputs/options are rejected. Structured outputs
+require an explicit package `output_tree`; supported library return classes are
+allowlisted. This is not automatic compatibility with arbitrary Transformers or
+Diffusers pipelines. Existing JSON and LLM APIs retain their behavior.
+
+A previously validated small reduction package passed four tensor calls against the
+preserved JSON output on SDK 2026.4.0, with two official NPU Task events and zero CPU
+model routes in the profiled call. This verifies the small tensor transport route,
+not arbitrary full-model support. Legacy packages with incorrect/missing output
+specifications must be rebuilt before the strict tensor API can accept them.

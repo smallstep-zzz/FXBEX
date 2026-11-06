@@ -154,6 +154,12 @@ class Session:
         if not hasattr(self.adapter, 'predict'):raise ValueError('Package does not provide predict')
         return self._call('predict', lambda: self.adapter.predict(inputs))
 
+    def predict_tensors(self, inputs, *, output_device='cpu'):
+        if not hasattr(self.adapter,'predict_tensors'):raise NotImplementedError('Adapter has no tensor execution contract')
+        validate=getattr(self.adapter,'validate_tensor_inputs',None)
+        if callable(validate):validate(inputs)
+        return self._call('predict_tensors',lambda:self.adapter.predict_tensors(inputs,output_device=output_device))
+
     def chat(self, messages, max_new_tokens=32):
         if not hasattr(self.adapter, 'chat'): raise ValueError('Package does not provide chat')
         return self._call('chat', lambda: self.adapter.chat(messages, max_new_tokens))
@@ -217,14 +223,32 @@ class RunnableDAG:
         if any(name not in known for name in self.config['outputs']): raise PackageError('Unbound DAG output')
 
     def predict(self, inputs):
+        if set(inputs)!=set(self.config['inputs']):raise ValueError('Input names do not match package')
+        tensors={name:self.torch.tensor(inputs[name],dtype=getattr(self.torch,spec['dtype'])) for name,spec in self.config['inputs'].items()}
+        result=self.predict_tensors(tensors,output_device='cpu',_validate_outputs=False)
+        result['outputs']={name:value.tolist() for name,value in result['outputs'].items()}
+        return result
+
+    def validate_tensor_inputs(self, inputs):
+        torch=self.torch
+        if set(inputs)!=set(self.config['inputs']):raise ValueError('Input names do not match package')
+        for name,spec in self.config['inputs'].items():
+            tensor=inputs[name]
+            if not isinstance(tensor,torch.Tensor):raise TypeError('Tensor API requires Tensor inputs')
+            if list(tensor.shape)!=spec['shape'] or tensor.dtype!=getattr(torch,spec['dtype']):raise ValueError(f'Input shape/dtype mismatch: {name}')
+            if spec.get('stride') is not None and list(tensor.stride())!=spec['stride']:raise ValueError(f'Input stride mismatch: {name}')
+            if tensor.requires_grad:raise ValueError('Compiled execution is inference-only')
+            if tensor.device.type not in ('cpu','furiosa'):raise ValueError('Unsupported input device')
+
+    def predict_tensors(self, inputs, *, output_device="cpu", _validate_outputs=True):
         from .memory import TensorLifetime
         torch=self.torch
-        if set(inputs) != set(self.config['inputs']): raise ValueError('Input names do not match package')
+        self.validate_tensor_inputs(inputs)
+        if output_device not in ('cpu','furiosa'):raise ValueError('Output device must be cpu or furiosa')
         values=dict(self.constants)
         for name, spec in self.config['inputs'].items():
-            tensor=torch.tensor(inputs[name], dtype=getattr(torch,spec['dtype']))
-            if list(tensor.shape)!=spec['shape']: raise ValueError(f'Input shape mismatch: {name}')
-            values[name]=tensor.to('furiosa:0')
+            tensor=inputs[name]
+            values[name]=tensor if tensor.device.type=='furiosa' else tensor.to('furiosa:0')
         if self.config['inputs']:
             del tensor
         stream = self.current_stream(torch.device('furiosa:0')) if callable(self.current_stream) else None
@@ -238,7 +262,15 @@ class RunnableDAG:
                 values.update(zip(step['outputs'],outputs))
                 del outputs
                 lifetime.after_step(index, values)
-            result={name:values[name].cpu().tolist() for name in self.config['outputs']}
+            if output_device=='furiosa':
+                if not callable(synchronize):raise RuntimeError('Resident output requires public stream completion API')
+                synchronize()
+            if _validate_outputs:
+                for name in self.config['outputs']:
+                    spec=self.config.get('tensor_specs',{}).get(name)
+                    if spec is None:raise NotImplementedError('No verified Tensor output specification: '+name)
+                    if list(values[name].shape)!=spec['shape'] or values[name].dtype!=getattr(torch,spec['dtype']):raise ValueError('Compiled output shape/dtype differs from package: '+name)
+            result={name:values[name].cpu() if output_device=='cpu' else values[name] for name in self.config['outputs']}
         self.last_memory = lifetime.summary()
         return {'outputs':result,'seconds':time.perf_counter()-started,'compiler_calls':0,
                 'logical_memory':self.last_memory,
