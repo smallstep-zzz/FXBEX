@@ -96,3 +96,16 @@ class ExecutionTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError,'model failure'):
                     recorder.call('predict',fail)
             self.assertFalse(recorder.last['persisted'])
+
+class TelemetryRateTests(unittest.TestCase):
+    def test_request_snapshots_reuse_but_boundaries_and_force_refresh(self):
+        with tempfile.TemporaryDirectory() as d:
+            completed=type('Completed',(),{'stdout':'[]'})()
+            with patch('fxbex.execution.subprocess.run',return_value=completed) as command:
+                telemetry=MemoryTelemetry(d)
+                telemetry.sample('after_load')
+                row=telemetry.sample('before_predict');telemetry.sample('after_predict')
+                self.assertEqual(command.call_count,1)
+                self.assertTrue(row['cached_snapshot']);self.assertGreaterEqual(row['sample_age_s'],0)
+                telemetry.sample('after_predict',force=True);telemetry.sample('after_unload')
+                self.assertEqual(command.call_count,3)

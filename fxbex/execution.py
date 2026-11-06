@@ -21,11 +21,19 @@ def memory_text(snapshot):
 
 class MemoryTelemetry:
     """Best-effort SMI memory snapshots; never an allocator substitute."""
-    def __init__(self, report_dir):
+    def __init__(self, report_dir, interval_s=5):
         self.path = Path(report_dir) / 'memory.jsonl'
         self.last = None
+        self.interval_s = interval_s
+        self.last_sample_monotonic = None
 
-    def sample(self, phase):
+    def sample(self, phase, *, force=False):
+        now = time.monotonic()
+        boundary = phase in ('before_load', 'after_load', 'after_unload')
+        if (self.last is not None and not boundary and not force
+                and now-self.last_sample_monotonic < self.interval_s):
+            return dict(self.last, requested_phase=phase, cached_snapshot=True,
+                        sample_age_s=now-self.last_sample_monotonic)
         row = {'schema': 1, 'phase': phase, 'time_unix': time.time(),
                'source': 'furiosa-smi status --format json',
                'physical_allocated_bytes':None,
@@ -37,6 +45,7 @@ class MemoryTelemetry:
         except (OSError, subprocess.SubprocessError, json.JSONDecodeError) as exc:
             row['error_type'] = type(exc).__name__
         self.last = row
+        self.last_sample_monotonic = now
         try:
             with self.path.open('a') as stream:
                 stream.write(json.dumps(row, allow_nan=False) + '\n')

@@ -484,3 +484,18 @@ fxbex cache clear --yes
 Refresh forces an HF download and verifies the catalog SHA256 before replacing
 the managed file. Clear removes only FXBEX-managed model downloads, not explicit
 local files or the Hugging Face cache. Unload running models before clearing.
+
+### TPLMachine BuildBundle (source0.6.10)
+
+TPLMachine0.3 can deliver supported small graph models without FHA. FXBEX alone
+owns the archive/runtime. Optional build_bundle.json binds compiler artifacts,
+weights, configuration, adapter/IO/state metadata and independent execution
+acceptance to one content ID; changed contents fail validation before upload.
+Legacy packages without a BuildBundle retain their path. The new path requires
+matching source versions and is not a claim of a new PyPI publication.
+
+Request-level SMI telemetry reuses snapshots for5seconds (marked with age); load
+and unload always refresh. Explicit MemoryTelemetry.sample(...,force=True) forces
+a new sample. Execution receipts and logical model memory still update; physical
+HBM/SMI-zero uncertainty is unchanged. Tiny graph timings should separate this
+host bookkeeping from resident-kernel completed timing.

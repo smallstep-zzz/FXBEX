@@ -61,3 +61,18 @@ patch schedules at runtime, declare current requests NPU-proven, or promote a
 feature speedup into model support. The current Qwen candidate's independent
 reload segfault blocks promotion; published legacy packages remain unchanged.
 These additions are source-level changes, not a claim of a new PyPI release.
+
+## 0.6.10 BuildBundle and request overhead
+
+Optional fxbex.buildbundle validates a content ID over all execution files and
+manifest runtime/model/compatibility/IO/state semantics. prepare_source freezes
+the exact public memory/index metadata package.build emits, so acceptance is not
+invalidated merely by JSON formatting. External weights must already be
+internalized. Incomplete or stateful-without-state-validation receipts fail before
+NPU allocation; legacy packages remain unchanged.
+
+A measured tiny-model request exposed unconditional SMI subprocesses before and
+after every call. MemoryTelemetry now caches request snapshots for5s with age
+metadata; lifecycle boundaries and force=True refresh. This removes diagnostic
+host overhead and does not alter inference, physical HBM counters or NPU evidence.
+See TPLMachine RESEARCH_VALIDATION.json for actual source/API timing scopes.

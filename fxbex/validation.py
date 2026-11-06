@@ -73,6 +73,8 @@ def preflight(root, manifest, weights_dir=None):
     from . import runtime
     from .optimization import validate_evidence
     validate_evidence(root,manifest)
+    from .buildbundle import validate as validate_bundle
+    validate_bundle(root,manifest)
     _weights(root, weights_dir)
     return _adapter_preflight(runtime, manifest, root, weights_dir)
 

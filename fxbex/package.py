@@ -203,6 +203,8 @@ def build(source, output, standalone=False, *, max_total_size=DEFAULT_MAX_TOTAL_
     manifest = _json(manifest_path.read_bytes(), 'manifest.json')
     from .provenance import source_metadata
     manifest['provenance']=source_metadata(source_url,source_revision,manifest.get('provenance'))
+    from .buildbundle import validate as validate_bundle
+    validate_bundle(source,manifest)
     manifest.update(schema_version=1, format='FXB_EX', standalone=bool(standalone), files={})
     inputs = {}
     for path in sorted(source.rglob('*')):
