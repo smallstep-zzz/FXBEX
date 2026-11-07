@@ -1,0 +1,36 @@
+{
+  "schema": "fxbex.native-fxb.compatibility.v1",
+  "path": "/root/FXBEX/reports/native-fxb-v1/qwen3-8b-fp8-fxbex-producer.fxb",
+  "model": "furiosa-ai/Qwen3-8B-FP8",
+  "revision": "7cf451930f6022204fcea071cfaeaf8aa22d570e",
+  "target_architecture": "Qwen3ForCausalLM",
+  "target_fields": {
+    "head_dim": "128",
+    "hidden_size": "4096",
+    "intermediate_size": "12288",
+    "max_position_embeddings": "40960",
+    "num_attention_heads": "32",
+    "num_hidden_layers": "36",
+    "num_key_value_heads": "8",
+    "quant_method": "fp8",
+    "rms_norm_eps": "1e-6",
+    "rope_scaling": "null",
+    "sliding_window": "null",
+    "vocab_size": "151936"
+  },
+  "matches": [
+    {
+      "architecture": "Qwen3ForCausalLM",
+      "size_bytes": 691257382,
+      "npu_tools_match": true,
+      "runtime_match": true,
+      "recommended": true,
+      "same_repo": false
+    }
+  ],
+  "model_compatibility": "passed",
+  "runtime_load": "not_run",
+  "npu_execution": "not_run",
+  "isolated_cache": "removed after check",
+  "output_sha256": "6a7c0241e632e25a8398597588bb57b05903de2c164e2d07562d835fe38c95b0"
+}

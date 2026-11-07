@@ -525,3 +525,12 @@ preserved JSON output on SDK 2026.4.0, with two official NPU Task events and zer
 model routes in the profiled call. This verifies the small tensor transport route,
 not arbitrary full-model support. Legacy packages with incorrect/missing output
 specifications must be rebuilt before the strict tensor API can accept them.
+# Native FXB direction
+
+The new weightless official-compatible FXB writer is documented in
+[NATIVE_FXB.md](docs/NATIVE_FXB.md). Existing `.fxbex` packages remain supported.
+The verified writer preserves a genuine official manifest/EDF contract; arbitrary
+Torch Runnable-to-native-model export is still a separate bridge gap.
+Official Qwen3-8B loading and repeated generation succeeded with writer-produced
+files; see [runtime evidence](docs/validation/native-fxb-v1/runtime.json).
+Native per-operator NPU trace coverage was not collected by that LLM test.

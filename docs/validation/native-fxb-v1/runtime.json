@@ -1,0 +1,19 @@
+{
+  "status": "passed",
+  "fxb": "/root/FXBEX/reports/native-fxb-v1/qwen3-8b-fp8-fxbex-producer.fxb",
+  "model_compatibility": "passed",
+  "runtime_load": "passed",
+  "official_generation": "passed",
+  "npu_trace": "not_observed",
+  "load_s": 35.172524897847325,
+  "outputs": [
+    {
+      "output": "RequestOutput(request_id=llm-engine-163cbfc210f749788eb1264591d94b77, prompt='What is 2 + 2? Answer briefly.', prompt_token_ids=[3838, 374, 220, 17, 488, 220, 17, 30, 21806, 26753, 13], prompt_logprobs=None, outputs=[CompletionOutput(index=0, text=' 2 + 2 equals 4. The sum of 2 and ', token_ids=[220, 17, 488, 220, 17, 16819, 220, 19, 13, 576, 2629, 315, 220, 17, 323, 220], logprobs=None, finish_reason=length, stop_reason=None, last_token_truncated=None)], finished=True, num_output_tokens=16, num_cached_tokens=0, num_prompt_tokens=11)",
+      "seconds": 0.1736031670589
+    },
+    {
+      "output": "RequestOutput(request_id=llm-engine-f21204e06db44f42b00d0f771be1dbed, prompt='What is 2 + 2? Answer briefly.', prompt_token_ids=[3838, 374, 220, 17, 488, 220, 17, 30, 21806, 26753, 13], prompt_logprobs=None, outputs=[CompletionOutput(index=0, text=' 2 + 2 equals 4. The sum of 2 and ', token_ids=[220, 17, 488, 220, 17, 16819, 220, 19, 13, 576, 2629, 315, 220, 17, 323, 220], logprobs=None, finish_reason=length, stop_reason=None, last_token_truncated=None)], finished=True, num_output_tokens=16, num_cached_tokens=10, num_prompt_tokens=11)",
+      "seconds": 0.16260295803658664
+    }
+  ]
+}

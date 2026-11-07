@@ -1,0 +1,19 @@
+{
+  "status": "passed",
+  "fxb": "/root/rngd-model-forge/fxb/native-test-qwen3-8b.fxb",
+  "model_compatibility": "passed",
+  "runtime_load": "passed",
+  "official_generation": "passed",
+  "npu_trace": "not_observed",
+  "load_s": 5.11809694301337,
+  "outputs": [
+    {
+      "output": "RequestOutput(request_id=llm-engine-514b0f55eea44e1aa1dc7de3cbf983dd, prompt='What is 2 + 2? Answer briefly.', prompt_token_ids=[3838, 374, 220, 17, 488, 220, 17, 30, 21806, 26753, 13], prompt_logprobs=None, outputs=[CompletionOutput(index=0, text=' 2 + 2 equals 4. The sum of 2 and ', token_ids=[220, 17, 488, 220, 17, 16819, 220, 19, 13, 576, 2629, 315, 220, 17, 323, 220], logprobs=None, finish_reason=length, stop_reason=None, last_token_truncated=None)], finished=True, num_output_tokens=16, num_cached_tokens=0, num_prompt_tokens=11)",
+      "seconds": 0.17354160081595182
+    },
+    {
+      "output": "RequestOutput(request_id=llm-engine-d42553bfc121463797aa72bfe430b029, prompt='What is 2 + 2? Answer briefly.', prompt_token_ids=[3838, 374, 220, 17, 488, 220, 17, 30, 21806, 26753, 13], prompt_logprobs=None, outputs=[CompletionOutput(index=0, text=' 2 + 2 equals 4. The sum of 2 and ', token_ids=[220, 17, 488, 220, 17, 16819, 220, 19, 13, 576, 2629, 315, 220, 17, 323, 220], logprobs=None, finish_reason=length, stop_reason=None, last_token_truncated=None)], finished=True, num_output_tokens=16, num_cached_tokens=10, num_prompt_tokens=11)",
+      "seconds": 0.16229587979614735
+    }
+  ]
+}
