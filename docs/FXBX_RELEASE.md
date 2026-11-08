@@ -32,3 +32,13 @@ fxbx chat MODEL
 
 Do not claim `pip install fxbx` works before checking the new PyPI release.
 The transition does not require publishing/renaming existing model artifacts.
+
+## Published release
+
+Version0.7.0 was published successfully through GitHub Actions run42491523314.
+A clean Python3.12 environment installed it from PyPI and verified `fxbx --version`
+and public LLM/Model/YOLO/ImageGeneration/hug imports. Local CPU tests:145,
+with1 skip. No new full-model NPU acceptance is claimed by this rename.
+Before migrating an environment with the old distribution, use
+`python -m pip uninstall fxbex`, then `python -m pip install fxbx==0.7.0`;
+do not install/uninstall both distributions over shared engine files.

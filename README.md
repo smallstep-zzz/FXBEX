@@ -2,8 +2,10 @@
 
 Formerly **FXBEX**. The new distribution/CLI/import are `fxbx` (release0.7.0).
 The public project name is **fxbX**. Existing `.fxbex` model files remain readable.
-Release0.7.0 is prepared in source; PyPI publication is a separate release step.
-Until published, install this checkout with `python -m pip install -e .`.
+Release0.7.0 is published on [PyPI](https://pypi.org/project/fxbx/0.7.0/).
+Install with `python -m pip install --upgrade fxbx`.
+If the old `fxbex` distribution is installed, uninstall it before installing
+`fxbx` because both distributions contain the artifact engine namespace.
 
 Furiosa RNGD에서 사전 컴파일한 실행 파일을 패키징하고 실행하는 Linux CLI입니다. `.fxbex`는 FXBEX가 정의한 독립 형식이며, **Furiosa 공식 FXB 형식이 아닙니다.**
 
