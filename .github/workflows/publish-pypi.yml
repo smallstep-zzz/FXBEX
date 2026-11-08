@@ -1,4 +1,4 @@
-name: Publish to PyPI
+name: Publish fxbX to PyPI
 
 # Explicit manual action only; pushes and tags never release to PyPI.
 on:
@@ -29,7 +29,10 @@ jobs:
           import os
           import tomllib
           from pathlib import Path
-          version = tomllib.loads(Path("pyproject.toml").read_text())["project"]["version"]
+          project = tomllib.loads(Path("pyproject.toml").read_text())["project"]
+          if project["name"] != "fxbx":
+              raise SystemExit("Expected distribution fxbx")
+          version = project["version"]
           if version != os.environ["CONFIRM_VERSION"]:
               raise SystemExit(f"Version mismatch: pyproject={version}, confirmation={os.environ['CONFIRM_VERSION']}")
           print("Publishing version", version)

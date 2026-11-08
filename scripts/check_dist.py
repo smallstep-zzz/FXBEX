@@ -34,6 +34,9 @@ def audit(path: Path) -> None:
     assert any(name.endswith("/fxbex/cli.py") or name == "fxbex/cli.py" for name in names), (
         f"{path}: CLI module is missing"
     )
+    assert any(name.endswith('/fxbx/__init__.py') or name == 'fxbx/__init__.py' for name in names), (
+        f'{path}: public fxbx module is missing'
+    )
     for entry in names:
         name = Path(entry).name
         if name in FORBIDDEN_NAMES or name.startswith(".env.") or entry.endswith(FORBIDDEN_SUFFIXES):

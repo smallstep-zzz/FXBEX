@@ -35,4 +35,4 @@ jobs:
       - name: Audit public distribution members
         run: python scripts/check_dist.py dist/*
       - name: Verify command-line entry point
-        run: fxbex --help
+        run: fxbx --help

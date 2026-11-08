@@ -1,4 +1,9 @@
-# FXBEX
+# fxbX
+
+Formerly **FXBEX**. The new distribution/CLI/import are `fxbx` (release0.7.0).
+The public project name is **fxbX**. Existing `.fxbex` model files remain readable.
+Release0.7.0 is prepared in source; PyPI publication is a separate release step.
+Until published, install this checkout with `python -m pip install -e .`.
 
 Furiosa RNGD에서 사전 컴파일한 실행 파일을 패키징하고 실행하는 Linux CLI입니다. `.fxbex`는 FXBEX가 정의한 독립 형식이며, **Furiosa 공식 FXB 형식이 아닙니다.**
 
@@ -11,8 +16,8 @@ FXBEX 코어는 Python 3.10–3.14를 지원합니다. Furiosa SDK 2026.4 문서
 ## 설치
 
 ```bash
-python -m pip install fxbex
-fxbex --help
+python -m pip install fxbx
+fxbx --help
 ```
 
 체크아웃한 소스로 개발할 때는 다음을 사용합니다.
@@ -27,7 +32,7 @@ python -m pip install -e .
 PYTHON=python3.11 bash scripts/install.sh
 ```
 
-이 패키지는 Furiosa SDK, PyTorch, 드라이버를 설치하거나 업그레이드하지 않습니다. 빌드, 검사, 무결성 전용 검증은 표준 라이브러리만 사용하지만 NPU 실행에는 모델과 호환되는 SDK 및 의존성이 필요합니다. `fxbex`는 [PyPI](https://pypi.org/project/fxbex/)에서 설치합니다. 재현 가능한 설치에는 `python -m pip install fxbex==0.6.1`처럼 검증한 버전을 고정하세요. SDK가 지원되는 Python 환경에서 실행하세요.
+이 패키지는 Furiosa SDK, PyTorch, 드라이버를 설치하거나 업그레이드하지 않습니다. 빌드, 검사, 무결성 전용 검증은 표준 라이브러리만 사용하지만 NPU 실행에는 모델과 호환되는 SDK 및 의존성이 필요합니다. `fxbex`는 [PyPI](https://pypi.org/project/fxbex/)에서 설치합니다. 재현 가능한 설치에는 `python -m pip install fxbx==0.6.1`처럼 검증한 버전을 고정하세요. SDK가 지원되는 Python 환경에서 실행하세요.
 
 소스 버전 0.6.8부터 패키지를 추출하면서 각 파일의 SHA-256을 동시에 검증합니다. 모든 검증이 끝나기 전에는 모델을 실행하지 않습니다. 설치된 PyPI 버전에 이 변경이 있는지는 해당 릴리스를 확인하세요.
 
@@ -36,14 +41,14 @@ TPLMachine/FHA 최적화 후보는 실제 수치·NPU trace·반복 실행 검�
 ## 명령어
 
 ```bash
-fxbex build ./compiled_model -o model.fxbex
-fxbex build ./compiled_model -o model-standalone.fxbex --standalone
-fxbex inspect model.fxbex
-fxbex validate model.fxbex
-fxbex run model.fxbex
-fxbex chat model.fxbex
-fxbex serve model.fxbex --port 8000
-fxbex doctor
+fxbx build ./compiled_model -o model.fxbex
+fxbx build ./compiled_model -o model-standalone.fxbex --standalone
+fxbx inspect model.fxbex
+fxbx validate model.fxbex
+fxbx run model.fxbex
+fxbx chat model.fxbex
+fxbx serve model.fxbex --port 8000
+fxbx doctor
 ```
 
 `run`은 채팅 어댑터를 실행합니다. 텐서 모델은 `--input inputs.json -o result.json`을 받습니다. `chat`에서는 `/reset`, `/quit`을 사용할 수 있습니다. `serve`는 채팅 어댑터용 비스트리밍 `/v1/chat/completions`와 텐서 어댑터용 `/predict`를 localhost에 제공합니다. `fxbex ui --port 7861`은 선택 기능이며 Gradio가 필요합니다. 모든 명령은 `--help`를 지원합니다.
@@ -51,7 +56,7 @@ fxbex doctor
 ### OpenAI Python 클라이언트와 사용하기
 
 ```bash
-fxbex serve Qwen3.5-9B-FP8-dynamic --port 8000
+fxbx serve Qwen3.5-9B-FP8-dynamic --port 8000
 python -m pip install openai
 ```
 
@@ -74,7 +79,7 @@ print(response.choices[0].message.content)
 `validate`는 체크섬, 외부 가중치, SDK 버전, 어댑터 계약과 RNGD 장치를 확인하지만 **추론을 실행하지 않습니다.** SDK나 NPU가 없는 시스템에서는 다음처럼 무결성만 검사할 수 있습니다.
 
 ```bash
-fxbex validate model.fxbex --integrity-only
+fxbx validate model.fxbex --integrity-only
 ```
 
 `--weights-dir /path/to/snapshot`은 해시 검증을 유지하면서 외부 가중치 위치를 지정합니다.
@@ -107,7 +112,7 @@ bash tests/install_fxbex.sh /root/FXBEX
 `examples/model_page.py`를 복사하고 `PACKAGE = Path('fxbex/model.fxbex')`를 설정한 뒤 SDK가 설치된 호스트에서 실행합니다. 전달할 패키지는 애플리케이션의 `fxbex/` 폴더에 둡니다.
 
 ```bash
-fxbex build ./compiled_model -o fxbex/model.fxbex
+fxbx build ./compiled_model -o fxbex/model.fxbex
 ```
 
 페이지는 저장된 패키지 목록, 기존 파일을 덮어쓰지 않는 업로드, Load/Unload, 요청 시간 측정과 선택한 파일명을 포함한 Python 예제를 제공합니다. `mode='chat'` 또는 `mode='predict'`를 사용합니다. 이미지 입력·출력 같은 모델별 처리에는 `controls(run)` 콜백을 제공할 수 있습니다. 콜백은 `run('predict', named_inputs)`를 호출하고 `(result, timing)`을 받습니다. 입력 변환과 출력 렌더링은 검증된 모델 어댑터 계약에 맞춰야 합니다. 템플릿은 새 모델 지원을 추가하지 않습니다. 기존 Model Forge가 동일한 페이지 골격과 공유 서비스를 사용합니다. 패키지 파일은 Git에 포함하지 않습니다.
@@ -115,7 +120,7 @@ fxbex build ./compiled_model -o fxbex/model.fxbex
 ## Python LLM API
 
 ```python
-from fxbex import LLM
+from fxbx import LLM
 
 package = '/root/rngd-model-forge/fxbex/RedHatAI--Qwen3.5-9B-FP8-dynamic__text-bf16__fusion8__ctx512__sdk2026.4.0.fxbex'
 with LLM(package) as llm:
@@ -136,7 +141,7 @@ python -m pip wheel --no-deps --no-build-isolation . -w dist
 python -m pip install dist/fxbex-0.3.0-py3-none-any.whl
 ```
 
-`pip install fxbex`는 공개된 Python 코어를 설치합니다. 저장소의 현재 GitHub 소스는 0.4.0 개발 버전입니다. PyPI 배포는 소스를 공개하므로 다음 릴리스 게시에는 관리자의 인증이 필요합니다. [PyPI 릴리스 준비와 GitHub OIDC 인증](docs/PYPI_RELEASE.md)을 참고하세요. Python 코어는 Apache-2.0 라이선스이며 Furiosa SDK와 모델 파일은 포함하지 않습니다.
+`pip install fxbx`는 공개된 Python 코어를 설치합니다. 저장소의 현재 GitHub 소스는 0.4.0 개발 버전입니다. PyPI 배포는 소스를 공개하므로 다음 릴리스 게시에는 관리자의 인증이 필요합니다. [PyPI 릴리스 준비와 GitHub OIDC 인증](docs/PYPI_RELEASE.md)을 참고하세요. Python 코어는 Apache-2.0 라이선스이며 Furiosa SDK와 모델 파일은 포함하지 않습니다.
 
 기존 문서의 추가 NPU 검증 생략 기록은 해당 시점의 검증 범위를 뜻합니다. API 단위 검사와 portable 무결성·소스·어댑터 사전 검사는 NPU 추론 검증을 대신하지 않습니다.
 
@@ -151,12 +156,12 @@ cd /root/rngd-model-forge
 python -m tools.export_portable_qwen fxbex/model.fxbex -o /large-disk/model-portable.fxbex
 ```
 
-이 명령은 고정된 프로젝트 소스를 확인하고 체크포인트 파일, 토크나이저, 컴파일된 커널과 Python 어댑터를 포함합니다. 다운로드나 별도의 Model Forge 설치는 필요하지 않지만 호환 RNGD 드라이버, Furiosa SDK와 Python 의존성은 호스트에 있어야 합니다. 따라서 `pip install fxbex`와 파일 하나만으로 실행 가능한 조건은 **이미 호환되는 RNGD 호스트에서 FXBEX 0.3.0 이상을 사용하는 경우**입니다. PyPI 0.2.1은 bundled adapter를 지원하지 않습니다. 완전한 portable 배포라고 안내하기 전에 다른 환경에서 실제 추론을 검증해야 합니다. 임시 디스크에는 패키지와 압축 해제된 파일을 함께 둘 공간이 필요합니다.
+이 명령은 고정된 프로젝트 소스를 확인하고 체크포인트 파일, 토크나이저, 컴파일된 커널과 Python 어댑터를 포함합니다. 다운로드나 별도의 Model Forge 설치는 필요하지 않지만 호환 RNGD 드라이버, Furiosa SDK와 Python 의존성은 호스트에 있어야 합니다. 따라서 `pip install fxbx`와 파일 하나만으로 실행 가능한 조건은 **이미 호환되는 RNGD 호스트에서 FXBEX 0.3.0 이상을 사용하는 경우**입니다. PyPI 0.2.1은 bundled adapter를 지원하지 않습니다. 완전한 portable 배포라고 안내하기 전에 다른 환경에서 실제 추론을 검증해야 합니다. 임시 디스크에는 패키지와 압축 해제된 파일을 함께 둘 공간이 필요합니다.
 
 ## 패키지 우선 모델 클래스 (0.4.0 개발 버전)
 
 ```python
-from fxbex import Model, LLM, YOLO, ImageGeneration
+from fxbx import Model, LLM, YOLO, ImageGeneration
 
 with LLM('chat.fxbex') as model:
     print(model.generate('안녕하세요')['text'])
@@ -194,27 +199,27 @@ ChunSik, 커널 매칭, 후보 생성과 튜닝 정책은 Furiosa-Hug-Anything�
 ### Discover model inputs and outputs (source version)
 
 ```bash
-fxbex describe model.fxbex
-fxbex sample model.fxbex > inputs.json
-fxbex run model.fxbex --input inputs.json -o result.json
+fxbx describe model.fxbex
+fxbx sample model.fxbex > inputs.json
+fxbx run model.fxbex --input inputs.json -o result.json
 ```
 
 Exporters provide an optional `manifest.io_contract` with schema_version=1,
 method (`chat`/`predict`), `inputs`, `outputs`, `example_input`, and an honest
 `expected_result` description. Missing metadata is reported, never guessed.
-Python users can call `from fxbex import describe, example_inputs`. These return
+Python users can call `from fxbx import describe, example_inputs`. These return
 JSON dictionaries suitable for editor integrations; automatic IDE completion is
 not yet implemented. No package code executes while reading these hints.
 These new commands are available from this repository's source version; a new
-PyPI release is required before they can be assumed in `pip install fxbex`.
+PyPI release is required before they can be assumed in `pip install fxbx`.
 
 ### Run a catalog model by name (source version)
 
 On a host with the matching RNGD SDK and dependencies:
 
 ```bash
-pip install "git+https://github.com/smallstep-zzz/FXBEX.git@main" huggingface_hub
-fxbex run "SOURCE_ORG/MODEL@RELEASE_VERSION"
+pip install "git+https://github.com/smallstep-zzz/fxbX.git@main" huggingface_hub
+fxbx run "SOURCE_ORG/MODEL@RELEASE_VERSION"
 ```
 
 Use the source model ID and version listed in FuryAwesome. FXBEX resolves the
@@ -236,7 +241,7 @@ No arbitrary shell commands or sample-generation code is executed from metadata.
 A leading `./` is also accepted for catalog IDs when no local file exists:
 
 ```bash
-fxbex run ./RedHatAI/Qwen3.5-9B-FP8-dynamic
+fxbx run ./RedHatAI/Qwen3.5-9B-FP8-dynamic
 ```
 
 An existing local file takes precedence. Missing `.fxbex` file paths remain file
@@ -259,7 +264,7 @@ Qwen3.5-9B portable with SDK 2026.4.0 / PyTorch 2.10.0+cpu / Python 3.11 / trans
 
 ```python
 from furiosa_llm import LLM, SamplingParams
-from fxbex import hug
+from fxbx import hug
 
 LLM = hug(LLM)
 # Official models retain the original constructor, options, methods and objects.
@@ -318,7 +323,7 @@ split a completed answer to simulate streaming. Unicode byte fragments are buffe
 Batches are sequential, not native-engine batching. Official model throughput and
 stream scheduling are unaffected. This first hug adapter targets furiosa_llm 2026.4.0
 and the validated Qwen replay runtime; diffusers, Ultralytics and ONNX Runtime are
-not yet hug adapters. The separate package-first `from fxbex import LLM` API remains
+not yet hug adapters. The separate package-first `from fxbx import LLM` API remains
 available with its original dictionary-returning convenience methods.
 
 For an environment affected by the open native-crash issue, keep the application
@@ -364,7 +369,7 @@ RedHatAI/Qwen3.5-9B-FP8-dynamic/
 ```
 
 ```bash
-fxbex chat RedHatAI/Qwen3.5-9B-FP8-dynamic@2026.4.0-portable2
+fxbx chat RedHatAI/Qwen3.5-9B-FP8-dynamic@2026.4.0-portable2
 # A future locally installed or published optimization can be selected explicitly:
 # fxbex chat RedHatAI/Qwen3.5-9B-FP8-dynamic@opt3
 ```
@@ -379,8 +384,8 @@ uses the same resolution rules. HF caches remain separate from local copies.
 ## Original model provenance (0.5.2)
 
 ```bash
-fxbex build ./compiled_model -o model.fxbex --standalone --source-model stabilityai/TripoSR --source-revision ORIGINAL_COMMIT
-fxbex inspect model.fxbex
+fxbx build ./compiled_model -o model.fxbex --standalone --source-model stabilityai/TripoSR --source-revision ORIGINAL_COMMIT
+fxbx inspect model.fxbex
 ```
 
 The manifest records `provenance.source_url`, optional `revision`, and `status`.
@@ -393,9 +398,9 @@ metadata edits require a new artifact hash/release, not in-place rewriting.
 ## Short names and newest local model (0.5.3)
 
 ```bash
-fxbex chat Qwen3.5-9B-FP8-dynamic
-fxbex run yolo11-onnx
-fxbex run ./models
+fxbx chat Qwen3.5-9B-FP8-dynamic
+fxbx run yolo11-onnx
+fxbx run ./models
 ```
 
 A unique final component of the original source repository is a short model ID.
@@ -476,9 +481,9 @@ Model IDs download to `~/.cache/fxbex/models/PUBLISHER/MODEL/VERSION/`
 (or `$XDG_CACHE_HOME/fxbex/models`). Explicit local paths stay local.
 
 ```bash
-fxbex fetch Qwen3.5-9B-FP8-dynamic --refresh
-fxbex cache list
-fxbex cache clear --yes
+fxbx fetch Qwen3.5-9B-FP8-dynamic --refresh
+fxbx cache list
+fxbx cache clear --yes
 ```
 
 Refresh forces an HF download and verifies the catalog SHA256 before replacing
@@ -506,7 +511,7 @@ For a verified RunnableDAG package with declared input/output tensor specificati
 use tensors directly without a Python-list round trip:
 
 ```python
-from fxbex import as_torch
+from fxbx import as_torch
 
 with as_torch('./model.fxbex', output_device='cpu') as model:
     outputs = model(input_tensor)  # exact compiled shapes and dtypes

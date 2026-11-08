@@ -52,7 +52,7 @@ class CliTests(unittest.TestCase):
     def test_missing_file_no_traceback(self):
         code, _, err = self.invoke('validate', self.package)
         self.assertEqual(code, 1)
-        self.assertIn('fxbex:', err)
+        self.assertIn('fxbx:', err)
         self.assertNotIn('Traceback', err)
 
     def test_corrupt_package_no_traceback(self):

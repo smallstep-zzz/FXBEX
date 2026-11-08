@@ -3,8 +3,8 @@ requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "fxbex"
-version = "0.6.10"
+name = "fxbx"
+version = "0.7.0"
 description = "Furiosa RNGD 사전 컴파일 아티팩트 패키징 및 실행 CLI"
 readme = "README.md"
 requires-python = ">=3.10,<3.15"
@@ -27,7 +27,7 @@ classifiers = [
 ]
 
 [project.scripts]
-fxbex = "fxbex.cli:main"
+fxbx = "fxbex.cli:main"
 
 [tool.setuptools.packages.find]
-include = ["fxbex*"]
+include = ["fxbx*", "fxbex*"]

@@ -42,17 +42,17 @@ def _load_with_progress(callback, stream, interval=5):
 
 def _main(argv=None):
     parser = argparse.ArgumentParser(
-        prog='fxbex', description='Build, inspect and run compiled FXB_EX model packages.',
+        prog='fxbx', description='Build, inspect and run compiled FXB_EX model packages.',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""Examples:
-  fxbex build ./compiled_model -o model.fxbex
-  fxbex inspect model.fxbex
-  fxbex validate model.fxbex --integrity-only
-  fxbex validate model.fxbex --weights-dir ./weights
-  fxbex run model.fxbex --input inputs.json -o result.json
-  fxbex chat model.fxbex
-  fxbex serve model.fxbex --port 8000
-  fxbex doctor
+  fxbx build ./compiled_model -o model.fxbex
+  fxbx inspect model.fxbex
+  fxbx validate model.fxbex --integrity-only
+  fxbx validate model.fxbex --weights-dir ./weights
+  fxbx run model.fxbex --input inputs.json -o result.json
+  fxbx chat model.fxbex
+  fxbx serve model.fxbex --port 8000
+  fxbx doctor
 
 Validation checks static readiness; it does not run inference or prove NPU execution.
 Model-specific exporters and capture commands belong to their adapter plugins.""")
@@ -126,7 +126,7 @@ Model-specific exporters and capture commands belong to their adapter plugins.""
         if Path(interpreter)!=Path(sys.executable):
             import subprocess
             print('Using SDK Python: '+interpreter,file=sys.stderr,flush=True)
-            code=subprocess.call([interpreter,'-m','fxbex',*(sys.argv[1:] if argv is None else map(str,argv))])
+            code=subprocess.call([interpreter,'-m','fxbx',*(sys.argv[1:] if argv is None else map(str,argv))])
             return code if code>=0 else 128-code
     if args.action=='chat' and not args.input:
         print('Welcome to FXBEX Chat!\nModel: '+args.package+
@@ -235,7 +235,7 @@ def main(argv=None):
     try:
         return _main(argv) or 0
     except Exception as exc:
-        print(f'fxbex: {exc}', file=sys.stderr)
+        print(f'fxbx: {exc}', file=sys.stderr)
         return 1
     except KeyboardInterrupt:
         return 130
