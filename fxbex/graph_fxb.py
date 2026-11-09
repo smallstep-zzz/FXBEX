@@ -249,6 +249,9 @@ class GraphFXB:
             raise GraphFXBError('Only the explicit furiosa:0 device is supported')
         self.path, self.device = Path(path), device
         self.plan = read_graph_plan(path)
+        from .checkpoint import SafeTensorWeights
+        if isinstance(weights,SafeTensorWeights):
+            raise GraphFXBError('SafeTensorWeights requires a native execution-plan FXB; legacy single-EDF graphs need explicit tensors')
         self.weights = dict(weights or {})
         self.program = None
         self.failed = False

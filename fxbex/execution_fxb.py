@@ -253,7 +253,9 @@ class ExecutionFXB:
     def __init__(self,path,*,weights=None,device='furiosa:0',max_request_states=1):
         if device!='furiosa:0':raise ExecutionPlanError('Only furiosa:0 is qualified')
         if type(max_request_states)!=int or max_request_states<1:raise ExecutionPlanError('max_request_states must be a positive integer')
-        self.path=Path(path);self.plan=read_execution_plan(path);self.weights=dict(weights or {})
+        from .checkpoint import SafeTensorWeights
+        self.path=Path(path);self.plan=read_execution_plan(path)
+        self.weights=weights if isinstance(weights,SafeTensorWeights) else dict(weights or {})
         self.device=device;self.programs={};self.resident={};self.states={};self.stack=None;self.failed=False
         self.memory=_memory_gate(self.plan)
         self._memory_modes={'cpu':self.memory}
@@ -278,8 +280,24 @@ class ExecutionFXB:
         for name,expected in packages.items():
             if name in ('torch','furiosa-torch','furiosa-tcc') and importlib.metadata.version(name)!=expected:
                 raise ExecutionPlanError('SDK package mismatch: '+name)
+        from .checkpoint import SafeTensorWeights
+        streaming=isinstance(self.weights,SafeTensorWeights)
+        if streaming:
+            targets={}
+            for spec in self.plan['tensors'].values():
+                if spec['kind'] not in ('parameter','buffer'):continue
+                target=spec['target']
+                if target in targets and any(targets[target].get(k)!=spec.get(k) for k in ('shape','stride','dtype','value_range')):
+                    raise ExecutionPlanError('External target contracts disagree: '+target)
+                targets[target]=spec
+            try:self.weights.validate(targets)
+            except ValueError as exc:raise ExecutionPlanError(str(exc)) from exc
+            # Integer range contracts need value checks before device allocation.
+            for target,spec in targets.items():
+                if 'value_range' in spec:_check_value_range(self.weights[target],spec,torch)
         for name,spec in self.plan['tensors'].items():
             if spec['kind'] in ('parameter','buffer'):
+                if streaming:continue
                 value=self.weights.get(spec['target'])
                 if not _tensor_matches(value,spec,torch) or value.requires_grad:
                     raise ExecutionPlanError('Missing/incompatible frozen external tensor: '+name)
@@ -305,7 +323,12 @@ class ExecutionFXB:
             if spec['kind'] in ('parameter','buffer'):
                 target=spec['target']
                 if target not in uploaded:
-                    self.resident[name]=self._upload(self.weights[target].detach(),spec);uploaded[target]=name
+                    value=self.weights[target]
+                    if not _tensor_matches(value,spec,torch) or value.requires_grad:
+                        raise ExecutionPlanError('External tensor changed after admission: '+target)
+                    self.resident[name]=self._upload(value.detach(),spec);uploaded[target]=name
+                    if streaming:self._sync()
+                    del value
                 else:self.resident[name]=self.resident[uploaded[target]]
         self._sync();self.states={};self._default_ready=False;self.failed=False
     def _sync(self):self.sdk.current_stream(self.torch.device(self.device)).synchronize()

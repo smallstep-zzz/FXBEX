@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fxbx"
-version = "0.8.1"
+version = "0.8.2"
 description = "Furiosa RNGD 사전 컴파일 아티팩트 패키징 및 실행 CLI"
 readme = "README.md"
 requires-python = ">=3.10,<3.15"
@@ -25,6 +25,9 @@ classifiers = [
     "Programming Language :: Python :: 3.14",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
+
+[project.optional-dependencies]
+weights = ["safetensors>=0.4,<1"]
 
 [project.scripts]
 fxbx = "fxbex.cli:main"

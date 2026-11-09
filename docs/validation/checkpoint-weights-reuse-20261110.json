@@ -1,0 +1,30 @@
+{
+  "status": "passed",
+  "scope": "small fixed-shape native FXB; not full-model or throughput proof",
+  "replays": [
+    {
+      "metadata_s": 0.00023949285969138145,
+      "load_s": 0.07133455388247967,
+      "tensor_value_reads": 2
+    },
+    {
+      "metadata_s": 0.0002974029630422592,
+      "load_s": 0.00677386624738574,
+      "tensor_value_reads": 2
+    },
+    {
+      "metadata_s": 0.0002477318048477173,
+      "load_s": 0.006413202732801437,
+      "tensor_value_reads": 2
+    }
+  ],
+  "calls": 21,
+  "npu_confirmed_steps": 4,
+  "cpu_routes": 0,
+  "bad_metadata_rejected_before_device_load": true,
+  "producer_imported": false,
+  "whole_checkpoint_materialized_on_cpu": false,
+  "weight_policy": "strict dtype/shape; synchronous one-tensor upload; no quantization conversion",
+  "warm_completed_host_call_median_s": 0.0004850453697144985,
+  "report_dir": "/root/fxbx_tclmachine_test/checkpoint-weights-reuse"
+}

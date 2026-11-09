@@ -441,3 +441,6 @@ python examples/native_static_graph.py run ./linear.fxb
 one native FXB. `GraphFXB.new_state()` isolates request state while retaining
 shared weights. See [official reuse, NPU evidence and limits](docs/OFFICIAL_STATE_REUSE.md).
 Native FXB weights remain separate; functional state is not paged KV support.
+
+Native execution-plan FXBs can load [header-first checkpoint weights](docs/CHECKPOINT_WEIGHTS.md)
+with `SafeTensorWeights`, without constructing a complete CPU model.
