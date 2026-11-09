@@ -1,5 +1,7 @@
 # fxbX
 
+**0.8.0 개발 소스:** [TCLMachine 공통 실행 계약](docs/EXECUTION_PLAN.md)으로 다중 EDF와 상주 상태를 연결합니다. 모델명 분기 없이 연산 계약으로 내보내며, 컴파일러 없는 새 프로세스 NPU 재적재를 검증했습니다. PyPI0.7.0과 구분하세요.
+
 **FXBEX에서 fxbX로 이름이 바뀌었습니다.** 배포 패키지·CLI·공개 import는 `fxbx`이며, 이름 전환 릴리스는 0.7.0입니다.
 기존 `.fxbex` 모델 파일은 계속 읽을 수 있습니다. [PyPI 0.7.0](https://pypi.org/project/fxbx/0.7.0/)에서 배포합니다.
 설치는 `python -m pip install --upgrade fxbx`를 사용하세요.

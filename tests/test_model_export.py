@@ -26,26 +26,31 @@ class ModelExportTests(unittest.TestCase):
 
     def test_custom_build_consumes_tclmachine_owned_path(self):
         import sys
-        from types import ModuleType, SimpleNamespace
+        from types import ModuleType
         from unittest.mock import Mock
         try:
             import torch
         except ImportError:
             self.skipTest('optional PyTorch not installed')
-        retained = {'edf_path': '/durable/tclmachine/edf/model.edf',
-                    'artifact_owner': 'TCLMachine'}
-        module = ModuleType('tplmachine.edf_export')
-        module.export_edf = Mock(return_value=SimpleNamespace(contract=retained))
+        retained = {'contract_owner': 'TCLMachine', 'regions': 3}
+        module = ModuleType('tplmachine.execution_plan')
+        module.export_model = Mock(return_value=retained)
         with tempfile.TemporaryDirectory() as d:
             out = Path(d) / 'model.fxb'
-            with patch.dict(sys.modules, {'tplmachine.edf_export': module}), \
-                 patch('torch.export.export', return_value=object()), \
-                 patch('fxbex.graph_fxb.export_graph', return_value={}) as writer:
-                result = build_model(torch.nn.Identity(), out,
-                                     example_inputs=(torch.ones(1),))
-            self.assertEqual(result['artifacts']['edf'], retained['edf_path'])
-            self.assertEqual(writer.call_args.args[0], retained)
+            model=torch.nn.Identity();inputs=(torch.ones(1),)
+            with patch.dict(sys.modules, {'tplmachine.execution_plan': module}), \
+                 patch('torch.export.export', side_effect=AssertionError('consumer must not capture')):
+                result = build_model(model, out, example_inputs=inputs, concurrency=4)
+            self.assertEqual(result['result'], retained)
+            module.export_model.assert_called_once_with(model, inputs, out, source_metadata=None,
+                state_inputs=None, state_updates=None, user_output_indices=None, compile_workers=4)
             self.assertFalse((Path(str(out) + '.build') / 'model.edf').exists())
+
+    def test_legacy_provider_rejects_output_filtering_instead_of_ignoring_it(self):
+        with tempfile.TemporaryDirectory() as d:
+            with self.assertRaisesRegex(ValueError,'no state/output annotations'):
+                build_model(object(),Path(d)/'m.fxb',example_inputs=(),
+                            contract_provider='trusted',user_output_indices=[0])
 
     def test_official_failure_keeps_exact_stage_and_no_publish(self):
         with tempfile.TemporaryDirectory() as d:

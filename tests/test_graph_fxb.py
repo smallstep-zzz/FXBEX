@@ -28,6 +28,9 @@ class Tensor:
 
 
 class GraphFXBTests(unittest.TestCase):
+    def test_legacy_writer_cannot_drop_value_constraints(self):
+        with self.assertRaisesRegex(GraphFXBError,'canonical execution-plan'):
+            export_graph({'input_constraints':[{'kind':'integer_range'}]},'unused.fxb',model_metadata={})
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)

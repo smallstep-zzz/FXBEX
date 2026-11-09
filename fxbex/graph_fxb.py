@@ -140,6 +140,8 @@ def _registration(contract, metadata):
 def export_graph(edf_export, output, *, model_metadata, contract_provider=None,
                  verify_official=True):
     """Assemble an EDF export with an automatic static or supplied native contract."""
+    if edf_export.get('input_constraints'):
+        raise GraphFXBError('Input value constraints require the canonical execution-plan consumer')
     # Resolve before staging: an absent public native bridge must not emit a fake FXB.
     if contract_provider is None:
         from .static_graph_contract import StaticGraphContractProvider
@@ -224,6 +226,23 @@ def _tensor_matches(value, spec, torch):
 
 class GraphFXB:
     """Explicit single-EDF consumer; not Furiosa-LLM architecture dispatch."""
+    def __new__(cls,path,*,weights=None,device='furiosa:0'):
+        if cls is GraphFXB:
+            from .native_fxb import MAX_JSON_SIZE
+            execution=False
+            # Route by versioned transport schema, never model name/architecture.
+            try:
+                with zipfile.ZipFile(path) as archive:
+                    info=archive.getinfo(PRODUCER_MEMBER)
+                    if info.file_size<=MAX_JSON_SIZE:
+                        producer=json.loads(archive.read(info))
+                        execution=isinstance(producer,dict) and 'execution_plan' in producer
+            except (OSError,zipfile.BadZipFile,KeyError,ValueError):
+                pass  # The existing integrity reader returns the detailed error.
+            if execution:
+                from .execution_fxb import ExecutionFXB
+                return ExecutionFXB(path,weights=weights,device=device)
+        return super().__new__(cls)
     def __init__(self, path, *, weights=None, device='furiosa:0'):
         if device != 'furiosa:0':
             raise GraphFXBError('Only the explicit furiosa:0 device is supported')

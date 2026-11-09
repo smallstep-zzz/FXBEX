@@ -22,11 +22,12 @@ def _official_build(model, output, *, concurrency, options):
 
 
 def build_model(model, output, *, example_inputs=None, contract_provider=None,
-                source_metadata=None, concurrency=4, work_dir=None, **options):
-    """Build a registered model, or export a static graph with a genuine contract provider.
+                source_metadata=None, concurrency=4, work_dir=None,
+                state_inputs=None,state_updates=None,user_output_indices=None,**options):
+    """Build a registered model, or package TCLMachine's static execution plan.
 
     A HF ID/local asset directory uses the official architecture-aware compiler.
-    A torch module uses TCLMachine's lifted-input EDF export and FXBEX graph plan.
+    A torch module delegates capture, partitioning and EDF compilation to TCLMachine.
     No model weights are placed into the ZIP. Hardware acceptance remains separate.
     """
     from .native_fxb import NativeFXBError, build_native
@@ -47,6 +48,7 @@ def build_model(model, output, *, example_inputs=None, contract_provider=None,
     started=time.monotonic()
     try:
         if isinstance(model,(str,os.PathLike)):
+            if state_inputs or state_updates or user_output_indices is not None:raise ValueError('state/output annotations require a Torch graph')
             report['route']='official_registered_model'
             native=work/'official.fxb'
             _official_build(model,native,concurrency=concurrency,options=options)
@@ -72,11 +74,20 @@ def build_model(model, output, *, example_inputs=None, contract_provider=None,
             if options:
                 raise ValueError('STATIC_GRAPH_OPTIONS_UNSUPPORTED: custom graph export cannot honor model context/bucket/compiler options: '+','.join(sorted(options)))
             if example_inputs is None:raise ValueError('torch models require example_inputs')
+            if contract_provider is None:
+                from tplmachine.execution_plan import export_model
+                report['route']='tclmachine_execution_plan'
+                result=export_model(model,tuple(example_inputs),output,source_metadata=source_metadata,
+                    state_inputs=state_inputs,state_updates=state_updates,user_output_indices=user_output_indices,compile_workers=min(concurrency,8))
+                report.update(status='built_not_runtime_validated',result=result)
+                return report
+            if state_inputs or state_updates or user_output_indices is not None:raise ValueError('legacy single-EDF contract has no state/output annotations')
             from tplmachine.edf_export import export_edf
             from .graph_fxb import export_graph
             import torch
+            from tplmachine.graph_capture import capture_for_export
             inputs=tuple(example_inputs)
-            exported=model if isinstance(model,torch.export.ExportedProgram) else torch.export.export(model,inputs,strict=False)
+            exported=capture_for_export(model,inputs)
             edf=dict(export_edf(exported,inputs).contract)
             if not isinstance(model,torch.export.ExportedProgram):
                 report['source_metadata'].setdefault('architecture',type(model).__name__)
