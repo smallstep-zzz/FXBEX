@@ -1,4 +1,4 @@
-# Shared execution plan — 0.8.0 source
+# Shared execution plan — 0.8.1 source
 
 `build_model(torch_module,...)` delegates to TCLMachine0.5.0; fxbX does not
 recapture the model, generate TCL or compile during loading. String/path models
@@ -58,3 +58,14 @@ and are not evidence for this new full-model native-FXB route.
 Raw traces/features remain in `/root/fxbx_tclmachine_test/` onserver5; small result
 JSONs and replay scripts accompany this document. This is source-only work, not a
 new PyPI publication.
+
+## Legacy engine shadowing
+
+An editable checkout in a `--system-site-packages` environment can resolve
+`fxbx` from the new checkout but `fxbex` from an older system installation.
+The public import now checks that its engine is the bundled sibling and fails
+with both paths and repair advice. It does not rewrite global import paths.
+In the matching SDK environment, install the checkout normally:
+`python -m pip install --force-reinstall --no-deps /path/to/fxbX` (without `-e`).
+The server5 isolated wheel installation passed the real2.03GB checkpoint lookup;
+SDK packages were unchanged. Metadata/mmap load time is not disk-read throughput.
