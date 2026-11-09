@@ -6,7 +6,7 @@ import tempfile
 import time
 
 
-def resume_graph_build(work_dir, output, *, contract_provider):
+def resume_graph_build(work_dir, output, *, contract_provider=None):
     """Resume native packaging without repeating a successful EDF compilation."""
     from .graph_fxb import export_graph
     work=Path(work_dir)
@@ -75,12 +75,12 @@ def build_model(model, output, *, example_inputs=None, contract_provider=None,
             import torch
             inputs=tuple(example_inputs)
             exported=model if isinstance(model,torch.export.ExportedProgram) else torch.export.export(model,inputs,strict=False)
-            edf=export_edf(exported,inputs).write(work/'model.edf')
+            edf=dict(export_edf(exported,inputs).contract)
             if not isinstance(model,torch.export.ExportedProgram):
                 report['source_metadata'].setdefault('architecture',type(model).__name__)
                 report['source_metadata'].setdefault('python_class',type(model).__module__+'.'+type(model).__qualname__)
             (work/'edf-contract.json').write_text(json.dumps(edf,indent=2)+'\n')
-            report['artifacts']={'edf':str(work/'model.edf'),'edf_contract':str(work/'edf-contract.json')}
+            report['artifacts']={'edf':edf['edf_path'],'edf_contract':str(work/'edf-contract.json')}
             report['stages'].append({'name':'graph_edf_compile','status':'passed'})
             result=export_graph(edf,output,contract_provider=contract_provider,
                                 model_metadata=report['source_metadata'])

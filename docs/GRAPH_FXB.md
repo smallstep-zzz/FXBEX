@@ -35,16 +35,20 @@ The provider's `provide(*, model_metadata, edf_export)` returns a mapping with:
 The real model architecture must match the native fingerprint. Provider code is
 trusted: a hash assertion alone cannot establish that SDK metadata is authentic.
 `ExistingNativeContract` is a convenience for an already authentic contract,
-not a way to relabel another model. The default `OfficialNativeContractProvider`
-fails with `EXPORT_BRIDGE_GAP` before creating output because the inspected SDK
-has no public custom-graph fingerprint/registration API. It does not substitute
-Qwen metadata or invent a fingerprint. Registered architectures can still use
-the official builder through the orchestration layer.
+not a way to relabel another model. The default is now `StaticGraphContractProvider`:
+it binds the real architecture, graph/EDF hashes, ABI and recorded compiler/SDK
+configuration into an fxbX static-graph fingerprint and native v2 manifest.
+Official show/inspect and actual RNGD execution passed for the small qualified
+cases; see [STATIC_GRAPH_BRIDGE.md](STATIC_GRAPH_BRIDGE.md). This custom fingerprint
+does not assert official LLM-cache compatibility. The old explicit
+`OfficialNativeContractProvider` still reports the missing official LLM model
+registration API. Registered architectures retain the official build route.
 
 `GraphFXB` explicitly selects the saved manifest member, verifies hashes and
 bindings, loads it through `furiosa.torch.ir.Runnable.from_serialized_edf`, and
 compares the public `input_dram_shapes`/`output_dram_shapes` representations
-exactly before loading the device program. It also checks actual
+exactly before loading the device program. Topology is configured before EDF
+preprocessing, because that preprocessing records fusion. It also checks actual
 `expected_num_fusion`, pinned SDK versions, tensor shape/dtype/stride, and required
 external parameters/buffers. Missing device metadata fails before allocation.
 The loader uses the shared NPU lock, disables CPU model fallback, uploads weights
@@ -62,8 +66,9 @@ it does not parse opaque SDK representations into logical tensor metadata.
 `abi.logical_to_physical_metadata` remains `unknown` unless the EDF producer used
 an explicit verified reader. `validation.external_weight_variation` remains
 `not_tested` without a separate execution test. These limits are retained in the
-plan, as are native writer runtime/NPU gates. No model inference, compilation,
-SDK installation or remote experiment was run while implementing this module.
+plan, as are native writer runtime/NPU gates. The initial module was offline-only;
+subsequent source 0.7.1 server5 verification is in `STATIC_GRAPH_BRIDGE.md`. Those
+small static cases do not establish arbitrary stateful model dispatch.
 
 Offline checks:
 

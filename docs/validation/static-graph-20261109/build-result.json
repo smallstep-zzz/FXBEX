@@ -1,0 +1,276 @@
+{
+  "schema": "fxbex.native-fxb.validation.v1",
+  "path": "/root/fxbx_tclmachine_test/native_bridge_20261109/auto-linear.fxb",
+  "format": "FXB",
+  "format_version": 2,
+  "weightless": true,
+  "kernel_entries": 1,
+  "edf_files": 1,
+  "producer_metadata": {
+    "graph_plan": {
+      "abi": {
+        "arity_verified": true,
+        "inputs": [
+          "FlatDramShape { inner: FlatDramShapeInner { host_sizes: [4, 8], host_strides: [8, 1], intra_chip_sizes: [4, 8], intra_chip_strides: [8, 1], inter_chip_axes: [], raw_dtype: ftext_dtype(5) } }",
+          "FlatDramShape { inner: FlatDramShapeInner { host_sizes: [6, 8], host_strides: [8, 1], intra_chip_sizes: [6, 8], intra_chip_strides: [8, 1], inter_chip_axes: [], raw_dtype: ftext_dtype(5) } }",
+          "FlatDramShape { inner: FlatDramShapeInner { host_sizes: [6], host_strides: [1], intra_chip_sizes: [6], intra_chip_strides: [1], inter_chip_axes: [], raw_dtype: ftext_dtype(5) } }"
+        ],
+        "logical_to_physical_metadata": "unknown",
+        "outputs": [
+          "FlatDramShape { inner: FlatDramShapeInner { host_sizes: [4, 6], host_strides: [6, 1], intra_chip_sizes: [4, 6], intra_chip_strides: [6, 1], inter_chip_axes: [], raw_dtype: ftext_dtype(5) } }"
+        ]
+      },
+      "compatibility": {
+        "furiosa-tcc": "2026.4.0",
+        "furiosa-torch": "2026.4.0",
+        "torch": "2.10.0+cpu"
+      },
+      "compiler_config": null,
+      "device_config": {
+        "fusion": 8,
+        "mesh": "single"
+      },
+      "edf_sha256": "bc5403369c5d0e1ba12fbdf19dfa758a96dbdd50fef4377dfd7de41d455cd33e",
+      "expected_num_fusion": 8,
+      "graph_metadata": "def linear_bias<K=8, M=4, N=6>(\n    lhs: [M, K]/bf16,\n    weight: [N, K]/bf16,\n    bias: [N]/bf16\n) -> [M, N]/bf16:\n    assert K == 8\n    assert M == 4\n    assert N == 6\n    _t0: [M, N]/bf16 = tk.EinsumByDpe(\n        %0 = read(lhs)\n        %1 = read(weight)\n        %2 = read(bias)\n        %3 = dpe.exec(%0,%1 -> [M, N])\n        %4 = ve.exec(%3 + %2)\n        write.to([M, N]/bf16)\n    )\n    return _t0",
+      "inputs": [
+        {
+          "dtype": "bfloat16",
+          "kind": "user_input",
+          "name": "input",
+          "shape": [
+            4,
+            8
+          ],
+          "stride": [
+            8,
+            1
+          ],
+          "user_index": 0
+        },
+        {
+          "dtype": "bfloat16",
+          "kind": "parameter",
+          "name": "p_weight",
+          "shape": [
+            6,
+            8
+          ],
+          "stride": [
+            8,
+            1
+          ],
+          "target": "weight"
+        },
+        {
+          "dtype": "bfloat16",
+          "kind": "parameter",
+          "name": "p_bias",
+          "shape": [
+            6
+          ],
+          "stride": [
+            1
+          ],
+          "target": "bias"
+        }
+      ],
+      "kernel": {
+        "bucket": {
+          "tokenwise": {
+            "input_size": 4
+          }
+        },
+        "file": "edfs/forward.edf",
+        "name": "forward"
+      },
+      "model_metadata": {
+        "architecture": "torch.nn.Linear",
+        "bias": true,
+        "in_features": 8,
+        "out_features": 6
+      },
+      "model_metadata_sha256": "43d5c8d8d261a7fc94cc33dab45de350a98e345c955c15801d7899d387ded5f0",
+      "native_contract_source": {
+        "explicit_consumer_required": true,
+        "fxbx_graph_fingerprint": "28ed8e76d3ac3d21175e88007e660f040583843b1ae835245d14b099e6d08606",
+        "kind": "fxbx.static-graph",
+        "official_llm_dispatch": false,
+        "schema": 1
+      },
+      "native_manifest_sha256": "5d6ced0ecd1a8417c0882f6afc5151261e1736b56f209c25c6cd3cde10a6225f",
+      "output_tree_spec": "[1, {\"type\": null, \"context\": null, \"children_spec\": []}]",
+      "outputs": [
+        {
+          "dtype": "bfloat16",
+          "name": "linear",
+          "shape": [
+            4,
+            6
+          ],
+          "stride": [
+            6,
+            1
+          ]
+        }
+      ],
+      "schema": "fxbex.graph-plan.v1",
+      "source_identity": {
+        "binding_metadata_sha256": "b00c80abd0d407ea8f0c7f1d5b844bce8b8ea5cf4c89b93f4004cafacc33c42f",
+        "captured_model_classes": [
+          "torch.nn.modules.linear.Linear"
+        ],
+        "checkpoint_values_embedded": false,
+        "checkpoint_values_embedded_scope": "source_graph_only",
+        "graph_code_sha256": "ffb1f2524af3f8420ad9f147ac247e055f4baa123ddbc00c3a93563f27257a16",
+        "graph_sha256": "8df410c35739e0124c47909682ee18b92110b516722dac63855303a47ce3f55a",
+        "kind": "torch.export.ExportedProgram",
+        "torch_version": "2.10.0+cpu"
+      },
+      "target_npu": "renegade-8pe",
+      "validation": {
+        "external_weight_variation": "not_tested"
+      }
+    },
+    "graph_plan_sha256": "0aead78b6bf1c41c9fb2381f8725a477299f87acec8c71bc1519e27700cf2382",
+    "schema": "fxbex.producer.v1",
+    "producer": "fxbex",
+    "version": "0.7.0",
+    "operation": "archive_existing_native_artifact"
+  },
+  "gates": {
+    "archive": "passed",
+    "official_show": "passed",
+    "official_inspect": "passed",
+    "internal_metadata_reader": "passed",
+    "model_compatibility": "not_run",
+    "runtime_load": "not_run",
+    "npu_execution": "not_run",
+    "graph_plan": "passed"
+  },
+  "graph_plan": {
+    "abi": {
+      "arity_verified": true,
+      "inputs": [
+        "FlatDramShape { inner: FlatDramShapeInner { host_sizes: [4, 8], host_strides: [8, 1], intra_chip_sizes: [4, 8], intra_chip_strides: [8, 1], inter_chip_axes: [], raw_dtype: ftext_dtype(5) } }",
+        "FlatDramShape { inner: FlatDramShapeInner { host_sizes: [6, 8], host_strides: [8, 1], intra_chip_sizes: [6, 8], intra_chip_strides: [8, 1], inter_chip_axes: [], raw_dtype: ftext_dtype(5) } }",
+        "FlatDramShape { inner: FlatDramShapeInner { host_sizes: [6], host_strides: [1], intra_chip_sizes: [6], intra_chip_strides: [1], inter_chip_axes: [], raw_dtype: ftext_dtype(5) } }"
+      ],
+      "logical_to_physical_metadata": "unknown",
+      "outputs": [
+        "FlatDramShape { inner: FlatDramShapeInner { host_sizes: [4, 6], host_strides: [6, 1], intra_chip_sizes: [4, 6], intra_chip_strides: [6, 1], inter_chip_axes: [], raw_dtype: ftext_dtype(5) } }"
+      ]
+    },
+    "compatibility": {
+      "furiosa-tcc": "2026.4.0",
+      "furiosa-torch": "2026.4.0",
+      "torch": "2.10.0+cpu"
+    },
+    "compiler_config": null,
+    "device_config": {
+      "fusion": 8,
+      "mesh": "single"
+    },
+    "edf_sha256": "bc5403369c5d0e1ba12fbdf19dfa758a96dbdd50fef4377dfd7de41d455cd33e",
+    "expected_num_fusion": 8,
+    "graph_metadata": "def linear_bias<K=8, M=4, N=6>(\n    lhs: [M, K]/bf16,\n    weight: [N, K]/bf16,\n    bias: [N]/bf16\n) -> [M, N]/bf16:\n    assert K == 8\n    assert M == 4\n    assert N == 6\n    _t0: [M, N]/bf16 = tk.EinsumByDpe(\n        %0 = read(lhs)\n        %1 = read(weight)\n        %2 = read(bias)\n        %3 = dpe.exec(%0,%1 -> [M, N])\n        %4 = ve.exec(%3 + %2)\n        write.to([M, N]/bf16)\n    )\n    return _t0",
+    "inputs": [
+      {
+        "dtype": "bfloat16",
+        "kind": "user_input",
+        "name": "input",
+        "shape": [
+          4,
+          8
+        ],
+        "stride": [
+          8,
+          1
+        ],
+        "user_index": 0
+      },
+      {
+        "dtype": "bfloat16",
+        "kind": "parameter",
+        "name": "p_weight",
+        "shape": [
+          6,
+          8
+        ],
+        "stride": [
+          8,
+          1
+        ],
+        "target": "weight"
+      },
+      {
+        "dtype": "bfloat16",
+        "kind": "parameter",
+        "name": "p_bias",
+        "shape": [
+          6
+        ],
+        "stride": [
+          1
+        ],
+        "target": "bias"
+      }
+    ],
+    "kernel": {
+      "bucket": {
+        "tokenwise": {
+          "input_size": 4
+        }
+      },
+      "file": "edfs/forward.edf",
+      "name": "forward"
+    },
+    "model_metadata": {
+      "architecture": "torch.nn.Linear",
+      "bias": true,
+      "in_features": 8,
+      "out_features": 6
+    },
+    "model_metadata_sha256": "43d5c8d8d261a7fc94cc33dab45de350a98e345c955c15801d7899d387ded5f0",
+    "native_contract_source": {
+      "explicit_consumer_required": true,
+      "fxbx_graph_fingerprint": "28ed8e76d3ac3d21175e88007e660f040583843b1ae835245d14b099e6d08606",
+      "kind": "fxbx.static-graph",
+      "official_llm_dispatch": false,
+      "schema": 1
+    },
+    "native_manifest_sha256": "5d6ced0ecd1a8417c0882f6afc5151261e1736b56f209c25c6cd3cde10a6225f",
+    "output_tree_spec": "[1, {\"type\": null, \"context\": null, \"children_spec\": []}]",
+    "outputs": [
+      {
+        "dtype": "bfloat16",
+        "name": "linear",
+        "shape": [
+          4,
+          6
+        ],
+        "stride": [
+          6,
+          1
+        ]
+      }
+    ],
+    "schema": "fxbex.graph-plan.v1",
+    "source_identity": {
+      "binding_metadata_sha256": "b00c80abd0d407ea8f0c7f1d5b844bce8b8ea5cf4c89b93f4004cafacc33c42f",
+      "captured_model_classes": [
+        "torch.nn.modules.linear.Linear"
+      ],
+      "checkpoint_values_embedded": false,
+      "checkpoint_values_embedded_scope": "source_graph_only",
+      "graph_code_sha256": "ffb1f2524af3f8420ad9f147ac247e055f4baa123ddbc00c3a93563f27257a16",
+      "graph_sha256": "8df410c35739e0124c47909682ee18b92110b516722dac63855303a47ce3f55a",
+      "kind": "torch.export.ExportedProgram",
+      "torch_version": "2.10.0+cpu"
+    },
+    "target_npu": "renegade-8pe",
+    "validation": {
+      "external_weight_variation": "not_tested"
+    }
+  }
+}

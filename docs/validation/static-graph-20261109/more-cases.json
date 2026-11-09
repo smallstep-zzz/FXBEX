@@ -1,0 +1,25 @@
+{
+  "fxbx_version": "0.7.1",
+  "cases": [
+    {
+      "case": "mm",
+      "status": "passed",
+      "max_abs": 0.0,
+      "task_events": 2,
+      "cpu_routes": 0,
+      "repeats": 10,
+      "median_s": 0.000540080014616251,
+      "public_compiler_calls": 0
+    },
+    {
+      "case": "linear-no-bias",
+      "status": "passed",
+      "max_abs": 0.0,
+      "task_events": 2,
+      "cpu_routes": 0,
+      "repeats": 10,
+      "median_s": 0.00041061267256736755,
+      "public_compiler_calls": 0
+    }
+  ]
+}

@@ -138,7 +138,7 @@ with LLM(package) as llm:
 
 ```bash
 python -m pip wheel --no-deps --no-build-isolation . -w dist
-python -m pip install dist/fxbx-0.7.0-py3-none-any.whl
+python -m pip install dist/fxbx-0.7.1-py3-none-any.whl
 ```
 
 `pip install fxbx`는 공개된 Python 코어를 설치합니다. 공개 이름 전환 릴리스는 0.7.0입니다. PyPI 배포는 소스를 공개하므로 다음 릴리스 게시에는 관리자의 인증이 필요합니다. [PyPI 릴리스 준비와 GitHub OIDC 인증](docs/PYPI_RELEASE.md)을 참고하세요. Python 코어는 Apache-2.0 라이선스이며 Furiosa SDK와 모델 파일은 포함하지 않습니다.
@@ -413,3 +413,22 @@ with as_torch('./model.fxbex', output_device='cpu') as model:
 가중치를 포함하지 않는 공식 호환 FXB 작성기는 [NATIVE_FXB.md](docs/NATIVE_FXB.md)에 설명돼 있습니다. 기존 `.fxbex` 패키지도 계속 지원합니다. 검증된 작성기는 실제 공식 매니페스트·EDF 계약을 유지합니다. 임의의 Torch Runnable을 네이티브 모델로 내보내는 기능은 별도의 연결 과제입니다. 작성기로 생성한 파일로 공식 Qwen3-8B 적재와 반복 생성을 통과했으며 [실행 근거](docs/validation/native-fxb-v1/runtime.json)를 참고하세요. 이 LLM 시험에서는 네이티브 연산별 NPU 추적 범위를 수집하지 않았습니다.
 
 
+
+### 정적 그래프 자동 FXB — 소스 0.7.1
+
+[자동 계약·실행 연결 검증](docs/STATIC_GRAPH_BRIDGE.md)을 추가했습니다.
+`from fxbx import build_model, GraphFXB`로 실제 그래프·EDF·ABI·가중치 연결을
+담은 native FXB를 만들고 다시 실행할 수 있습니다. 현재 자동 EDF 내보내기
+검증 범위는 정적 연속 BF16 2D mm/linear(선택적 bias)입니다. 공식 show/inspect,
+CPU 비교, 실제 RNGD trace와 반복 실행을 통과했습니다.
+
+다른 모델의 등록정보를 사용하지 않습니다. 공식 Furiosa-LLM의 새 아키텍처
+구현·KV 스케줄러 등록과 임의의 구형 Runnable 변환은 별도 과제입니다.
+**이 기능은 0.7.1 개발 소스에 있으며, PyPI 0.7.0에는 없습니다.**
+
+```bash
+# 호환 SDK 환경에서 현재 소스 설치; SDK/의존성 자동 변경 없음
+python -m pip install -e . --no-deps
+python examples/native_static_graph.py build ./linear.fxb
+python examples/native_static_graph.py run ./linear.fxb
+```

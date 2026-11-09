@@ -79,8 +79,8 @@ class GraphFXBTests(unittest.TestCase):
         self.assertEqual(report['gates']['npu_execution'], 'not_run')
         self.assertEqual(plan['abi']['logical_to_physical_metadata'], 'unknown')
 
-    def test_default_public_bridge_gap_creates_nothing(self):
-        with self.assertRaisesRegex(GraphFXBError, 'EXPORT_BRIDGE_GAP'):
+    def test_default_provider_rejects_unrecorded_graph_creates_nothing(self):
+        with self.assertRaisesRegex(GraphFXBError, 'STATIC_GRAPH_CONTRACT'):
             export_graph({}, self.output, model_metadata=self.metadata)
         self.assertFalse(self.output.exists())
 
@@ -125,18 +125,21 @@ class GraphFXBTests(unittest.TestCase):
         torch.Tensor, torch.no_grad = Tensor, nullcontext
         torch.device = lambda x: x
         sdk = types.ModuleType('furiosa.torch')
-        sdk.ir = types.SimpleNamespace(Runnable=types.SimpleNamespace(
-            from_serialized_edf=lambda raw: types.SimpleNamespace(
-                input_dram_shapes=['BAD', 'user ABI'] if mismatch else ['weight ABI', 'user ABI'],
-                output_dram_shapes=['output ABI'], expected_num_fusion=8)))
         calls = []
+        state={'fusion':1}
+        def preprocess(raw):
+            calls.append(('preprocess',state['fusion']))
+            return types.SimpleNamespace(input_dram_shapes=['BAD','user ABI'] if mismatch else ['weight ABI','user ABI'],
+                output_dram_shapes=['output ABI'],expected_num_fusion=state['fusion'])
+        sdk.ir=types.SimpleNamespace(Runnable=types.SimpleNamespace(from_serialized_edf=preprocess))
         class Program:
             def to(self, device): calls.append(('load', device)); return self
             def __call__(self, *args):
                 calls.append(('call', [x.name for x in args]))
                 return [Tensor('output', device='furiosa')]
         sdk.Runnable = lambda runnable: Program()
-        sdk.set_fusion = lambda value: calls.append(('fusion', value))
+        def configure(value):state['fusion']=value;calls.append(('fusion',value))
+        sdk.set_fusion = configure
         sdk.set_mesh_kind = lambda value: None
         sdk.MeshKind = types.SimpleNamespace(Single=lambda: 'single')
         sdk.current_stream = lambda device: types.SimpleNamespace(synchronize=lambda: calls.append(('sync',)))
@@ -159,6 +162,7 @@ class GraphFXBTests(unittest.TestCase):
                 with self.assertRaisesRegex(GraphFXBError, 'names differ'):
                     model.predict({'wrong': Tensor('input')})
             self.assertIn(('call', ['weight', 'input']), calls)
+            self.assertLess(calls.index(('fusion',8)),calls.index(('preprocess',8)))
             self.assertIsNone(model.program)
 
     def test_runtime_abi_mismatch_stops_before_device_loading(self):
@@ -167,7 +171,7 @@ class GraphFXBTests(unittest.TestCase):
         with patch.dict(sys.modules, modules), patch('importlib.metadata.version', return_value='test'):
             with self.assertRaisesRegex(GraphFXBError, 'ABI differs'):
                 with GraphFXB(self.output, weights={'weight': Tensor('weight')}): pass
-        self.assertFalse(calls)
+        self.assertFalse(any(call[0]=='load' for call in calls))
 
     def test_unknown_device_configuration_fails_before_hardware(self):
         self.provider.device_config = None

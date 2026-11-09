@@ -40,7 +40,7 @@ def _contract(manifest):
                 'parallel_config', 'kernels'}
     if (not isinstance(manifest, dict) or not required.issubset(manifest)
             or type(manifest['format_version']) is not int or manifest['format_version'] != 2):
-        raise NativeFXBError('EXPORT_BRIDGE_GAP: expected an existing official native FXB v2 manifest; FXBEX/Runnable conversion is unavailable')
+        raise NativeFXBError('EXPORT_BRIDGE_GAP: expected a native FXB v2 manifest and genuine EDFs; serialized Runnable conversion is unavailable')
     if not isinstance(manifest['model'], dict) or not manifest['model'].get('architecture'):
         raise NativeFXBError('Native manifest must preserve its real architecture fingerprint')
     kernels = manifest['kernels']
@@ -65,7 +65,16 @@ def _official(path):
     try:
         from furiosa.llm_native import fxb
     except ImportError as exc:
-        raise NativeFXBError('Official FXB reader unavailable; use the matching installed Furiosa SDK') from exc
+        # Torch and LLM can live in separate SDK Python environments on the same host.
+        import shutil,subprocess
+        cli=shutil.which('fxb')
+        if cli is None:
+            raise NativeFXBError('Official FXB reader unavailable; install matching SDK or expose its fxb CLI') from exc
+        for gate in ('show','inspect'):
+            result=subprocess.run([cli,gate,str(path)],stdout=subprocess.DEVNULL,stderr=subprocess.PIPE,text=True)
+            if result.returncode:
+                raise NativeFXBError(f'Official fxb {gate} rejected archive: {result.stderr[-1500:]}')
+        return
     for gate in ('show', 'inspect'):
         try:
             # These public readers parse metadata and EDF signatures, not inference.

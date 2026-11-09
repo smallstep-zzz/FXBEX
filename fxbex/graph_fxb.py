@@ -1,7 +1,7 @@
 """Hash-bound generic EDF execution plans inside native FXBs.
 
-Native model metadata must come from an explicit authentic contract provider.
-No architecture/fingerprint is synthesized from a Python class or copied model.
+Static graph contracts bind actual architecture, graph/EDF hashes and tensor ABI.
+They use an explicit fxbX consumer, not Furiosa-LLM architecture dispatch.
 """
 from collections.abc import Mapping, Sequence
 from contextlib import ExitStack
@@ -139,9 +139,12 @@ def _registration(contract, metadata):
 
 def export_graph(edf_export, output, *, model_metadata, contract_provider=None,
                  verify_official=True):
-    """Automatically assemble an EDF export using an authentic native contract."""
+    """Assemble an EDF export with an automatic static or supplied native contract."""
     # Resolve before staging: an absent public native bridge must not emit a fake FXB.
-    provider = contract_provider if contract_provider is not None else OfficialNativeContractProvider()
+    if contract_provider is None:
+        from .static_graph_contract import StaticGraphContractProvider
+        provider=StaticGraphContractProvider()
+    else:provider=contract_provider
     contract = provider.provide(model_metadata=model_metadata, edf_export=edf_export)
     contract = json.loads(_bytes(contract))
     metadata = json.loads(_bytes(model_metadata))
@@ -262,14 +265,17 @@ class GraphFXB:
             raw = archive.read(self.plan['kernel']['file'])
         if hashlib.sha256(raw).hexdigest() != self.plan['edf_sha256']:
             raise GraphFXBError('EDF changed before loading')
+        config = self.plan['device_config']
+        if config != {'fusion': 8, 'mesh': 'single'}:
+            raise GraphFXBError('RUNTIME_BRIDGE_GAP: exact fusion8/single device configuration required')
+        # EDF preprocessing uses this configuration, before device allocation.
+        sdk.set_fusion(config['fusion'])
+        sdk.set_mesh_kind(sdk.MeshKind.Single())
         runnable = sdk.ir.Runnable.from_serialized_edf(raw)
         actual = {'inputs': [str(x) for x in runnable.input_dram_shapes],
                   'outputs': [str(x) for x in runnable.output_dram_shapes]}
         if any(actual[key] != self.plan['abi'][key] for key in ('inputs', 'outputs')):
             raise GraphFXBError('Official EDF loader ABI differs from recorded export')
-        config = self.plan['device_config']
-        if config != {'fusion': 8, 'mesh': 'single'}:
-            raise GraphFXBError('RUNTIME_BRIDGE_GAP: exact fusion8/single device configuration required')
         expected_fusion = self.plan.get('expected_num_fusion')
         if (type(expected_fusion) is not int or expected_fusion != config['fusion']
                 or getattr(runnable, 'expected_num_fusion', None) != expected_fusion):
@@ -283,8 +289,6 @@ class GraphFXB:
         set_cpu_fallback(False)
         if get_cpu_fallback():
             raise GraphFXBError('Cannot disable CPU model fallback')
-        sdk.set_fusion(8)
-        sdk.set_mesh_kind(sdk.MeshKind.Single())
         self.program = sdk.Runnable(runnable).to(self.device)
         self.resident_weights = {target: value.detach().to(self.device)
                                  for target, value in self.weights.items()

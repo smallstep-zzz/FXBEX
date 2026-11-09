@@ -9,6 +9,19 @@ from fxbex.native_fxb import build_native, validate_native, NativeFXBError, PROD
 
 
 class NativeFXBTests(unittest.TestCase):
+    def test_official_cli_can_live_in_another_python_environment(self):
+        import sys
+        from types import SimpleNamespace
+        from fxbex.native_fxb import _official
+        with patch.dict(sys.modules,{'furiosa.llm_native':None}),patch('shutil.which',return_value='/sdk/bin/fxb'),patch('subprocess.run',return_value=SimpleNamespace(returncode=0,stderr='')) as run:
+            _official('model.fxb')
+            self.assertEqual([c.args[0] for c in run.call_args_list],[['/sdk/bin/fxb','show','model.fxb'],['/sdk/bin/fxb','inspect','model.fxb']])
+    def test_official_cli_rejection_is_not_a_reader_pass(self):
+        import sys
+        from types import SimpleNamespace
+        from fxbex.native_fxb import _official
+        with patch.dict(sys.modules,{'furiosa.llm_native':None}),patch('shutil.which',return_value='/sdk/bin/fxb'),patch('subprocess.run',return_value=SimpleNamespace(returncode=2,stderr='bad EDF')):
+            with self.assertRaisesRegex(NativeFXBError,'bad EDF'):_official('model.fxb')
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)

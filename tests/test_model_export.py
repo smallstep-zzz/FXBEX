@@ -18,6 +18,29 @@ class ModelExportTests(unittest.TestCase):
             writer.assert_called_once_with({'edf_path':'recorded.edf'},'out.fxb',
                 model_metadata={'architecture':'Real'},contract_provider='trusted')
 
+    def test_custom_build_consumes_tclmachine_owned_path(self):
+        import sys
+        from types import ModuleType, SimpleNamespace
+        from unittest.mock import Mock
+        try:
+            import torch
+        except ImportError:
+            self.skipTest('optional PyTorch not installed')
+        retained = {'edf_path': '/durable/tclmachine/edf/model.edf',
+                    'artifact_owner': 'TCLMachine'}
+        module = ModuleType('tplmachine.edf_export')
+        module.export_edf = Mock(return_value=SimpleNamespace(contract=retained))
+        with tempfile.TemporaryDirectory() as d:
+            out = Path(d) / 'model.fxb'
+            with patch.dict(sys.modules, {'tplmachine.edf_export': module}), \
+                 patch('torch.export.export', return_value=object()), \
+                 patch('fxbex.graph_fxb.export_graph', return_value={}) as writer:
+                result = build_model(torch.nn.Identity(), out,
+                                     example_inputs=(torch.ones(1),))
+            self.assertEqual(result['artifacts']['edf'], retained['edf_path'])
+            self.assertEqual(writer.call_args.args[0], retained)
+            self.assertFalse((Path(str(out) + '.build') / 'model.edf').exists())
+
     def test_official_failure_keeps_exact_stage_and_no_publish(self):
         with tempfile.TemporaryDirectory() as d:
             out=Path(d)/'test.fxb'
