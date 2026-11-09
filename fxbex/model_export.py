@@ -69,6 +69,8 @@ def build_model(model, output, *, example_inputs=None, contract_provider=None,
                 'source_metadata':report['source_metadata']})
         else:
             report['route']='custom_static_graph'
+            if options:
+                raise ValueError('STATIC_GRAPH_OPTIONS_UNSUPPORTED: custom graph export cannot honor model context/bucket/compiler options: '+','.join(sorted(options)))
             if example_inputs is None:raise ValueError('torch models require example_inputs')
             from tplmachine.edf_export import export_edf
             from .graph_fxb import export_graph

@@ -1,0 +1,68 @@
+{
+  "file": "/root/fxbx_tclmachine_test/qwen-native-validation/positive-control.fxb",
+  "bytes": 205678,
+  "members": [
+    "manifest.json",
+    "edfs/forward.edf",
+    "fxbex.provenance.json"
+  ],
+  "model": {
+    "architecture": "Linear",
+    "fxbx_graph_fingerprint": "d5fe10495c04849c0e9732795b3433ce918ce39b1b75e9866f487e74e7c8b7b7"
+  },
+  "kernel": {
+    "bucket": {
+      "tokenwise": {
+        "input_size": 4
+      }
+    },
+    "file": "edfs/forward.edf",
+    "name": "forward"
+  },
+  "input_bindings": [
+    {
+      "name": "input",
+      "kind": "user_input",
+      "target": null,
+      "shape": [
+        4,
+        8
+      ],
+      "dtype": "bfloat16"
+    },
+    {
+      "name": "p_weight",
+      "kind": "parameter",
+      "target": "weight",
+      "shape": [
+        6,
+        8
+      ],
+      "dtype": "bfloat16"
+    },
+    {
+      "name": "p_bias",
+      "kind": "parameter",
+      "target": "bias",
+      "shape": [
+        6
+      ],
+      "dtype": "bfloat16"
+    }
+  ],
+  "output_specs": [
+    {
+      "dtype": "bfloat16",
+      "name": "linear",
+      "shape": [
+        4,
+        6
+      ],
+      "stride": [
+        6,
+        1
+      ]
+    }
+  ],
+  "scope": "small positive control, NOT Qwen3.5 model"
+}

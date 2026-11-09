@@ -7,6 +7,12 @@ from fxbex.model_export import build_model, resume_graph_build
 
 
 class ModelExportTests(unittest.TestCase):
+    def test_custom_graph_does_not_silently_ignore_context_limit(self):
+        with tempfile.TemporaryDirectory() as d:
+            out=Path(d)/'model.fxb'
+            with self.assertRaisesRegex(ValueError,'STATIC_GRAPH_OPTIONS_UNSUPPORTED'):
+                build_model(object(),out,example_inputs=(),max_model_len=262144)
+            self.assertFalse(out.exists())
     def test_resume_reuses_retained_edf_contract_without_compiler(self):
         with tempfile.TemporaryDirectory() as d:
             work=Path(d)

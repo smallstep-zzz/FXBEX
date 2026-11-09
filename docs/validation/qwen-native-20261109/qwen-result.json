@@ -1,0 +1,19 @@
+{
+  "source_model": "RedHatAI/Qwen3.5-9B-FP8-dynamic",
+  "original_revision": "790f0576d2d77dd5322aa0603a470bd9e3a3d1f6",
+  "requested_context": 262144,
+  "original_config_sha256": "d0e02c2d648f75aa6bd7affb2e9db415ce2ca0c64b2ae8c2526f4df33c334e19",
+  "status": "blocked",
+  "phase": "native_export",
+  "probe_sequence_length": 16,
+  "context_acceptance": "not_reached",
+  "npu_execution": "not_reached",
+  "load_s": 77.06334212329239,
+  "loaded_config_context": 262144,
+  "graph_nodes": 25511,
+  "aten_calls": 25077,
+  "error_code": "UNLIFTED_GRAPH",
+  "error": "get_attr: parameters and buffers must remain lifted",
+  "seconds": 99.84608291042969,
+  "original_config_unchanged": true
+}
