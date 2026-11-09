@@ -6,6 +6,13 @@ import tempfile
 import time
 
 
+def build_program(entries,output,*,source_metadata=None,artifact_root=None,concurrency=4):
+    """Delegate named calls and shared-state contracts to the semantic owner."""
+    if type(concurrency) is not int or not 1<=concurrency<=32:raise ValueError('concurrency must be 1..32')
+    from tplmachine.execution_program import export_program
+    return export_program(entries,output,source_metadata=source_metadata,artifact_root=artifact_root,compile_workers=min(concurrency,8))
+
+
 def resume_graph_build(work_dir, output, *, contract_provider=None):
     """Resume native packaging without repeating a successful EDF compilation."""
     from .graph_fxb import export_graph

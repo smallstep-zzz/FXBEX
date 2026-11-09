@@ -226,7 +226,7 @@ def _tensor_matches(value, spec, torch):
 
 class GraphFXB:
     """Explicit single-EDF consumer; not Furiosa-LLM architecture dispatch."""
-    def __new__(cls,path,*,weights=None,device='furiosa:0'):
+    def __new__(cls,path,*,weights=None,device='furiosa:0',max_request_states=1):
         if cls is GraphFXB:
             from .native_fxb import MAX_JSON_SIZE
             execution=False
@@ -241,9 +241,10 @@ class GraphFXB:
                 pass  # The existing integrity reader returns the detailed error.
             if execution:
                 from .execution_fxb import ExecutionFXB
-                return ExecutionFXB(path,weights=weights,device=device)
+                return ExecutionFXB(path,weights=weights,device=device,max_request_states=max_request_states)
         return super().__new__(cls)
-    def __init__(self, path, *, weights=None, device='furiosa:0'):
+    def __init__(self, path, *, weights=None, device='furiosa:0',max_request_states=1):
+        if max_request_states!=1:raise GraphFXBError('Legacy single-EDF graphs have no request-state API')
         if device != 'furiosa:0':
             raise GraphFXBError('Only the explicit furiosa:0 device is supported')
         self.path, self.device = Path(path), device

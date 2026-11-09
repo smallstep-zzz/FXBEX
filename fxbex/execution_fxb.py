@@ -16,6 +16,7 @@ from pathlib import Path
 import shutil
 import tempfile
 import threading
+import time
 from uuid import uuid4
 import zipfile
 
@@ -25,6 +26,25 @@ from .native_fxb import MAX_JSON_SIZE, PRODUCER_MEMBER, NativeFXBError, build_na
 
 class ExecutionPlanError(NativeFXBError):
     pass
+
+
+class RequestState:
+    """A session-owned state loan, separate from shared model weights.
+
+    Mirrors the public Rust Cache::lend ownership rule, using the installed
+    Torch allocator. It is not a Rust HbmBuffer or a paged-attention engine.
+    """
+    def __init__(self,owner,tensors):
+        self._owner=owner;self._tensors=tensors;self._closed=False;self._borrowed=False
+        self.last_timing=None
+    def close(self):
+        if not self._closed:self._owner.release_state(self)
+    def __enter__(self):return self
+    def __exit__(self,kind,error,tb):
+        try:self.close()
+        except BaseException as cleanup:
+            if error is not None:raise error.with_traceback(tb) from cleanup
+            raise
 
 
 def _last_uses(entry):
@@ -230,13 +250,17 @@ def read_execution_plan(path):
 
 class ExecutionFXB:
     """Exclusive fixed-shape tensor-plan session; state and temporaries stay on NPU."""
-    def __init__(self,path,*,weights=None,device='furiosa:0'):
+    def __init__(self,path,*,weights=None,device='furiosa:0',max_request_states=1):
         if device!='furiosa:0':raise ExecutionPlanError('Only furiosa:0 is qualified')
+        if type(max_request_states)!=int or max_request_states<1:raise ExecutionPlanError('max_request_states must be a positive integer')
         self.path=Path(path);self.plan=read_execution_plan(path);self.weights=dict(weights or {})
         self.device=device;self.programs={};self.resident={};self.states={};self.stack=None;self.failed=False
         self.memory=_memory_gate(self.plan)
         self._memory_modes={'cpu':self.memory}
         self._lock=threading.RLock()
+        self._requests=set();self.last_timing=None;self.max_request_states=max_request_states;self._default_ready=False
+        from .memory import tensor_bytes
+        self._state_bytes=sum(tensor_bytes(t) for t in self.plan['tensors'].values() if t['kind']=='state')
     def __enter__(self):
         with self._lock:
             if self.stack is not None:raise ExecutionPlanError('Session already open')
@@ -283,14 +307,14 @@ class ExecutionFXB:
                 if target not in uploaded:
                     self.resident[name]=self._upload(self.weights[target].detach(),spec);uploaded[target]=name
                 else:self.resident[name]=self.resident[uploaded[target]]
-        self._reset();self.failed=False
+        self._sync();self.states={};self._default_ready=False;self.failed=False
     def _sync(self):self.sdk.current_stream(self.torch.device(self.device)).synchronize()
     def _upload(self,value,spec):
         result=value.to(self.device)
         if not _tensor_matches(result,spec,self.torch) or result.device.type!='furiosa':
             raise ExecutionPlanError('Tensor upload did not preserve its NPU contract')
         return result
-    def _reset(self):
+    def _allocate_states(self):
         states={}
         for name,spec in self.plan['tensors'].items():
             if spec['kind']=='state':
@@ -299,23 +323,56 @@ class ExecutionFXB:
                 value=self.torch.zeros(spec['shape'],dtype=dtype)
                 if not _tensor_matches(value,spec,self.torch):raise ExecutionPlanError('Zero state needs its declared contiguous layout')
                 states[name]=self._upload(value,spec)
-        self._sync();self.states=states
-    def reset(self):
+        self._sync();return states
+    def _reset(self):self.states=self._allocate_states();self._default_ready=True
+    def _check_state(self,state):
+        if (not isinstance(state,RequestState) or state._owner is not self or state._closed or state not in self._requests):
+            raise ExecutionPlanError('Request state belongs to another or closed session')
+        if state._borrowed:raise ExecutionPlanError('Request state is already borrowed by a call')
+    def _admit_requests(self,count,output_device='cpu',*,default_present=None):
+        if output_device not in self._memory_modes:self._memory_modes[output_device]=_memory_gate(self.plan,clone_persistent_outputs=True)
+        default_present=self._default_ready if default_present is None else default_present
+        result=dict(self._memory_modes[output_device]);result['known_required_bytes']+=max(0,count+int(default_present)-1)*self._state_bytes
+        if result['budget_bytes'] is not None and result['known_required_bytes']>result['budget_bytes']:
+            raise ExecutionPlanError('Logical memory estimate including request states exceeds configured budget')
+        return result
+    def new_state(self):
         with self._lock:
             self._healthy()
-            try:self._reset()
+            if not self._state_bytes:raise ExecutionPlanError('Plan has no state slots')
+            if len(self._requests)>=self.max_request_states:raise ExecutionPlanError('Request state limit reached; release an existing request')
+            memory=self._admit_requests(len(self._requests)+1)
+            try:state=RequestState(self,self._allocate_states())
+            except BaseException:self.failed=True;raise
+            self._requests.add(state);self.memory=memory;return state
+    def release_state(self,state):
+        with self._lock:
+            self._check_state(state)
+            try:self._sync()
+            except BaseException:self.failed=True;raise
+            state._tensors.clear();state._closed=True
+            self._requests.remove(state);self.memory=self._admit_requests(len(self._requests))
+    def reset(self,*,state=None):
+        with self._lock:
+            self._healthy()
+            if state is not None:self._check_state(state)
+            self._admit_requests(len(self._requests),default_present=self._default_ready or state is None)
+            try:
+                if state is None:self._reset()
+                else:state._tensors=self._allocate_states()
             except BaseException:self.failed=True;raise
     def _healthy(self):
         if self.stack is None or not self.programs or self.failed:raise ExecutionPlanError('Session must be loaded and healthy')
-    def predict(self,inputs=(),*,output_device='cpu'):
-        return self.run('forward',inputs,output_device=output_device)
-    def run(self,entry,inputs=(),*,output_device='cpu'):
+    def predict(self,inputs=(),*,output_device='cpu',state=None):
+        return self.run('forward',inputs,output_device=output_device,state=state)
+    def run(self,entry,inputs=(),*,output_device='cpu',state=None):
+        queued=time.perf_counter()
         with self._lock:
+            wait_s=time.perf_counter()-queued;started=time.perf_counter()
             self._healthy()
             if not isinstance(entry,str) or entry not in self.plan['entries'] or output_device not in ('cpu','furiosa'):raise ExecutionPlanError('Unknown entry/output device')
-            if output_device not in self._memory_modes:
-                self._memory_modes[output_device]=_memory_gate(self.plan,clone_persistent_outputs=True)
-            self.memory=self._memory_modes[output_device]
+            if state is not None:self._check_state(state)
+            self.memory=self._admit_requests(len(self._requests),output_device,default_present=self._default_ready or state is None)
             recipe=self.plan['entries'][entry]
             last=_last_uses(recipe);retain=set(recipe['outputs'])|set(recipe['state_updates'].values())
             if isinstance(inputs,dict):
@@ -327,9 +384,12 @@ class ExecutionFXB:
                 if not _tensor_matches(value,self.plan['tensors'][name],self.torch) or value.requires_grad:
                     raise ExecutionPlanError('Entry input metadata mismatch: '+name)
                 _check_value_range(value,self.plan['tensors'][name],self.torch)
+            if state is not None:state._borrowed=True
             try:
                 with self.torch.no_grad():
-                    tensors={**self.resident,**self.states,**{k:self._upload(v,self.plan['tensors'][k]) for k,v in values.items()}}
+                    if state is None and not self._default_ready:self._reset()
+                    active=self.states if state is None else state._tensors
+                    tensors={**self.resident,**active,**{k:self._upload(v,self.plan['tensors'][k]) for k,v in values.items()}}
                     for index,step in enumerate(recipe['steps']):
                         marker=nullcontext()
                         if os.environ.get('FXBX_TRACE_STEPS')=='1':
@@ -346,20 +406,28 @@ class ExecutionFXB:
                         for name in step['inputs']+step['outputs']:
                             if (self.plan['tensors'][name]['kind'] in ('user_input','intermediate')
                                     and name not in retain and last.get(name,index)<=index):tensors.pop(name,None)
-                    persistent_outputs=set(self.resident)|set(self.states)|set(recipe['state_updates'].values())
+                    persistent_outputs=set(self.resident)|set(active)|set(recipe['state_updates'].values())
                     output=tuple(tensors[n].cpu() if output_device=='cpu' else
                                  tensors[n].clone() if n in persistent_outputs else tensors[n]
                                  for n in recipe['outputs'])
                     self._sync()
-                    self.states={**self.states,**{state:tensors[value] for state,value in recipe['state_updates'].items()}}
+                    committed={**active,**{slot:tensors[value] for slot,value in recipe['state_updates'].items()}}
+                    if state is None:self.states=committed
+                    else:state._tensors=committed
+                    self.last_timing={'entry':entry,'queue_wait_s':wait_s,'request_s':time.perf_counter()-started,'scope':'completed host request; queue wait excluded'}
+                    if state is not None:state.last_timing=dict(self.last_timing)
                     return output
             except BaseException:self.failed=True;raise
+            finally:
+                if state is not None:state._borrowed=False
     def close(self):
         with self._lock:
             try:
                 if self.programs:self._sync()
             finally:
-                self.programs.clear();self.resident.clear();self.states.clear()
+                for state in self._requests:state._tensors.clear();state._closed=True
+                self._requests.clear()
+                self.programs.clear();self.resident.clear();self.states.clear();self._default_ready=False
                 if self.stack is not None:self.stack.close();self.stack=None
     def __exit__(self,kind,error,tb):
         try:self.close()

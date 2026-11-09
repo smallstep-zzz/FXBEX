@@ -1,0 +1,29 @@
+{
+  "status": "passed",
+  "scope": "functional multi-entry tensor state; not paged KV/attention/full model",
+  "entries": [
+    "prefill",
+    "decode"
+  ],
+  "shared_state_slots": 1,
+  "unique_kernels": 4,
+  "interleaved_calls": 14,
+  "npu_confirmed_steps": 4,
+  "cpu_routes": 0,
+  "request_isolation": true,
+  "independent_reset": true,
+  "weights_reuploaded": false,
+  "state_npu_resident": true,
+  "queue_wait_excluded": true,
+  "artifact": "/root/fxbx_tclmachine_test/borrowed-state-program-v2/program.fxb",
+  "official_fxb_show_returncode": 0,
+  "official_sdk_control": {
+    "model": "furiosa-ai/Qwen3-8B-FP8",
+    "context": 512,
+    "npu_tasks": 292,
+    "prefix_cache_queries": 11,
+    "prefix_cache_hits": 5,
+    "cpu_model_audit": "not_collected",
+    "scope": "existing official engine compatibility, not Qwen3.5"
+  }
+}

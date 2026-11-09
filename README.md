@@ -434,3 +434,10 @@ python -m pip install -e . --no-deps
 python examples/native_static_graph.py build ./linear.fxb
 python examples/native_static_graph.py run ./linear.fxb
 ```
+
+### Shared weights and request state
+
+`build_program` / `tclmachine.export_program` compose named functional calls into
+one native FXB. `GraphFXB.new_state()` isolates request state while retaining
+shared weights. See [official reuse, NPU evidence and limits](docs/OFFICIAL_STATE_REUSE.md).
+Native FXB weights remain separate; functional state is not paged KV support.
