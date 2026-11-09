@@ -82,3 +82,12 @@ Those require admitted graph rules and explicit memory/KV execution contracts.
 SMI zero does not prove absent allocation. Existing REA evidence is bounded
 archive/resource/hash inspection, not recovered compiler ABI. Public sources
 were sufficient here, so no new REA analysis was performed.
+
+## Broader upstream reuse audit
+
+The [FHA reuse audit](https://github.com/smallstep-zzz/Furiosa-Hug-Anything/blob/main/docs/FURIOSA_OPT_MODELS_REUSE_AUDIT.md)
+compares the newer public source revision with these implementations. Installed
+Furiosa-LLM reuse is distinct from direct use of the preview Rust engine.
+Before a new workaround, use FHA's offline `python -m forge_fxbex.upstream`
+lookup to locate registry refusals, unimplemented leaves and relevant functions;
+source declarations never replace installed-SDK and actual NPU validation.
