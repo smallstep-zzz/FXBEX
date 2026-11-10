@@ -1,0 +1,1148 @@
+[
+  {
+    "op": "aten.expand.default",
+    "reason": "no public EDF region rule",
+    "models": [
+      {
+        "model": "deit",
+        "node": "expand_1",
+        "occurrences": 1,
+        "source": "File \"/root/.cache/hf-librarian/model-campaign-20261110/collector.py\", line 68, in forward\n    def forward(self, pixels): return self.model(pixel_values=pixels, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/vit/modeling_vit.py\", line 538, in forward\n    outputs: BaseModelOutputWithPooling = self.vit(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/vit/modeling_vit.py\", line 376, in forward\n    attention_mask = create_bidirectional_mask("
+      },
+      {
+        "model": "lfm2",
+        "node": "expand",
+        "occurrences": 7,
+        "source": "File \"/root/.cache/hf-librarian/model-campaign-20261110/collector.py\", line 64, in forward\n    return self.model(input_ids=ids, attention_mask=mask, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 575, in forward\n    outputs: BaseModelOutputWithPast = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 502, in forward\n    \"full_attention\": create_causal_mask(**mask_kwargs),"
+      },
+      {
+        "model": "minilm",
+        "node": "expand_2",
+        "occurrences": 1,
+        "source": "File \"/root/.cache/hf-librarian/model-campaign-20261110/collector.py\", line 65, in forward\n    return self.model(input_ids=ids, attention_mask=mask, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/bert/modeling_bert.py\", line 661, in forward\n    attention_mask, encoder_attention_mask = self._create_attention_masks("
+      },
+      {
+        "model": "whisper",
+        "node": "expand",
+        "occurrences": 1,
+        "source": "File \"/root/.cache/hf-librarian/model-campaign-20261110/collector.py\", line 72, in forward\n    return self.model(input_features=features, decoder_input_ids=decoder_ids, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 1110, in forward\n    outputs: Seq2SeqModelOutput = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 962, in forward\n    decoder_outputs = self.decoder(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 792, in forward\n    causal_mask = create_causal_mask("
+      }
+    ]
+  },
+  {
+    "op": "aten.softmax.int",
+    "reason": "no public EDF region rule",
+    "models": [
+      {
+        "model": "lfm2",
+        "node": "softmax",
+        "occurrences": 6,
+        "source": "e/hf-librarian/model-campaign-20261110/collector.py\", line 64, in forward\n    return self.model(input_ids=ids, attention_mask=mask, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 575, in forward\n    outputs: BaseModelOutputWithPast = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 511, in forward\n    hidden_states = decoder_layer(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 408, in forward\n    hidden_states, _ = self.self_attn(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 245, in forward\n    attn_output, attn_weights = attention_interface("
+      },
+      {
+        "model": "minilm",
+        "node": "softmax",
+        "occurrences": 6,
+        "source": "rn_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/bert/modeling_bert.py\", line 669, in forward\n    encoder_outputs = self.encoder(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/bert/modeling_bert.py\", line 436, in forward\n    hidden_states = layer_module(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/bert/modeling_bert.py\", line 383, in forward\n    self_attention_output, _ = self.attention(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/bert/modeling_bert.py\", line 314, in forward\n    attention_output, attn_weights = self.self(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/bert/modeling_bert.py\", line 192, in forward\n    attn_output, attn_weights = attention_interface("
+      },
+      {
+        "model": "qwen35",
+        "node": "softmax",
+        "occurrences": 6,
+        "source": "ign-20261110/collector.py\", line 64, in forward\n    return self.model(input_ids=ids, attention_mask=mask, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 1709, in forward\n    outputs: BaseModelOutputWithPast = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 1278, in forward\n    hidden_states = decoder_layer(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 883, in forward\n    hidden_states, _ = self.self_attn(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 792, in forward\n    attn_output, attn_weights = attention_interface("
+      },
+      {
+        "model": "whisper",
+        "node": "softmax",
+        "occurrences": 12,
+        "source": "le \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 1110, in forward\n    outputs: Seq2SeqModelOutput = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 950, in forward\n    encoder_outputs = self.encoder(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 633, in forward\n    hidden_states = encoder_layer(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 395, in forward\n    hidden_states, _ = self.self_attn(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 343, in forward\n    attn_output, attn_weights = attention_interface("
+      }
+    ]
+  },
+  {
+    "op": "aten.matmul.default",
+    "reason": "only 2D/3D dense contractions have candidate rules",
+    "models": [
+      {
+        "model": "lfm2",
+        "node": "matmul_1",
+        "occurrences": 6,
+        "source": "e/hf-librarian/model-campaign-20261110/collector.py\", line 64, in forward\n    return self.model(input_ids=ids, attention_mask=mask, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 575, in forward\n    outputs: BaseModelOutputWithPast = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 511, in forward\n    hidden_states = decoder_layer(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 408, in forward\n    hidden_states, _ = self.self_attn(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 245, in forward\n    attn_output, attn_weights = attention_interface("
+      },
+      {
+        "model": "minilm",
+        "node": "matmul",
+        "occurrences": 12,
+        "source": "rn_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/bert/modeling_bert.py\", line 669, in forward\n    encoder_outputs = self.encoder(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/bert/modeling_bert.py\", line 436, in forward\n    hidden_states = layer_module(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/bert/modeling_bert.py\", line 383, in forward\n    self_attention_output, _ = self.attention(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/bert/modeling_bert.py\", line 314, in forward\n    attention_output, attn_weights = self.self(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/bert/modeling_bert.py\", line 192, in forward\n    attn_output, attn_weights = attention_interface("
+      },
+      {
+        "model": "qwen35",
+        "node": "matmul_24",
+        "occurrences": 12,
+        "source": "ign-20261110/collector.py\", line 64, in forward\n    return self.model(input_ids=ids, attention_mask=mask, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 1709, in forward\n    outputs: BaseModelOutputWithPast = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 1278, in forward\n    hidden_states = decoder_layer(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 883, in forward\n    hidden_states, _ = self.self_attn(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 792, in forward\n    attn_output, attn_weights = attention_interface("
+      },
+      {
+        "model": "whisper",
+        "node": "matmul",
+        "occurrences": 24,
+        "source": "le \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 1110, in forward\n    outputs: Seq2SeqModelOutput = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 950, in forward\n    encoder_outputs = self.encoder(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 633, in forward\n    hidden_states = encoder_layer(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 395, in forward\n    hidden_states, _ = self.self_attn(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 343, in forward\n    attn_output, attn_weights = attention_interface("
+      }
+    ]
+  },
+  {
+    "op": "aten.zeros.default",
+    "reason": "no public EDF region rule",
+    "models": [
+      {
+        "model": "lfm2",
+        "node": "zeros",
+        "occurrences": 1,
+        "source": "File \"/root/.cache/hf-librarian/model-campaign-20261110/collector.py\", line 64, in forward\n    return self.model(input_ids=ids, attention_mask=mask, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 575, in forward\n    outputs: BaseModelOutputWithPast = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 502, in forward\n    \"full_attention\": create_causal_mask(**mask_kwargs),"
+      },
+      {
+        "model": "minilm",
+        "node": "zeros",
+        "occurrences": 1,
+        "source": "File \"/root/.cache/hf-librarian/model-campaign-20261110/collector.py\", line 65, in forward\n    return self.model(input_ids=ids, attention_mask=mask, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/bert/modeling_bert.py\", line 661, in forward\n    attention_mask, encoder_attention_mask = self._create_attention_masks("
+      },
+      {
+        "model": "qwen35",
+        "node": "zeros",
+        "occurrences": 19,
+        "source": "File \"/root/.cache/hf-librarian/model-campaign-20261110/collector.py\", line 64, in forward\n    return self.model(input_ids=ids, attention_mask=mask, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 1709, in forward\n    outputs: BaseModelOutputWithPast = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 1270, in forward\n    \"full_attention\": create_causal_mask(**mask_kwargs),"
+      },
+      {
+        "model": "whisper",
+        "node": "zeros",
+        "occurrences": 1,
+        "source": "File \"/root/.cache/hf-librarian/model-campaign-20261110/collector.py\", line 72, in forward\n    return self.model(input_features=features, decoder_input_ids=decoder_ids, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 1110, in forward\n    outputs: Seq2SeqModelOutput = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 962, in forward\n    decoder_outputs = self.decoder(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 792, in forward\n    causal_mask = create_causal_mask("
+      }
+    ]
+  },
+  {
+    "op": "aten.transpose.int",
+    "reason": "no public EDF region rule",
+    "models": [
+      {
+        "model": "deit",
+        "node": "transpose",
+        "occurrences": 49,
+        "source": "campaign-20261110/collector.py\", line 68, in forward\n    def forward(self, pixels): return self.model(pixel_values=pixels, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/vit/modeling_vit.py\", line 538, in forward\n    outputs: BaseModelOutputWithPooling = self.vit(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/vit/modeling_vit.py\", line 373, in forward\n    embedding_output = self.embeddings(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/vit/modeling_vit.py\", line 136, in forward\n    embeddings = self.patch_embeddings(pixel_values)\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/vit/modeling_vit.py\", line 69, in forward\n    return self.projection(pixel_values).flatten(2).transpose(1, 2)"
+      },
+      {
+        "model": "lfm2",
+        "node": "transpose",
+        "occurrences": 32,
+        "source": ".cache/hf-librarian/model-campaign-20261110/collector.py\", line 64, in forward\n    return self.model(input_ids=ids, attention_mask=mask, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 575, in forward\n    outputs: BaseModelOutputWithPast = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 511, in forward\n    hidden_states = decoder_layer(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 417, in forward\n    hidden_states = self.conv(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 352, in forward\n    BCx = self.in_proj(hidden_states).transpose(-1, -2)"
+      },
+      {
+        "model": "qwen35",
+        "node": "transpose_1",
+        "occurrences": 102,
+        "source": "/model-campaign-20261110/collector.py\", line 64, in forward\n    return self.model(input_ids=ids, attention_mask=mask, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 1709, in forward\n    outputs: BaseModelOutputWithPast = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 1278, in forward\n    hidden_states = decoder_layer(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 875, in forward\n    hidden_states = self.linear_attn(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 588, in forward\n    mixed_qkv = mixed_qkv.transpose(1, 2)"
+      }
+    ]
+  },
+  {
+    "op": "aten.cat.default",
+    "reason": "no public EDF region rule",
+    "models": [
+      {
+        "model": "deit",
+        "node": "cat",
+        "occurrences": 1,
+        "source": "File \"/root/.cache/hf-librarian/model-campaign-20261110/collector.py\", line 68, in forward\n    def forward(self, pixels): return self.model(pixel_values=pixels, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/vit/modeling_vit.py\", line 538, in forward\n    outputs: BaseModelOutputWithPooling = self.vit(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/vit/modeling_vit.py\", line 373, in forward\n    embedding_output = self.embeddings(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/vit/modeling_vit.py\", line 147, in forward\n    embeddings = torch.cat((cls_tokens, embeddings), dim=1)"
+      },
+      {
+        "model": "lfm2",
+        "node": "cat",
+        "occurrences": 13,
+        "source": "File \"/root/.cache/hf-librarian/model-campaign-20261110/collector.py\", line 64, in forward\n    return self.model(input_ids=ids, attention_mask=mask, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 575, in forward\n    outputs: BaseModelOutputWithPast = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 507, in forward\n    position_embeddings = self.rotary_emb(hidden_states, position_ids=position_ids)\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 104, in forward\n    emb = torch.cat((freqs, freqs), dim=-1)"
+      },
+      {
+        "model": "qwen35",
+        "node": "cat",
+        "occurrences": 26,
+        "source": "File \"/root/.cache/hf-librarian/model-campaign-20261110/collector.py\", line 64, in forward\n    return self.model(input_ids=ids, attention_mask=mask, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 1709, in forward\n    outputs: BaseModelOutputWithPast = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 1275, in forward\n    position_embeddings = self.rotary_emb(hidden_states, position_ids)\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 186, in forward\n    sin = self.recomposition_frequencies(sin)"
+      }
+    ]
+  },
+  {
+    "op": "<built-in function getitem>",
+    "reason": "no public EDF region rule",
+    "models": [
+      {
+        "model": "lfm2",
+        "node": "getitem",
+        "occurrences": 30,
+        "source": "File \"/root/.cache/hf-librarian/model-campaign-20261110/collector.py\", line 64, in forward\n    return self.model(input_ids=ids, attention_mask=mask, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 575, in forward\n    outputs: BaseModelOutputWithPast = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 511, in forward\n    hidden_states = decoder_layer(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 417, in forward\n    hidden_states = self.conv(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 353, in forward\n    B, C, x = BCx.chunk(3, dim=-2)"
+      },
+      {
+        "model": "qwen35",
+        "node": "getitem",
+        "occurrences": 66,
+        "source": "arian/model-campaign-20261110/collector.py\", line 64, in forward\n    return self.model(input_ids=ids, attention_mask=mask, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 1709, in forward\n    outputs: BaseModelOutputWithPast = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 1278, in forward\n    hidden_states = decoder_layer(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 875, in forward\n    hidden_states = self.linear_attn(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 589, in forward\n    query, key, value = torch.split("
+      },
+      {
+        "model": "resnet",
+        "node": "getitem",
+        "occurrences": 20,
+        "source": "transformers/models/resnet/modeling_resnet.py\", line 369, in forward\n    outputs = self.resnet(pixel_values, output_hidden_states=output_hidden_states, return_dict=return_dict)\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/resnet/modeling_resnet.py\", line 314, in forward\n    embedding_output = self.embedder(pixel_values)\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/resnet/modeling_resnet.py\", line 91, in forward\n    embedding = self.embedder(pixel_values)\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/resnet/modeling_resnet.py\", line 67, in forward\n    hidden_states = self.normalization(hidden_states)\n  File \"/usr/local/lib/python3.10/dist-packages/torch/nn/modules/batchnorm.py\", line 194, in forward\n    return F.batch_norm("
+      }
+    ]
+  },
+  {
+    "op": "aten.clone.default",
+    "reason": "no public EDF region rule",
+    "models": [
+      {
+        "model": "lfm2",
+        "node": "clone",
+        "occurrences": 6,
+        "source": "e/hf-librarian/model-campaign-20261110/collector.py\", line 64, in forward\n    return self.model(input_ids=ids, attention_mask=mask, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 575, in forward\n    outputs: BaseModelOutputWithPast = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 511, in forward\n    hidden_states = decoder_layer(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 408, in forward\n    hidden_states, _ = self.self_attn(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 245, in forward\n    attn_output, attn_weights = attention_interface("
+      },
+      {
+        "model": "qwen35",
+        "node": "clone_378",
+        "occurrences": 6,
+        "source": "model-campaign-20261110/collector.py\", line 64, in forward\n    return self.model(input_ids=ids, attention_mask=mask, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 1709, in forward\n    outputs: BaseModelOutputWithPast = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 1278, in forward\n    hidden_states = decoder_layer(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 883, in forward\n    hidden_states, _ = self.self_attn(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 776, in forward\n    gate = gate.reshape(*input_shape, -1)"
+      },
+      {
+        "model": "whisper",
+        "node": "clone",
+        "occurrences": 10,
+        "source": "File \"/root/.cache/hf-librarian/model-campaign-20261110/collector.py\", line 72, in forward\n    return self.model(input_features=features, decoder_input_ids=decoder_ids, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 1110, in forward\n    outputs: Seq2SeqModelOutput = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 950, in forward\n    encoder_outputs = self.encoder(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 622, in forward\n    hidden_states = nn.functional.dropout(hidden_states, p=self.dropout, training=self.training)"
+      }
+    ]
+  },
+  {
+    "op": "aten.__and__.Tensor",
+    "reason": "no public EDF region rule",
+    "models": [
+      {
+        "model": "lfm2",
+        "node": "and_1",
+        "occurrences": 2,
+        "source": "File \"/root/.cache/hf-librarian/model-campaign-20261110/collector.py\", line 64, in forward\n    return self.model(input_ids=ids, attention_mask=mask, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 575, in forward\n    outputs: BaseModelOutputWithPast = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 502, in forward\n    \"full_attention\": create_causal_mask(**mask_kwargs),"
+      },
+      {
+        "model": "minilm",
+        "node": "and_1",
+        "occurrences": 2,
+        "source": "File \"/root/.cache/hf-librarian/model-campaign-20261110/collector.py\", line 65, in forward\n    return self.model(input_ids=ids, attention_mask=mask, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/bert/modeling_bert.py\", line 661, in forward\n    attention_mask, encoder_attention_mask = self._create_attention_masks("
+      },
+      {
+        "model": "whisper",
+        "node": "and_1",
+        "occurrences": 2,
+        "source": "File \"/root/.cache/hf-librarian/model-campaign-20261110/collector.py\", line 72, in forward\n    return self.model(input_features=features, decoder_input_ids=decoder_ids, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 1110, in forward\n    outputs: Seq2SeqModelOutput = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 962, in forward\n    decoder_outputs = self.decoder(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 792, in forward\n    causal_mask = create_causal_mask("
+      }
+    ]
+  },
+  {
+    "op": "aten.new_ones.default",
+    "reason": "no public EDF region rule",
+    "models": [
+      {
+        "model": "lfm2",
+        "node": "new_ones",
+        "occurrences": 1,
+        "source": "File \"/root/.cache/hf-librarian/model-campaign-20261110/collector.py\", line 64, in forward\n    return self.model(input_ids=ids, attention_mask=mask, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 575, in forward\n    outputs: BaseModelOutputWithPast = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 502, in forward\n    \"full_attention\": create_causal_mask(**mask_kwargs),"
+      },
+      {
+        "model": "minilm",
+        "node": "new_ones",
+        "occurrences": 1,
+        "source": "File \"/root/.cache/hf-librarian/model-campaign-20261110/collector.py\", line 65, in forward\n    return self.model(input_ids=ids, attention_mask=mask, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/bert/modeling_bert.py\", line 661, in forward\n    attention_mask, encoder_attention_mask = self._create_attention_masks("
+      },
+      {
+        "model": "whisper",
+        "node": "new_ones",
+        "occurrences": 1,
+        "source": "File \"/root/.cache/hf-librarian/model-campaign-20261110/collector.py\", line 72, in forward\n    return self.model(input_features=features, decoder_input_ids=decoder_ids, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 1110, in forward\n    outputs: Seq2SeqModelOutput = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 962, in forward\n    decoder_outputs = self.decoder(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 792, in forward\n    causal_mask = create_causal_mask("
+      }
+    ]
+  },
+  {
+    "op": "aten.index.Tensor",
+    "reason": "no public EDF region rule",
+    "models": [
+      {
+        "model": "lfm2",
+        "node": "index",
+        "occurrences": 1,
+        "source": "File \"/root/.cache/hf-librarian/model-campaign-20261110/collector.py\", line 64, in forward\n    return self.model(input_ids=ids, attention_mask=mask, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 575, in forward\n    outputs: BaseModelOutputWithPast = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 502, in forward\n    \"full_attention\": create_causal_mask(**mask_kwargs),"
+      },
+      {
+        "model": "minilm",
+        "node": "index",
+        "occurrences": 1,
+        "source": "File \"/root/.cache/hf-librarian/model-campaign-20261110/collector.py\", line 65, in forward\n    return self.model(input_ids=ids, attention_mask=mask, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/bert/modeling_bert.py\", line 661, in forward\n    attention_mask, encoder_attention_mask = self._create_attention_masks("
+      },
+      {
+        "model": "whisper",
+        "node": "index",
+        "occurrences": 3,
+        "source": "paign-20261110/collector.py\", line 72, in forward\n    return self.model(input_features=features, decoder_input_ids=decoder_ids, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 1110, in forward\n    outputs: Seq2SeqModelOutput = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 962, in forward\n    decoder_outputs = self.decoder(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 781, in forward\n    positions = self.embed_positions(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 213, in forward\n    return self.weight[position_ids]"
+      }
+    ]
+  },
+  {
+    "op": "aten.where.ScalarOther",
+    "reason": "no public EDF region rule",
+    "models": [
+      {
+        "model": "lfm2",
+        "node": "where",
+        "occurrences": 1,
+        "source": "File \"/root/.cache/hf-librarian/model-campaign-20261110/collector.py\", line 64, in forward\n    return self.model(input_ids=ids, attention_mask=mask, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 575, in forward\n    outputs: BaseModelOutputWithPast = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 502, in forward\n    \"full_attention\": create_causal_mask(**mask_kwargs),"
+      },
+      {
+        "model": "minilm",
+        "node": "where",
+        "occurrences": 1,
+        "source": "File \"/root/.cache/hf-librarian/model-campaign-20261110/collector.py\", line 65, in forward\n    return self.model(input_ids=ids, attention_mask=mask, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/bert/modeling_bert.py\", line 661, in forward\n    attention_mask, encoder_attention_mask = self._create_attention_masks("
+      },
+      {
+        "model": "whisper",
+        "node": "where",
+        "occurrences": 1,
+        "source": "File \"/root/.cache/hf-librarian/model-campaign-20261110/collector.py\", line 72, in forward\n    return self.model(input_features=features, decoder_input_ids=decoder_ids, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 1110, in forward\n    outputs: Seq2SeqModelOutput = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 962, in forward\n    decoder_outputs = self.decoder(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 792, in forward\n    causal_mask = create_causal_mask("
+      }
+    ]
+  },
+  {
+    "op": "aten.conv2d.default",
+    "reason": "no public EDF region rule",
+    "models": [
+      {
+        "model": "deit",
+        "node": "conv2d",
+        "occurrences": 1,
+        "source": "/local/lib/python3.10/dist-packages/transformers/models/vit/modeling_vit.py\", line 538, in forward\n    outputs: BaseModelOutputWithPooling = self.vit(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/vit/modeling_vit.py\", line 373, in forward\n    embedding_output = self.embeddings(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/vit/modeling_vit.py\", line 136, in forward\n    embeddings = self.patch_embeddings(pixel_values)\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/vit/modeling_vit.py\", line 69, in forward\n    return self.projection(pixel_values).flatten(2).transpose(1, 2)\n  File \"/usr/local/lib/python3.10/dist-packages/torch/nn/modules/conv.py\", line 553, in forward\n    return self._conv_forward(input, self.weight, self.bias)"
+      },
+      {
+        "model": "resnet",
+        "node": "conv2d",
+        "occurrences": 20,
+        "source": "deling_resnet.py\", line 369, in forward\n    outputs = self.resnet(pixel_values, output_hidden_states=output_hidden_states, return_dict=return_dict)\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/resnet/modeling_resnet.py\", line 314, in forward\n    embedding_output = self.embedder(pixel_values)\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/resnet/modeling_resnet.py\", line 91, in forward\n    embedding = self.embedder(pixel_values)\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/resnet/modeling_resnet.py\", line 66, in forward\n    hidden_states = self.convolution(hidden_states)\n  File \"/usr/local/lib/python3.10/dist-packages/torch/nn/modules/conv.py\", line 553, in forward\n    return self._conv_forward(input, self.weight, self.bias)"
+      }
+    ]
+  },
+  {
+    "op": "aten.ge.Scalar",
+    "reason": "no public EDF region rule",
+    "models": [
+      {
+        "model": "deit",
+        "node": "ge",
+        "occurrences": 1,
+        "source": "File \"/root/.cache/hf-librarian/model-campaign-20261110/collector.py\", line 68, in forward\n    def forward(self, pixels): return self.model(pixel_values=pixels, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/vit/modeling_vit.py\", line 538, in forward\n    outputs: BaseModelOutputWithPooling = self.vit(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/vit/modeling_vit.py\", line 376, in forward\n    attention_mask = create_bidirectional_mask("
+      },
+      {
+        "model": "minilm",
+        "node": "ge",
+        "occurrences": 1,
+        "source": "File \"/root/.cache/hf-librarian/model-campaign-20261110/collector.py\", line 65, in forward\n    return self.model(input_ids=ids, attention_mask=mask, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/bert/modeling_bert.py\", line 661, in forward\n    attention_mask, encoder_attention_mask = self._create_attention_masks("
+      }
+    ]
+  },
+  {
+    "op": "aten.slice.Tensor",
+    "reason": "no public EDF region rule",
+    "models": [
+      {
+        "model": "lfm2",
+        "node": "slice_2",
+        "occurrences": 34,
+        "source": "File \"/root/.cache/hf-librarian/model-campaign-20261110/collector.py\", line 64, in forward\n    return self.model(input_ids=ids, attention_mask=mask, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 575, in forward\n    outputs: BaseModelOutputWithPast = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 511, in forward\n    hidden_states = decoder_layer(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 417, in forward\n    hidden_states = self.conv(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 370, in forward\n    hidden_states = causal_conv1d_fn("
+      },
+      {
+        "model": "qwen35",
+        "node": "slice_1",
+        "occurrences": 1183,
+        "source": "File \"/root/.cache/hf-librarian/model-campaign-20261110/collector.py\", line 64, in forward\n    return self.model(input_ids=ids, attention_mask=mask, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 1709, in forward\n    outputs: BaseModelOutputWithPast = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 1255, in forward\n    position_ids = position_ids[1:]"
+      }
+    ]
+  },
+  {
+    "op": "aten._unsafe_view.default",
+    "reason": "no public EDF region rule",
+    "models": [
+      {
+        "model": "lfm2",
+        "node": "_unsafe_view",
+        "occurrences": 12,
+        "source": "e/hf-librarian/model-campaign-20261110/collector.py\", line 64, in forward\n    return self.model(input_ids=ids, attention_mask=mask, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 575, in forward\n    outputs: BaseModelOutputWithPast = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 511, in forward\n    hidden_states = decoder_layer(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 408, in forward\n    hidden_states, _ = self.self_attn(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 245, in forward\n    attn_output, attn_weights = attention_interface("
+      },
+      {
+        "model": "qwen35",
+        "node": "_unsafe_view",
+        "occurrences": 18,
+        "source": "model-campaign-20261110/collector.py\", line 64, in forward\n    return self.model(input_ids=ids, attention_mask=mask, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 1709, in forward\n    outputs: BaseModelOutputWithPast = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 1278, in forward\n    hidden_states = decoder_layer(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 883, in forward\n    hidden_states, _ = self.self_attn(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 776, in forward\n    gate = gate.reshape(*input_shape, -1)"
+      }
+    ]
+  },
+  {
+    "op": "aten.mul.Tensor",
+    "reason": "pointwise requires BF16/FP32; integer arithmetic needs a separate precision contract",
+    "models": [
+      {
+        "model": "lfm2",
+        "node": "mul_5",
+        "occurrences": 10,
+        "source": "l-campaign-20261110/collector.py\", line 64, in forward\n    return self.model(input_ids=ids, attention_mask=mask, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 575, in forward\n    outputs: BaseModelOutputWithPast = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 511, in forward\n    hidden_states = decoder_layer(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 417, in forward\n    hidden_states = self.conv(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 351, in forward\n    hidden_states = apply_mask_to_padding_states(hidden_states, attention_mask)"
+      },
+      {
+        "model": "qwen35",
+        "node": "mul_5",
+        "occurrences": 18,
+        "source": ", line 64, in forward\n    return self.model(input_ids=ids, attention_mask=mask, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 1709, in forward\n    outputs: BaseModelOutputWithPast = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 1278, in forward\n    hidden_states = decoder_layer(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 875, in forward\n    hidden_states = self.linear_attn(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 543, in forward\n    hidden_states = apply_mask_to_padding_states(hidden_states, attention_mask)"
+      }
+    ]
+  },
+  {
+    "op": "aten.split.Tensor",
+    "reason": "no public EDF region rule",
+    "models": [
+      {
+        "model": "lfm2",
+        "node": "split",
+        "occurrences": 10,
+        "source": "File \"/root/.cache/hf-librarian/model-campaign-20261110/collector.py\", line 64, in forward\n    return self.model(input_ids=ids, attention_mask=mask, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 575, in forward\n    outputs: BaseModelOutputWithPast = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 511, in forward\n    hidden_states = decoder_layer(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 417, in forward\n    hidden_states = self.conv(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 353, in forward\n    B, C, x = BCx.chunk(3, dim=-2)"
+      },
+      {
+        "model": "qwen35",
+        "node": "split",
+        "occurrences": 6,
+        "source": "ian/model-campaign-20261110/collector.py\", line 64, in forward\n    return self.model(input_ids=ids, attention_mask=mask, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 1709, in forward\n    outputs: BaseModelOutputWithPast = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 1278, in forward\n    hidden_states = decoder_layer(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 883, in forward\n    hidden_states, _ = self.self_attn(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 773, in forward\n    query_states, gate = torch.chunk("
+      }
+    ]
+  },
+  {
+    "op": "aten.squeeze.dim",
+    "reason": "no public EDF region rule",
+    "models": [
+      {
+        "model": "lfm2",
+        "node": "squeeze",
+        "occurrences": 10,
+        "source": "l-campaign-20261110/collector.py\", line 64, in forward\n    return self.model(input_ids=ids, attention_mask=mask, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 575, in forward\n    outputs: BaseModelOutputWithPast = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 511, in forward\n    hidden_states = decoder_layer(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 417, in forward\n    hidden_states = self.conv(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 371, in forward\n    hidden_states, self.conv.weight.squeeze(1), self.conv.bias, seq_idx=seq_idx"
+      },
+      {
+        "model": "qwen35",
+        "node": "squeeze",
+        "occurrences": 18,
+        "source": "brarian/model-campaign-20261110/collector.py\", line 64, in forward\n    return self.model(input_ids=ids, attention_mask=mask, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 1709, in forward\n    outputs: BaseModelOutputWithPast = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 1278, in forward\n    hidden_states = decoder_layer(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 875, in forward\n    hidden_states = self.linear_attn(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 578, in forward\n    self.conv1d.weight.squeeze(1),"
+      }
+    ]
+  },
+  {
+    "op": "aten._to_copy.default",
+    "reason": "cast requires explicit BF16/FP32 dtype only",
+    "models": [
+      {
+        "model": "lfm2",
+        "node": "_to_copy",
+        "occurrences": 2,
+        "source": "File \"/root/.cache/hf-librarian/model-campaign-20261110/collector.py\", line 64, in forward\n    return self.model(input_ids=ids, attention_mask=mask, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 575, in forward\n    outputs: BaseModelOutputWithPast = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 502, in forward\n    \"full_attention\": create_causal_mask(**mask_kwargs),"
+      },
+      {
+        "model": "minilm",
+        "node": "_to_copy_6",
+        "occurrences": 1,
+        "source": "File \"/root/.cache/hf-librarian/model-campaign-20261110/collector.py\", line 65, in forward\n    return self.model(input_ids=ids, attention_mask=mask, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/bert/modeling_bert.py\", line 661, in forward\n    attention_mask, encoder_attention_mask = self._create_attention_masks("
+      }
+    ]
+  },
+  {
+    "op": "aten.le.Tensor",
+    "reason": "no public EDF region rule",
+    "models": [
+      {
+        "model": "lfm2",
+        "node": "le",
+        "occurrences": 1,
+        "source": "File \"/root/.cache/hf-librarian/model-campaign-20261110/collector.py\", line 64, in forward\n    return self.model(input_ids=ids, attention_mask=mask, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 575, in forward\n    outputs: BaseModelOutputWithPast = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 502, in forward\n    \"full_attention\": create_causal_mask(**mask_kwargs),"
+      },
+      {
+        "model": "whisper",
+        "node": "le",
+        "occurrences": 1,
+        "source": "File \"/root/.cache/hf-librarian/model-campaign-20261110/collector.py\", line 72, in forward\n    return self.model(input_features=features, decoder_input_ids=decoder_ids, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 1110, in forward\n    outputs: Seq2SeqModelOutput = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 962, in forward\n    decoder_outputs = self.decoder(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 792, in forward\n    causal_mask = create_causal_mask("
+      }
+    ]
+  },
+  {
+    "op": "aten.embedding.default",
+    "reason": "embedding requires BF16 table and 1D/2D int32 indices",
+    "models": [
+      {
+        "model": "minilm",
+        "node": "embedding_1",
+        "occurrences": 2,
+        "source": "File \"/root/.cache/hf-librarian/model-campaign-20261110/collector.py\", line 65, in forward\n    return self.model(input_ids=ids, attention_mask=mask, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/bert/modeling_bert.py\", line 653, in forward\n    embedding_output = self.embeddings(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/bert/modeling_bert.py\", line 100, in forward\n    token_type_embeddings = self.token_type_embeddings(token_type_ids)\n  File \"/usr/local/lib/python3.10/dist-packages/torch/nn/modules/sparse.py\", line 191, in forward\n    return F.embedding("
+      },
+      {
+        "model": "whisper",
+        "node": "embedding",
+        "occurrences": 1,
+        "source": "paign-20261110/collector.py\", line 72, in forward\n    return self.model(input_features=features, decoder_input_ids=decoder_ids, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 1110, in forward\n    outputs: Seq2SeqModelOutput = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 950, in forward\n    encoder_outputs = self.encoder(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 621, in forward\n    hidden_states = inputs_embeds + self.embed_positions(all_positions)\n  File \"/usr/local/lib/python3.10/dist-packages/torch/nn/modules/sparse.py\", line 191, in forward\n    return F.embedding("
+      }
+    ]
+  },
+  {
+    "op": "aten.cumsum.default",
+    "reason": "no public EDF region rule",
+    "models": [
+      {
+        "model": "qwen35",
+        "node": "cumsum",
+        "occurrences": 18,
+        "source": "ctor.py\", line 64, in forward\n    return self.model(input_ids=ids, attention_mask=mask, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 1709, in forward\n    outputs: BaseModelOutputWithPast = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 1278, in forward\n    hidden_states = decoder_layer(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 875, in forward\n    hidden_states = self.linear_attn(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 625, in forward\n    core_attn_out, last_recurrent_state = torch_chunk_gated_delta_rule("
+      },
+      {
+        "model": "whisper",
+        "node": "cumsum",
+        "occurrences": 1,
+        "source": "File \"/root/.cache/hf-librarian/model-campaign-20261110/collector.py\", line 72, in forward\n    return self.model(input_features=features, decoder_input_ids=decoder_ids, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 1110, in forward\n    outputs: Seq2SeqModelOutput = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 962, in forward\n    decoder_outputs = self.decoder(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 792, in forward\n    causal_mask = create_causal_mask("
+      }
+    ]
+  },
+  {
+    "op": "aten.scaled_dot_product_attention.default",
+    "reason": "no public EDF region rule",
+    "models": [
+      {
+        "model": "deit",
+        "node": "scaled_dot_product_attention",
+        "occurrences": 12,
+        "source": "8, in forward\n    def forward(self, pixels): return self.model(pixel_values=pixels, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/vit/modeling_vit.py\", line 538, in forward\n    outputs: BaseModelOutputWithPooling = self.vit(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/vit/modeling_vit.py\", line 383, in forward\n    hidden_states = layer(hidden_states, attention_mask, **kwargs)\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/vit/modeling_vit.py\", line 275, in forward\n    hidden_states, _ = self.attention(hidden_states, attention_mask, **kwargs)\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/vit/modeling_vit.py\", line 224, in forward\n    attn_output, attn_weights = attention_interface("
+      }
+    ]
+  },
+  {
+    "op": "aten.unsqueeze.default",
+    "reason": "no public EDF region rule",
+    "models": [
+      {
+        "model": "lfm2",
+        "node": "unsqueeze_20",
+        "occurrences": 6,
+        "source": "e/hf-librarian/model-campaign-20261110/collector.py\", line 64, in forward\n    return self.model(input_ids=ids, attention_mask=mask, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 575, in forward\n    outputs: BaseModelOutputWithPast = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 511, in forward\n    hidden_states = decoder_layer(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 408, in forward\n    hidden_states, _ = self.self_attn(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 245, in forward\n    attn_output, attn_weights = attention_interface("
+      }
+    ]
+  },
+  {
+    "op": "aten.matmul.default",
+    "reason": "explicit packing rule required for noncontiguous inputs",
+    "models": [
+      {
+        "model": "lfm2",
+        "node": "matmul",
+        "occurrences": 6,
+        "source": "e/hf-librarian/model-campaign-20261110/collector.py\", line 64, in forward\n    return self.model(input_ids=ids, attention_mask=mask, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 575, in forward\n    outputs: BaseModelOutputWithPast = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 511, in forward\n    hidden_states = decoder_layer(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 408, in forward\n    hidden_states, _ = self.self_attn(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 245, in forward\n    attn_output, attn_weights = attention_interface("
+      }
+    ]
+  },
+  {
+    "op": "aten._to_copy.default",
+    "reason": "pointwise requires BF16/FP32; integer arithmetic needs a separate precision contract",
+    "models": [
+      {
+        "model": "lfm2",
+        "node": "_to_copy_1",
+        "occurrences": 1,
+        "source": "File \"/root/.cache/hf-librarian/model-campaign-20261110/collector.py\", line 64, in forward\n    return self.model(input_ids=ids, attention_mask=mask, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 575, in forward\n    outputs: BaseModelOutputWithPast = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 507, in forward\n    position_embeddings = self.rotary_emb(hidden_states, position_ids=position_ids)\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 103, in forward\n    freqs = position_ids[..., None].float() * self.inv_freq.to(device=x.device, dtype=torch.float)"
+      }
+    ]
+  },
+  {
+    "op": "aten.cos.default",
+    "reason": "no public EDF region rule",
+    "models": [
+      {
+        "model": "lfm2",
+        "node": "cos",
+        "occurrences": 1,
+        "source": "File \"/root/.cache/hf-librarian/model-campaign-20261110/collector.py\", line 64, in forward\n    return self.model(input_ids=ids, attention_mask=mask, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 575, in forward\n    outputs: BaseModelOutputWithPast = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 507, in forward\n    position_embeddings = self.rotary_emb(hidden_states, position_ids=position_ids)\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 105, in forward\n    cos = emb.cos() * self.attention_scaling"
+      }
+    ]
+  },
+  {
+    "op": "aten.sin.default",
+    "reason": "no public EDF region rule",
+    "models": [
+      {
+        "model": "lfm2",
+        "node": "sin",
+        "occurrences": 1,
+        "source": "File \"/root/.cache/hf-librarian/model-campaign-20261110/collector.py\", line 64, in forward\n    return self.model(input_ids=ids, attention_mask=mask, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 575, in forward\n    outputs: BaseModelOutputWithPast = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 507, in forward\n    position_embeddings = self.rotary_emb(hidden_states, position_ids=position_ids)\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 106, in forward\n    sin = emb.sin() * self.attention_scaling"
+      }
+    ]
+  },
+  {
+    "op": "aten.mul.Tensor",
+    "reason": "getitem: explicit packing required for noncontiguous tensors",
+    "models": [
+      {
+        "model": "lfm2",
+        "node": "mul_6",
+        "occurrences": 1,
+        "source": "File \"/root/.cache/hf-librarian/model-campaign-20261110/collector.py\", line 64, in forward\n    return self.model(input_ids=ids, attention_mask=mask, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 575, in forward\n    outputs: BaseModelOutputWithPast = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 511, in forward\n    hidden_states = decoder_layer(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 417, in forward\n    hidden_states = self.conv(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 354, in forward\n    hidden_states = B * x"
+      }
+    ]
+  },
+  {
+    "op": "aten.conv1d.default",
+    "reason": "mul_6: explicit packing required for noncontiguous tensors",
+    "models": [
+      {
+        "model": "lfm2",
+        "node": "conv1d",
+        "occurrences": 1,
+        "source": "File \"/root/.cache/hf-librarian/model-campaign-20261110/collector.py\", line 64, in forward\n    return self.model(input_ids=ids, attention_mask=mask, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 575, in forward\n    outputs: BaseModelOutputWithPast = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 511, in forward\n    hidden_states = decoder_layer(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 417, in forward\n    hidden_states = self.conv(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 370, in forward\n    hidden_states = causal_conv1d_fn("
+      }
+    ]
+  },
+  {
+    "op": "aten.mul.Tensor",
+    "reason": "getitem_1: explicit packing required for noncontiguous tensors",
+    "models": [
+      {
+        "model": "lfm2",
+        "node": "mul_7",
+        "occurrences": 1,
+        "source": "File \"/root/.cache/hf-librarian/model-campaign-20261110/collector.py\", line 64, in forward\n    return self.model(input_ids=ids, attention_mask=mask, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 575, in forward\n    outputs: BaseModelOutputWithPast = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 511, in forward\n    hidden_states = decoder_layer(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 417, in forward\n    hidden_states = self.conv(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 378, in forward\n    y = C * hidden_states"
+      }
+    ]
+  },
+  {
+    "op": "aten.mul.Tensor",
+    "reason": "getitem_3: explicit packing required for noncontiguous tensors",
+    "models": [
+      {
+        "model": "lfm2",
+        "node": "mul_14",
+        "occurrences": 1,
+        "source": "File \"/root/.cache/hf-librarian/model-campaign-20261110/collector.py\", line 64, in forward\n    return self.model(input_ids=ids, attention_mask=mask, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 575, in forward\n    outputs: BaseModelOutputWithPast = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 511, in forward\n    hidden_states = decoder_layer(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 417, in forward\n    hidden_states = self.conv(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 354, in forward\n    hidden_states = B * x"
+      }
+    ]
+  },
+  {
+    "op": "aten.conv1d.default",
+    "reason": "mul_14: explicit packing required for noncontiguous tensors",
+    "models": [
+      {
+        "model": "lfm2",
+        "node": "conv1d_1",
+        "occurrences": 1,
+        "source": "File \"/root/.cache/hf-librarian/model-campaign-20261110/collector.py\", line 64, in forward\n    return self.model(input_ids=ids, attention_mask=mask, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 575, in forward\n    outputs: BaseModelOutputWithPast = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 511, in forward\n    hidden_states = decoder_layer(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 417, in forward\n    hidden_states = self.conv(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 370, in forward\n    hidden_states = causal_conv1d_fn("
+      }
+    ]
+  },
+  {
+    "op": "aten.mul.Tensor",
+    "reason": "getitem_4: explicit packing required for noncontiguous tensors",
+    "models": [
+      {
+        "model": "lfm2",
+        "node": "mul_15",
+        "occurrences": 1,
+        "source": "File \"/root/.cache/hf-librarian/model-campaign-20261110/collector.py\", line 64, in forward\n    return self.model(input_ids=ids, attention_mask=mask, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 575, in forward\n    outputs: BaseModelOutputWithPast = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 511, in forward\n    hidden_states = decoder_layer(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 417, in forward\n    hidden_states = self.conv(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 378, in forward\n    y = C * hidden_states"
+      }
+    ]
+  },
+  {
+    "op": "aten.mul.Tensor",
+    "reason": "transpose_4: explicit packing required for noncontiguous tensors",
+    "models": [
+      {
+        "model": "lfm2",
+        "node": "mul_25",
+        "occurrences": 1,
+        "source": "110/collector.py\", line 64, in forward\n    return self.model(input_ids=ids, attention_mask=mask, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 575, in forward\n    outputs: BaseModelOutputWithPast = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 511, in forward\n    hidden_states = decoder_layer(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 408, in forward\n    hidden_states, _ = self.self_attn(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 236, in forward\n    query_states, key_states = apply_rotary_pos_emb(query_states, key_states, cos, sin)"
+      }
+    ]
+  },
+  {
+    "op": "aten.neg.default",
+    "reason": "slice_5: explicit packing required for noncontiguous tensors",
+    "models": [
+      {
+        "model": "lfm2",
+        "node": "neg",
+        "occurrences": 1,
+        "source": "110/collector.py\", line 64, in forward\n    return self.model(input_ids=ids, attention_mask=mask, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 575, in forward\n    outputs: BaseModelOutputWithPast = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 511, in forward\n    hidden_states = decoder_layer(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 408, in forward\n    hidden_states, _ = self.self_attn(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/lfm2/modeling_lfm2.py\", line 236, in forward\n    query_states, key_states = apply_rotary_pos_emb(query_states, key_states, cos, sin)"
+      }
+    ]
+  },
+  {
+    "op": "aten.gather.default",
+    "reason": "no public EDF region rule",
+    "models": [
+      {
+        "model": "minilm",
+        "node": "gather",
+        "occurrences": 1,
+        "source": "File \"/root/.cache/hf-librarian/model-campaign-20261110/collector.py\", line 65, in forward\n    return self.model(input_ids=ids, attention_mask=mask, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/bert/modeling_bert.py\", line 653, in forward\n    embedding_output = self.embeddings(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/bert/modeling_bert.py\", line 93, in forward\n    buffered_token_type_ids = torch.gather(buffered_token_type_ids, dim=1, index=position_ids)"
+      }
+    ]
+  },
+  {
+    "op": "aten.select.int",
+    "reason": "no public EDF region rule",
+    "models": [
+      {
+        "model": "qwen35",
+        "node": "select_26",
+        "occurrences": 2268,
+        "source": "ctor.py\", line 64, in forward\n    return self.model(input_ids=ids, attention_mask=mask, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 1709, in forward\n    outputs: BaseModelOutputWithPast = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 1278, in forward\n    hidden_states = decoder_layer(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 875, in forward\n    hidden_states = self.linear_attn(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 625, in forward\n    core_attn_out, last_recurrent_state = torch_chunk_gated_delta_rule("
+      }
+    ]
+  },
+  {
+    "op": "aten.copy.default",
+    "reason": "no public EDF region rule",
+    "models": [
+      {
+        "model": "qwen35",
+        "node": "copy",
+        "occurrences": 1156,
+        "source": "File \"/root/.cache/hf-librarian/model-campaign-20261110/collector.py\", line 64, in forward\n    return self.model(input_ids=ids, attention_mask=mask, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 1709, in forward\n    outputs: BaseModelOutputWithPast = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 1275, in forward\n    position_embeddings = self.rotary_emb(hidden_states, position_ids)\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 186, in forward\n    sin = self.recomposition_frequencies(sin)"
+      }
+    ]
+  },
+  {
+    "op": "aten.select_scatter.default",
+    "reason": "no public EDF region rule",
+    "models": [
+      {
+        "model": "qwen35",
+        "node": "select_scatter",
+        "occurrences": 1156,
+        "source": "File \"/root/.cache/hf-librarian/model-campaign-20261110/collector.py\", line 64, in forward\n    return self.model(input_ids=ids, attention_mask=mask, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 1709, in forward\n    outputs: BaseModelOutputWithPast = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 1275, in forward\n    position_embeddings = self.rotary_emb(hidden_states, position_ids)\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 186, in forward\n    sin = self.recomposition_frequencies(sin)"
+      }
+    ]
+  },
+  {
+    "op": "aten.slice_scatter.default",
+    "reason": "no public EDF region rule",
+    "models": [
+      {
+        "model": "qwen35",
+        "node": "slice_scatter",
+        "occurrences": 1138,
+        "source": "File \"/root/.cache/hf-librarian/model-campaign-20261110/collector.py\", line 64, in forward\n    return self.model(input_ids=ids, attention_mask=mask, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 1709, in forward\n    outputs: BaseModelOutputWithPast = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 1275, in forward\n    position_embeddings = self.rotary_emb(hidden_states, position_ids)\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 186, in forward\n    sin = self.recomposition_frequencies(sin)"
+      }
+    ]
+  },
+  {
+    "op": "aten.matmul.default",
+    "reason": "BF16 required; implicit casts are forbidden",
+    "models": [
+      {
+        "model": "qwen35",
+        "node": "matmul",
+        "occurrences": 126,
+        "source": "ctor.py\", line 64, in forward\n    return self.model(input_ids=ids, attention_mask=mask, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 1709, in forward\n    outputs: BaseModelOutputWithPast = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 1278, in forward\n    hidden_states = decoder_layer(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 875, in forward\n    hidden_states = self.linear_attn(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 625, in forward\n    core_attn_out, last_recurrent_state = torch_chunk_gated_delta_rule("
+      }
+    ]
+  },
+  {
+    "op": "aten.pad.default",
+    "reason": "no public EDF region rule",
+    "models": [
+      {
+        "model": "qwen35",
+        "node": "pad",
+        "occurrences": 90,
+        "source": "ctor.py\", line 64, in forward\n    return self.model(input_ids=ids, attention_mask=mask, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 1709, in forward\n    outputs: BaseModelOutputWithPast = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 1278, in forward\n    hidden_states = decoder_layer(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 875, in forward\n    hidden_states = self.linear_attn(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 625, in forward\n    core_attn_out, last_recurrent_state = torch_chunk_gated_delta_rule("
+      }
+    ]
+  },
+  {
+    "op": "aten.exp.default",
+    "reason": "no public EDF region rule",
+    "models": [
+      {
+        "model": "qwen35",
+        "node": "exp",
+        "occurrences": 72,
+        "source": "tor.py\", line 64, in forward\n    return self.model(input_ids=ids, attention_mask=mask, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 1709, in forward\n    outputs: BaseModelOutputWithPast = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 1278, in forward\n    hidden_states = decoder_layer(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 875, in forward\n    hidden_states = self.linear_attn(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 605, in forward\n    g = -self.A_log.float().exp() * F.softplus(a.float() + self.dt_bias)"
+      }
+    ]
+  },
+  {
+    "op": "aten.type_as.default",
+    "reason": "no public EDF region rule",
+    "models": [
+      {
+        "model": "qwen35",
+        "node": "type_as",
+        "occurrences": 61,
+        "source": "l-campaign-20261110/collector.py\", line 64, in forward\n    return self.model(input_ids=ids, attention_mask=mask, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 1709, in forward\n    outputs: BaseModelOutputWithPast = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 1278, in forward\n    hidden_states = decoder_layer(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 871, in forward\n    hidden_states = self.input_layernorm(hidden_states)\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 841, in forward\n    return output.type_as(x)"
+      }
+    ]
+  },
+  {
+    "op": "aten.view.default",
+    "reason": "no public EDF region rule",
+    "models": [
+      {
+        "model": "qwen35",
+        "node": "view_2",
+        "occurrences": 60,
+        "source": "ollector.py\", line 64, in forward\n    return self.model(input_ids=ids, attention_mask=mask, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 1709, in forward\n    outputs: BaseModelOutputWithPast = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 1278, in forward\n    hidden_states = decoder_layer(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 875, in forward\n    hidden_states = self.linear_attn(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 599, in forward\n    query = query.reshape(batch_size, seq_len, -1, self.head_k_dim)"
+      }
+    ]
+  },
+  {
+    "op": "aten.conv1d.default",
+    "reason": "qualified Conv1d is K3/pad1/dilation1/groups1/stride1-or-2",
+    "models": [
+      {
+        "model": "qwen35",
+        "node": "conv1d",
+        "occurrences": 18,
+        "source": "ibrarian/model-campaign-20261110/collector.py\", line 64, in forward\n    return self.model(input_ids=ids, attention_mask=mask, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 1709, in forward\n    outputs: BaseModelOutputWithPast = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 1278, in forward\n    hidden_states = decoder_layer(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 875, in forward\n    hidden_states = self.linear_attn(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 576, in forward\n    mixed_qkv = causal_conv1d_fn("
+      }
+    ]
+  },
+  {
+    "op": "aten.split_with_sizes.default",
+    "reason": "no public EDF region rule",
+    "models": [
+      {
+        "model": "qwen35",
+        "node": "split_with_sizes",
+        "occurrences": 18,
+        "source": "arian/model-campaign-20261110/collector.py\", line 64, in forward\n    return self.model(input_ids=ids, attention_mask=mask, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 1709, in forward\n    outputs: BaseModelOutputWithPast = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 1278, in forward\n    hidden_states = decoder_layer(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 875, in forward\n    hidden_states = self.linear_attn(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 589, in forward\n    query, key, value = torch.split("
+      }
+    ]
+  },
+  {
+    "op": "aten.softplus.default",
+    "reason": "no public EDF region rule",
+    "models": [
+      {
+        "model": "qwen35",
+        "node": "softplus",
+        "occurrences": 18,
+        "source": "tor.py\", line 64, in forward\n    return self.model(input_ids=ids, attention_mask=mask, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 1709, in forward\n    outputs: BaseModelOutputWithPast = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 1278, in forward\n    hidden_states = decoder_layer(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 875, in forward\n    hidden_states = self.linear_attn(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 605, in forward\n    g = -self.A_log.float().exp() * F.softplus(a.float() + self.dt_bias)"
+      }
+    ]
+  },
+  {
+    "op": "aten.ones.default",
+    "reason": "no public EDF region rule",
+    "models": [
+      {
+        "model": "qwen35",
+        "node": "ones",
+        "occurrences": 18,
+        "source": "ctor.py\", line 64, in forward\n    return self.model(input_ids=ids, attention_mask=mask, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 1709, in forward\n    outputs: BaseModelOutputWithPast = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 1278, in forward\n    hidden_states = decoder_layer(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 875, in forward\n    hidden_states = self.linear_attn(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 625, in forward\n    core_attn_out, last_recurrent_state = torch_chunk_gated_delta_rule("
+      }
+    ]
+  },
+  {
+    "op": "aten.triu.default",
+    "reason": "no public EDF region rule",
+    "models": [
+      {
+        "model": "qwen35",
+        "node": "triu",
+        "occurrences": 18,
+        "source": "ctor.py\", line 64, in forward\n    return self.model(input_ids=ids, attention_mask=mask, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 1709, in forward\n    outputs: BaseModelOutputWithPast = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 1278, in forward\n    hidden_states = decoder_layer(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 875, in forward\n    hidden_states = self.linear_attn(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 625, in forward\n    core_attn_out, last_recurrent_state = torch_chunk_gated_delta_rule("
+      }
+    ]
+  },
+  {
+    "op": "aten.masked_fill.Scalar",
+    "reason": "no public EDF region rule",
+    "models": [
+      {
+        "model": "qwen35",
+        "node": "masked_fill",
+        "occurrences": 18,
+        "source": "ctor.py\", line 64, in forward\n    return self.model(input_ids=ids, attention_mask=mask, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 1709, in forward\n    outputs: BaseModelOutputWithPast = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 1278, in forward\n    hidden_states = decoder_layer(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 875, in forward\n    hidden_states = self.linear_attn(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 625, in forward\n    core_attn_out, last_recurrent_state = torch_chunk_gated_delta_rule("
+      }
+    ]
+  },
+  {
+    "op": "aten.tril.default",
+    "reason": "no public EDF region rule",
+    "models": [
+      {
+        "model": "qwen35",
+        "node": "tril",
+        "occurrences": 18,
+        "source": "ctor.py\", line 64, in forward\n    return self.model(input_ids=ids, attention_mask=mask, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 1709, in forward\n    outputs: BaseModelOutputWithPast = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 1278, in forward\n    hidden_states = decoder_layer(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 875, in forward\n    hidden_states = self.linear_attn(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 625, in forward\n    core_attn_out, last_recurrent_state = torch_chunk_gated_delta_rule("
+      }
+    ]
+  },
+  {
+    "op": "aten.eye.default",
+    "reason": "no public EDF region rule",
+    "models": [
+      {
+        "model": "qwen35",
+        "node": "eye",
+        "occurrences": 18,
+        "source": "ctor.py\", line 64, in forward\n    return self.model(input_ids=ids, attention_mask=mask, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 1709, in forward\n    outputs: BaseModelOutputWithPast = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 1278, in forward\n    hidden_states = decoder_layer(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 875, in forward\n    hidden_states = self.linear_attn(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 625, in forward\n    core_attn_out, last_recurrent_state = torch_chunk_gated_delta_rule("
+      }
+    ]
+  },
+  {
+    "op": "aten.zeros_like.default",
+    "reason": "no public EDF region rule",
+    "models": [
+      {
+        "model": "qwen35",
+        "node": "zeros_like",
+        "occurrences": 18,
+        "source": "ctor.py\", line 64, in forward\n    return self.model(input_ids=ids, attention_mask=mask, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 1709, in forward\n    outputs: BaseModelOutputWithPast = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 1278, in forward\n    hidden_states = decoder_layer(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 875, in forward\n    hidden_states = self.linear_attn(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 625, in forward\n    core_attn_out, last_recurrent_state = torch_chunk_gated_delta_rule("
+      }
+    ]
+  },
+  {
+    "op": "aten.slice.Tensor",
+    "reason": "layout slice supports positive unit step only",
+    "models": [
+      {
+        "model": "qwen35",
+        "node": "slice_3",
+        "occurrences": 8,
+        "source": "File \"/root/.cache/hf-librarian/model-campaign-20261110/collector.py\", line 64, in forward\n    return self.model(input_ids=ids, attention_mask=mask, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 1709, in forward\n    outputs: BaseModelOutputWithPast = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 1275, in forward\n    position_embeddings = self.rotary_emb(hidden_states, position_ids)\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/qwen3_5/modeling_qwen3_5.py\", line 186, in forward\n    sin = self.recomposition_frequencies(sin)"
+      }
+    ]
+  },
+  {
+    "op": "aten._native_batch_norm_legit_no_training.default",
+    "reason": "no public EDF region rule",
+    "models": [
+      {
+        "model": "resnet",
+        "node": "_native_batch_norm_legit_no_training",
+        "occurrences": 20,
+        "source": "transformers/models/resnet/modeling_resnet.py\", line 369, in forward\n    outputs = self.resnet(pixel_values, output_hidden_states=output_hidden_states, return_dict=return_dict)\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/resnet/modeling_resnet.py\", line 314, in forward\n    embedding_output = self.embedder(pixel_values)\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/resnet/modeling_resnet.py\", line 91, in forward\n    embedding = self.embedder(pixel_values)\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/resnet/modeling_resnet.py\", line 67, in forward\n    hidden_states = self.normalization(hidden_states)\n  File \"/usr/local/lib/python3.10/dist-packages/torch/nn/modules/batchnorm.py\", line 194, in forward\n    return F.batch_norm("
+      }
+    ]
+  },
+  {
+    "op": "aten.max_pool2d.default",
+    "reason": "no public EDF region rule",
+    "models": [
+      {
+        "model": "resnet",
+        "node": "max_pool2d",
+        "occurrences": 1,
+        "source": "0/collector.py\", line 68, in forward\n    def forward(self, pixels): return self.model(pixel_values=pixels, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/resnet/modeling_resnet.py\", line 369, in forward\n    outputs = self.resnet(pixel_values, output_hidden_states=output_hidden_states, return_dict=return_dict)\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/resnet/modeling_resnet.py\", line 314, in forward\n    embedding_output = self.embedder(pixel_values)\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/resnet/modeling_resnet.py\", line 92, in forward\n    embedding = self.pooler(embedding)\n  File \"/usr/local/lib/python3.10/dist-packages/torch/nn/modules/pooling.py\", line 224, in forward\n    return F.max_pool2d("
+      }
+    ]
+  },
+  {
+    "op": "aten.adaptive_avg_pool2d.default",
+    "reason": "no public EDF region rule",
+    "models": [
+      {
+        "model": "resnet",
+        "node": "adaptive_avg_pool2d",
+        "occurrences": 1,
+        "source": "File \"/root/.cache/hf-librarian/model-campaign-20261110/collector.py\", line 68, in forward\n    def forward(self, pixels): return self.model(pixel_values=pixels, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/resnet/modeling_resnet.py\", line 369, in forward\n    outputs = self.resnet(pixel_values, output_hidden_states=output_hidden_states, return_dict=return_dict)\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/resnet/modeling_resnet.py\", line 322, in forward\n    pooled_output = self.pooler(last_hidden_state)\n  File \"/usr/local/lib/python3.10/dist-packages/torch/nn/modules/pooling.py\", line 1510, in forward\n    return F.adaptive_avg_pool2d(input, self.output_size)"
+      }
+    ]
+  },
+  {
+    "op": "aten.permute.default",
+    "reason": "no public EDF region rule",
+    "models": [
+      {
+        "model": "whisper",
+        "node": "permute",
+        "occurrences": 1,
+        "source": "File \"/root/.cache/hf-librarian/model-campaign-20261110/collector.py\", line 72, in forward\n    return self.model(input_features=features, decoder_input_ids=decoder_ids, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 1110, in forward\n    outputs: Seq2SeqModelOutput = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 950, in forward\n    encoder_outputs = self.encoder(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 618, in forward\n    inputs_embeds = inputs_embeds.permute(0, 2, 1)"
+      }
+    ]
+  },
+  {
+    "op": "aten.add.Tensor",
+    "reason": "permute: explicit packing required for noncontiguous tensors",
+    "models": [
+      {
+        "model": "whisper",
+        "node": "add",
+        "occurrences": 1,
+        "source": "File \"/root/.cache/hf-librarian/model-campaign-20261110/collector.py\", line 72, in forward\n    return self.model(input_features=features, decoder_input_ids=decoder_ids, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 1110, in forward\n    outputs: Seq2SeqModelOutput = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 950, in forward\n    encoder_outputs = self.encoder(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 621, in forward\n    hidden_states = inputs_embeds + self.embed_positions(all_positions)"
+      }
+    ]
+  },
+  {
+    "op": "aten.add.Tensor",
+    "reason": "clone: explicit packing required for noncontiguous tensors",
+    "models": [
+      {
+        "model": "whisper",
+        "node": "add_3",
+        "occurrences": 1,
+        "source": "-20261110/collector.py\", line 72, in forward\n    return self.model(input_features=features, decoder_input_ids=decoder_ids, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 1110, in forward\n    outputs: Seq2SeqModelOutput = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 950, in forward\n    encoder_outputs = self.encoder(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 633, in forward\n    hidden_states = encoder_layer(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 401, in forward\n    hidden_states = residual + hidden_states"
+      }
+    ]
+  },
+  {
+    "op": "aten.add.Tensor",
+    "reason": "add_3: explicit packing required for noncontiguous tensors",
+    "models": [
+      {
+        "model": "whisper",
+        "node": "add_6",
+        "occurrences": 1,
+        "source": "-20261110/collector.py\", line 72, in forward\n    return self.model(input_features=features, decoder_input_ids=decoder_ids, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 1110, in forward\n    outputs: Seq2SeqModelOutput = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 950, in forward\n    encoder_outputs = self.encoder(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 633, in forward\n    hidden_states = encoder_layer(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 409, in forward\n    hidden_states = residual + hidden_states"
+      }
+    ]
+  },
+  {
+    "op": "aten.add.Tensor",
+    "reason": "add_6: explicit packing required for noncontiguous tensors",
+    "models": [
+      {
+        "model": "whisper",
+        "node": "add_9",
+        "occurrences": 1,
+        "source": "-20261110/collector.py\", line 72, in forward\n    return self.model(input_features=features, decoder_input_ids=decoder_ids, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 1110, in forward\n    outputs: Seq2SeqModelOutput = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 950, in forward\n    encoder_outputs = self.encoder(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 633, in forward\n    hidden_states = encoder_layer(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 401, in forward\n    hidden_states = residual + hidden_states"
+      }
+    ]
+  },
+  {
+    "op": "aten.add.Tensor",
+    "reason": "add_9: explicit packing required for noncontiguous tensors",
+    "models": [
+      {
+        "model": "whisper",
+        "node": "add_12",
+        "occurrences": 1,
+        "source": "-20261110/collector.py\", line 72, in forward\n    return self.model(input_features=features, decoder_input_ids=decoder_ids, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 1110, in forward\n    outputs: Seq2SeqModelOutput = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 950, in forward\n    encoder_outputs = self.encoder(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 633, in forward\n    hidden_states = encoder_layer(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 409, in forward\n    hidden_states = residual + hidden_states"
+      }
+    ]
+  },
+  {
+    "op": "aten.add.Tensor",
+    "reason": "add_12: explicit packing required for noncontiguous tensors",
+    "models": [
+      {
+        "model": "whisper",
+        "node": "add_15",
+        "occurrences": 1,
+        "source": "-20261110/collector.py\", line 72, in forward\n    return self.model(input_features=features, decoder_input_ids=decoder_ids, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 1110, in forward\n    outputs: Seq2SeqModelOutput = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 950, in forward\n    encoder_outputs = self.encoder(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 633, in forward\n    hidden_states = encoder_layer(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 401, in forward\n    hidden_states = residual + hidden_states"
+      }
+    ]
+  },
+  {
+    "op": "aten.add.Tensor",
+    "reason": "add_15: explicit packing required for noncontiguous tensors",
+    "models": [
+      {
+        "model": "whisper",
+        "node": "add_18",
+        "occurrences": 1,
+        "source": "-20261110/collector.py\", line 72, in forward\n    return self.model(input_features=features, decoder_input_ids=decoder_ids, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 1110, in forward\n    outputs: Seq2SeqModelOutput = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 950, in forward\n    encoder_outputs = self.encoder(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 633, in forward\n    hidden_states = encoder_layer(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 409, in forward\n    hidden_states = residual + hidden_states"
+      }
+    ]
+  },
+  {
+    "op": "aten.add.Tensor",
+    "reason": "add_18: explicit packing required for noncontiguous tensors",
+    "models": [
+      {
+        "model": "whisper",
+        "node": "add_21",
+        "occurrences": 1,
+        "source": "-20261110/collector.py\", line 72, in forward\n    return self.model(input_features=features, decoder_input_ids=decoder_ids, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 1110, in forward\n    outputs: Seq2SeqModelOutput = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 950, in forward\n    encoder_outputs = self.encoder(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 633, in forward\n    hidden_states = encoder_layer(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 401, in forward\n    hidden_states = residual + hidden_states"
+      }
+    ]
+  },
+  {
+    "op": "aten.add.Tensor",
+    "reason": "add_21: explicit packing required for noncontiguous tensors",
+    "models": [
+      {
+        "model": "whisper",
+        "node": "add_24",
+        "occurrences": 1,
+        "source": "-20261110/collector.py\", line 72, in forward\n    return self.model(input_features=features, decoder_input_ids=decoder_ids, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 1110, in forward\n    outputs: Seq2SeqModelOutput = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 950, in forward\n    encoder_outputs = self.encoder(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 633, in forward\n    hidden_states = encoder_layer(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 409, in forward\n    hidden_states = residual + hidden_states"
+      }
+    ]
+  },
+  {
+    "op": "aten.repeat.default",
+    "reason": "no public EDF region rule",
+    "models": [
+      {
+        "model": "whisper",
+        "node": "repeat",
+        "occurrences": 1,
+        "source": "File \"/root/.cache/hf-librarian/model-campaign-20261110/collector.py\", line 72, in forward\n    return self.model(input_features=features, decoder_input_ids=decoder_ids, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 1110, in forward\n    outputs: Seq2SeqModelOutput = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 962, in forward\n    decoder_outputs = self.decoder(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 777, in forward\n    position_ids = position_ids.unsqueeze(0).repeat(inputs_embeds.shape[0], 1)"
+      }
+    ]
+  },
+  {
+    "op": "aten.alias.default",
+    "reason": "no public EDF region rule",
+    "models": [
+      {
+        "model": "whisper",
+        "node": "alias",
+        "occurrences": 1,
+        "source": "File \"/root/.cache/hf-librarian/model-campaign-20261110/collector.py\", line 72, in forward\n    return self.model(input_features=features, decoder_input_ids=decoder_ids, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 1110, in forward\n    outputs: Seq2SeqModelOutput = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 962, in forward\n    decoder_outputs = self.decoder(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 792, in forward\n    causal_mask = create_causal_mask("
+      }
+    ]
+  },
+  {
+    "op": "aten.sub.Tensor",
+    "reason": "pointwise requires BF16/FP32; integer arithmetic needs a separate precision contract",
+    "models": [
+      {
+        "model": "whisper",
+        "node": "sub_9",
+        "occurrences": 1,
+        "source": "File \"/root/.cache/hf-librarian/model-campaign-20261110/collector.py\", line 72, in forward\n    return self.model(input_features=features, decoder_input_ids=decoder_ids, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 1110, in forward\n    outputs: Seq2SeqModelOutput = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 962, in forward\n    decoder_outputs = self.decoder(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 792, in forward\n    causal_mask = create_causal_mask("
+      }
+    ]
+  },
+  {
+    "op": "aten.diff.default",
+    "reason": "no public EDF region rule",
+    "models": [
+      {
+        "model": "whisper",
+        "node": "diff",
+        "occurrences": 1,
+        "source": "File \"/root/.cache/hf-librarian/model-campaign-20261110/collector.py\", line 72, in forward\n    return self.model(input_features=features, decoder_input_ids=decoder_ids, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 1110, in forward\n    outputs: Seq2SeqModelOutput = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 962, in forward\n    decoder_outputs = self.decoder(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 792, in forward\n    causal_mask = create_causal_mask("
+      }
+    ]
+  },
+  {
+    "op": "aten.ne.Scalar",
+    "reason": "no public EDF region rule",
+    "models": [
+      {
+        "model": "whisper",
+        "node": "ne",
+        "occurrences": 1,
+        "source": "File \"/root/.cache/hf-librarian/model-campaign-20261110/collector.py\", line 72, in forward\n    return self.model(input_features=features, decoder_input_ids=decoder_ids, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 1110, in forward\n    outputs: Seq2SeqModelOutput = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 962, in forward\n    decoder_outputs = self.decoder(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 792, in forward\n    causal_mask = create_causal_mask("
+      }
+    ]
+  },
+  {
+    "op": "aten.eq.Tensor",
+    "reason": "no public EDF region rule",
+    "models": [
+      {
+        "model": "whisper",
+        "node": "eq",
+        "occurrences": 1,
+        "source": "File \"/root/.cache/hf-librarian/model-campaign-20261110/collector.py\", line 72, in forward\n    return self.model(input_features=features, decoder_input_ids=decoder_ids, use_cache=False, return_dict=False)[0]\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 1110, in forward\n    outputs: Seq2SeqModelOutput = self.model(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 962, in forward\n    decoder_outputs = self.decoder(\n  File \"/usr/local/lib/python3.10/dist-packages/transformers/models/whisper/modeling_whisper.py\", line 792, in forward\n    causal_mask = create_causal_mask("
+      }
+    ]
+  }
+]
