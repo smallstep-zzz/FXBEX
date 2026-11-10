@@ -193,6 +193,11 @@ def read_graph_plan(path, *, verify_official=False):
     report = validate_native(path, verify_official=verify_official)
     producer = report['producer_metadata'] or {}
     plan = producer.get('graph_plan')
+    if plan is None and 'execution_plan' not in producer:
+        raise GraphFXBError(
+            'NATIVE_FXB_WITHOUT_GRAPH_PLAN: GraphFXB requires a TCLMachine execution plan '
+            'or legacy graph plan. For an official LLM FXB use '
+            'furiosa_llm.LLM(model_dir, fxb=path); an EDF archive alone does not declare tensor execution.')
     if (not isinstance(plan, dict) or plan.get('schema') != 'fxbex.graph-plan.v1'
             or producer.get('graph_plan_sha256') != _sha(plan)):
         raise GraphFXBError('Missing or changed graph execution plan')
@@ -264,8 +269,11 @@ class GraphFXB:
         self.stack = ExitStack()
         try:
             return self._load()
-        except BaseException:
-            self.close()
+        except BaseException as error:
+            try:
+                self.close()
+            except BaseException as cleanup:
+                raise error from cleanup
             raise
 
     def _load(self):
@@ -313,9 +321,13 @@ class GraphFXB:
         if get_cpu_fallback():
             raise GraphFXBError('Cannot disable CPU model fallback')
         self.program = sdk.Runnable(runnable).to(self.device)
-        self.resident_weights = {target: value.detach().to(self.device)
-                                 for target, value in self.weights.items()
-                                 if target in {x.get('target') for x in self.plan['inputs']}}
+        for binding in self.plan['inputs']:
+            if binding['kind'] == 'user_input' or binding['target'] in self.resident_weights:
+                continue
+            value = self.weights[binding['target']].detach().to(self.device)
+            if not _tensor_matches(value, binding, torch) or value.device.type != 'furiosa':
+                raise GraphFXBError('Weight upload did not preserve its NPU tensor contract')
+            self.resident_weights[binding['target']] = value
         self.failed = False
         return self
 
@@ -342,10 +354,15 @@ class GraphFXB:
             arguments.append(value)
         try:
             with self.torch.no_grad():
-                outputs = self.program(*(value.to(self.device) for value in arguments))
+                uploaded = [value.to(self.device) for value in arguments]
+                if any(not _tensor_matches(value, binding, self.torch) or value.device.type != 'furiosa'
+                       for value, binding in zip(uploaded, self.plan['inputs'])):
+                    raise GraphFXBError('Input upload did not preserve its NPU tensor contract')
+                outputs = self.program(*uploaded)
                 if len(outputs) != len(self.plan['outputs']):
                     raise GraphFXBError('Graph output arity mismatch')
-                if any(not _tensor_matches(value, spec, self.torch) for value, spec in zip(outputs, self.plan['outputs'])):
+                if any(not _tensor_matches(value, spec, self.torch) or value.device.type != 'furiosa'
+                       for value, spec in zip(outputs, self.plan['outputs'])):
                     raise GraphFXBError('Graph output metadata mismatch')
                 result = tuple(x.cpu() if output_device == 'cpu' else x for x in outputs)
                 self._synchronize()
@@ -370,8 +387,13 @@ class GraphFXB:
             self.program = None
             self.resident_weights.clear()
             if self.stack is not None:
-                self.stack.close()
-                self.stack = None
+                stack, self.stack = self.stack, None
+                stack.close()
 
-    def __exit__(self, *args):
-        self.close()
+    def __exit__(self, kind, error, tb):
+        try:
+            self.close()
+        except BaseException as cleanup:
+            if error is not None:
+                raise error.with_traceback(tb) from cleanup
+            raise
