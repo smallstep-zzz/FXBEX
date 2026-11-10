@@ -52,6 +52,26 @@ class ModelExportTests(unittest.TestCase):
                 build_model(object(),Path(d)/'m.fxb',example_inputs=(),
                             contract_provider='trusted',user_output_indices=[0])
 
+    def test_verified_build_is_owned_by_producer(self):
+        import sys
+        from types import ModuleType
+        from unittest.mock import Mock
+        producer=ModuleType('tclmachine');producer.build_verified_model=Mock(return_value={'status':'verified'})
+        with tempfile.TemporaryDirectory() as d, patch.dict(sys.modules,{'tclmachine':producer}):
+            options={'validation_inputs':[(1,)],'atol':.02,'rtol':.02}
+            with patch('fxbex.model_export._official_build',side_effect=AssertionError('wrong route')):
+                result=build_model(object(),Path(d)/'test.fxb',example_inputs=(0,),verification=options)
+            self.assertEqual(result['status'],'verified')
+            self.assertEqual(result['route'],'tclmachine_verified_build')
+            self.assertEqual(producer.build_verified_model.call_args.kwargs['validation_inputs'],[(1,)])
+
+    def test_verification_never_silently_applies_to_official_or_legacy(self):
+        with tempfile.TemporaryDirectory() as d:
+            for model,provider in [('org/model',None),(object(),'legacy')]:
+                with self.assertRaisesRegex(ValueError,'Torch route'):
+                    build_model(model,Path(d)/'out.fxb',example_inputs=(),contract_provider=provider,
+                        verification={'validation_inputs':[],'atol':.02,'rtol':.02})
+
     def test_official_failure_keeps_exact_stage_and_no_publish(self):
         with tempfile.TemporaryDirectory() as d:
             out=Path(d)/'test.fxb'

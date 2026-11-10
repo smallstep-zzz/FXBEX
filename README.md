@@ -444,3 +444,8 @@ Native FXB weights remain separate; functional state is not paged KV support.
 
 Native execution-plan FXBs can load [header-first checkpoint weights](docs/CHECKPOINT_WEIGHTS.md)
 with `SafeTensorWeights`, without constructing a complete CPU model.
+
+
+### 생성부터 독립 실행 검증까지
+
+TCLMachine이 생성과 검증 완료를 책임지고 fxbX의 기존 런타임으로 새 프로세스에서 재적재·실행합니다. [단일 호출 사용법과 검증 범위](docs/VERIFIED_BUILD.md)를 참고하세요.
