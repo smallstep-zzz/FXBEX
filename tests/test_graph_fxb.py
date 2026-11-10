@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 import sys
 import tempfile
+import threading
 import types
 import unittest
 from unittest.mock import patch
@@ -231,7 +232,7 @@ class GraphFXBTests(unittest.TestCase):
     def test_runtime_abi_mismatch_stops_before_device_loading(self):
         self.export()
         modules, calls = self.backend(mismatch=True)
-        with patch.dict(sys.modules, modules), patch('importlib.metadata.version', return_value='test'):
+        with patch.dict(sys.modules, modules), patch('importlib.metadata.version', return_value='test'), patch('fxbex.settings.npu_lock', return_value=nullcontext()):
             with self.assertRaisesRegex(GraphFXBError, 'ABI differs'):
                 with GraphFXB(self.output, weights={'weight': Tensor('weight')}): pass
         self.assertFalse(any(call[0]=='load' for call in calls))
@@ -244,6 +245,84 @@ class GraphFXBTests(unittest.TestCase):
             with self.assertRaisesRegex(GraphFXBError, 'RUNTIME_BRIDGE_GAP'):
                 with GraphFXB(self.output, weights={'weight': Tensor('weight')}): pass
         self.assertFalse(calls)
+
+    def test_legacy_qualification_is_rejected_explicitly(self):
+        self.export()
+        with self.assertRaisesRegex(GraphFXBError,'native execution-plan'):
+            GraphFXB(self.output,weights={'weight':Tensor('weight')},qualification='receipt.json')
+
+    def test_busy_lease_precedes_configuration_and_deserialization(self):
+        self.export();modules,calls=self.backend()
+        with patch.dict(sys.modules,modules),patch('importlib.metadata.version',return_value='test'),patch('fxbex.settings.npu_lock',side_effect=RuntimeError('busy')):
+            with self.assertRaisesRegex(RuntimeError,'busy'):
+                with GraphFXB(self.output,weights={'weight':Tensor('weight')}):pass
+        self.assertEqual(calls,[])
+
+    def test_partial_program_move_is_owned_and_completed_before_release(self):
+        self.export();modules,calls=self.backend()
+        model=GraphFXB(self.output,weights={'weight':Tensor('weight')})
+        class FailedMove:
+            def to(inner,device):
+                self.assertIs(model.program,inner)
+                raise RuntimeError('partial move failed')
+        modules['furiosa.torch'].Runnable=lambda ir:FailedMove()
+        with patch.dict(sys.modules,modules),patch('importlib.metadata.version',return_value='test'),patch('fxbex.settings.npu_lock',return_value=nullcontext()):
+            with self.assertRaisesRegex(RuntimeError,'partial move failed'):model.__enter__()
+        self.assertIn(('sync',),calls)
+        self.assertIsNone(model.program);self.assertIsNone(model.stack)
+
+    def test_load_completes_transfers_before_returning(self):
+        self.export();modules,calls=self.backend()
+        with patch.dict(sys.modules,modules),patch('importlib.metadata.version',return_value='test'),patch('fxbex.settings.npu_lock',return_value=nullcontext()):
+            model=GraphFXB(self.output,weights={'weight':Tensor('weight')}).__enter__()
+            self.assertEqual(calls[-1],('sync',))
+            model.close()
+
+    def test_predict_and_close_are_serialized(self):
+        self.export();modules,calls=self.backend()
+        entered=threading.Event();release=threading.Event();closing=threading.Event();closed=threading.Event();errors=[]
+        class BlockingProgram:
+            def to(self,device):return self
+            def __call__(self,*args):
+                entered.set()
+                if not release.wait(2):raise RuntimeError('test release missing')
+                return [Tensor('output',device='furiosa')]
+        modules['furiosa.torch'].Runnable=lambda ir:BlockingProgram()
+        def invoke(call):
+            try:call()
+            except BaseException as error:errors.append(error)
+        with patch.dict(sys.modules,modules),patch('importlib.metadata.version',return_value='test'),patch('fxbex.settings.npu_lock',return_value=nullcontext()):
+            model=GraphFXB(self.output,weights={'weight':Tensor('weight')}).__enter__()
+            caller=threading.Thread(target=invoke,args=(lambda:model.predict((Tensor('x'),)),))
+            def close():closing.set();model.close();closed.set()
+            closer=threading.Thread(target=invoke,args=(close,))
+            caller.start()
+            try:
+                self.assertTrue(entered.wait(2))
+                acquired=model._lock.acquire(blocking=False)
+                if acquired:model._lock.release()
+                self.assertFalse(acquired,'predict must own the session lock')
+                closer.start();self.assertTrue(closing.wait(2))
+                self.assertFalse(closed.is_set());self.assertIsNotNone(model.program)
+            finally:
+                release.set();caller.join(2)
+                if closer.ident is not None:closer.join(2)
+            self.assertFalse(caller.is_alive() or closer.is_alive())
+            self.assertEqual(errors,[]);self.assertTrue(closed.is_set())
+
+    def test_legacy_rejects_unknown_completion_on_same_sdk(self):
+        self.export();modules,calls=self.backend()
+        stream=types.SimpleNamespace(synchronize=lambda:None)
+        modules['furiosa.torch'].current_stream=lambda device:stream
+        with patch.dict(sys.modules,modules),patch('importlib.metadata.version',return_value='test'),patch('fxbex.settings.npu_lock',return_value=nullcontext()):
+            model=GraphFXB(self.output,weights={'weight':Tensor('weight')}).__enter__()
+            stream.synchronize=lambda:(_ for _ in ()).throw(RuntimeError('completion failed'))
+            with self.assertRaisesRegex(RuntimeError,'completion failed'):model.close()
+            self.assertFalse(model.completion_known)
+            calls.clear();stream.synchronize=lambda:None
+            with self.assertRaisesRegex(GraphFXBError,'NATIVE_COMPLETION_UNKNOWN'):
+                with GraphFXB(self.output,weights={'weight':Tensor('weight')}):pass
+            self.assertEqual(calls,[])
 
 
 if __name__ == '__main__':

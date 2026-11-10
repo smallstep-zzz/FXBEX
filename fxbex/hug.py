@@ -9,6 +9,7 @@ from functools import wraps
 import hashlib
 import json
 from pathlib import Path
+import threading
 import uuid
 import warnings
 import zipfile
@@ -20,12 +21,83 @@ from urllib.request import urlopen
 from . import hub
 from .service import PackageService
 from .package import inspect
+from .native_fxb import MAX_JSON_SIZE, PRODUCER_MEMBER, NativeFXBError
+
+
+def _local_format(value):
+    """Classify bounded local metadata; never load a model or query a catalog."""
+    path = Path(str(value)).expanduser()
+    if not path.is_file():
+        return None
+    try:
+        archive = zipfile.ZipFile(path)
+    except (OSError, zipfile.BadZipFile) as exc:
+        if path.suffix not in ('.fxb', '.fxbex'):
+            return 'native'
+        raise NativeFXBError('INVALID_LOCAL_FXB_METADATA: expected a readable FXB archive') from exc
+    try:
+        with archive:
+            entries = archive.infolist()
+            def document(name, *, required):
+                matches = [info for info in entries if info.filename == name]
+                if not matches and not required:
+                    return None
+                if len(matches) != 1:
+                    raise NativeFXBError('INVALID_LOCAL_FXB_METADATA: missing or duplicate '+name)
+                info = matches[0]
+                if info.file_size > MAX_JSON_SIZE:
+                    raise NativeFXBError('INVALID_LOCAL_FXB_METADATA: oversized '+name)
+                with archive.open(info) as stream:
+                    raw = stream.read(MAX_JSON_SIZE + 1)
+                if len(raw) > MAX_JSON_SIZE:
+                    raise NativeFXBError('INVALID_LOCAL_FXB_METADATA: oversized '+name)
+                def unique(pairs):
+                    result = {}
+                    for key, item in pairs:
+                        if key in result:
+                            raise NativeFXBError('INVALID_LOCAL_FXB_METADATA: duplicate JSON key in '+name)
+                        result[key] = item
+                    return result
+                def invalid_constant(value):
+                    raise NativeFXBError('INVALID_LOCAL_FXB_METADATA: non-finite JSON value in '+name)
+                value = json.loads(raw, object_pairs_hook=unique, parse_constant=invalid_constant)
+                if not isinstance(value, dict):
+                    raise NativeFXBError('INVALID_LOCAL_FXB_METADATA: expected an object in '+name)
+                return value
+            manifest = document('manifest.json', required=path.suffix in ('.fxb', '.fxbex'))
+            if manifest is None:
+                return 'native'
+            if manifest.get('format') == 'FXB_EX':
+                if 'format_version' in manifest:
+                    raise NativeFXBError('INVALID_LOCAL_FXB_METADATA: ambiguous package/native manifest')
+                return 'package'
+            if type(manifest.get('format_version')) is not int or manifest['format_version'] != 2:
+                raise NativeFXBError('INVALID_LOCAL_FXB_METADATA: unsupported local archive format')
+            producer = document(PRODUCER_MEMBER, required=False)
+            if producer is not None and ('execution_plan' in producer or 'graph_plan' in producer
+                                         or producer.get('explicit_consumer_required') is True):
+                return 'tcl_native'
+            return 'native'
+    except (OSError, zipfile.BadZipFile, ValueError, RuntimeError, NotImplementedError) as exc:
+        if isinstance(exc, NativeFXBError):
+            raise
+        raise NativeFXBError('INVALID_LOCAL_FXB_METADATA: cannot read local FXB metadata') from exc
+
+
+def _require_llm_format(kind):
+    if kind == 'tcl_native':
+        raise NativeFXBError(
+            'TCL_NATIVE_FXB_REQUIRES_GRAPH_LOADER: use fxbx.GraphFXB(path, weights=...); '
+            'TCL execution plans require explicit external weights and tensor inputs, not the official LLM loader')
 
 
 def _is_package(value):
     value = str(value)
     path = Path(value).expanduser()
-    if value.endswith('.fxb') or (path.is_file() and not value.endswith('.fxbex')):return False
+    if path.is_file():
+        kind = _local_format(value)
+        return kind == 'package' or value.endswith('.fxbex')
+    if value.endswith('.fxb'):return False
     identifier=value[2:] if value.startswith('./') else value
     name,separator,version=identifier.partition('@')
     base=Path(name).expanduser()
@@ -69,8 +141,21 @@ def hug(original_class: type[_LLMType]) -> type[_LLMType]:
         if explicit is not None and type(explicit) is not bool:
             raise TypeError('fxbex must be True or False')
         model = args[0] if args else options.get('model_id_or_path',options.get('model'))
-        if explicit is False or (explicit is None and (model is None or not _is_package(model))):
+        if explicit is False:
             return original_class(*args, **options)
+        model_format = _local_format(model) if model is not None else None
+        fxb_format = _local_format(options['fxb']) if options.get('fxb') is not None else None
+        _require_llm_format(model_format)
+        _require_llm_format(fxb_format)
+        if fxb_format == 'package':
+            raise NativeFXBError('FXB_EX_REQUIRES_PACKAGE_LOADER: use fxbx.LLM(package_path), not the official fxb= option')
+        if explicit is None:
+            local_package = model_format == 'package' or (model is not None and str(model).endswith('.fxbex'))
+            if fxb_format == 'native' and not local_package:
+                return original_class(*args, **options)
+            package = local_package if model_format is not None else model is not None and _is_package(model)
+            if not package:
+                return original_class(*args, **options)
         if model is None:
             raise TypeError('An FXBEX model path or catalog ID is required')
         if len(args) > 1:
@@ -181,6 +266,7 @@ class _PackageLLM:
 
     def generate(self, prompts, sampling_params=None, prompt_token_ids=None, tokenizer_kwargs=None):
         self._check()
+        deadline = self._service.deadline('request')
         if prompt_token_ids is not None or tokenizer_kwargs not in (None,{}):
             raise NotImplementedError('FXBEX accepts text prompts without prompt_token_ids or tokenizer_kwargs')
         limit = _max_tokens(sampling_params, self.max_model_len)
@@ -188,11 +274,12 @@ class _PackageLLM:
         batch = [prompts] if single else prompts
         if not isinstance(batch, list) or not all(isinstance(item, str) for item in batch):
             raise TypeError('prompts must be a string or list of strings')
-        results = [_output(self._service.generate(prompt=item, max_tokens=limit), str(uuid.uuid4())) for item in batch]
+        results = [_output(self._service.generate(prompt=item, max_tokens=limit, deadline=deadline), str(uuid.uuid4())) for item in batch]
         return results[0] if single else results
 
     def chat(self, messages, sampling_params=None, **kwargs):
         self._check()
+        deadline = self._service.deadline('request')
         defaults={'chat_template':None,'chat_template_content_format':'string','add_generation_prompt':True,'continue_final_message':False,'tools':None,'chat_template_kwargs':None}
         kwargs={k:v for k,v in kwargs.items() if k not in defaults or v!=defaults[k]}
         if kwargs:
@@ -201,7 +288,7 @@ class _PackageLLM:
         if not isinstance(messages, list):
             raise TypeError('messages must be a list')
         batch = messages if messages and isinstance(messages[0], list) else [messages]
-        return [_output(self._service.generate(prompt=item, max_tokens=limit), str(uuid.uuid4())) for item in batch]
+        return [_output(self._service.generate(prompt=item, max_tokens=limit, deadline=deadline), str(uuid.uuid4())) for item in batch]
 
     async def stream_generate(self, prompt, sampling_params=None, **kwargs):
         self._check()
@@ -212,12 +299,15 @@ class _PackageLLM:
         limit = _max_tokens(sampling_params, self.max_model_len)
         loop = asyncio.get_running_loop()
         queue = asyncio.Queue()
+        cancel_event = threading.Event()
+        deadline = self._service.deadline('request')
         emitted = ''
         def on_token(event):
             loop.call_soon_threadsafe(queue.put_nowait, event)
         def run():
             try:
-                result = self._service.generate(prompt=prompt, max_tokens=limit, on_token=on_token)
+                result = self._service.generate(prompt=prompt, max_tokens=limit, on_token=on_token,
+                                                deadline=deadline, cancel_event=cancel_event)
                 loop.call_soon_threadsafe(queue.put_nowait, (True, result))
             except BaseException as exc:
                 loop.call_soon_threadsafe(queue.put_nowait, (False, exc))
@@ -239,22 +329,28 @@ class _PackageLLM:
                 if delta:
                     yield delta
         finally:
-            # Cancellation must not release the service while its request runs.
+            # Cancel this request only; an older stream must not stop a newer one.
+            if not worker.done():cancel_event.set()
             try:
                 await asyncio.shield(worker)
             except asyncio.CancelledError:
-                await worker
+                cancel_event.set()
+                await asyncio.shield(worker)
                 raise
 
     def shutdown(self):
-        self._service.stop()
         self._closed = True
+        self._service.stop()
 
     close = shutdown
     unload = shutdown
 
     def __enter__(self):return self
-    def __exit__(self,*args):self.shutdown()
+    def __exit__(self,kind,error,tb):
+        try:self.shutdown()
+        except BaseException as cleanup:
+            if error is not None:raise error.with_traceback(tb) from cleanup
+            raise
 
     def encode(self,*args,**kwargs):raise NotImplementedError('FXBEX text-generation package does not provide embeddings/encode')
     embed=encode

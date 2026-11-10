@@ -260,7 +260,7 @@ def read_execution_plan(path):
 class ExecutionFXB:
     """Exclusive fixed-shape tensor-plan session; state and temporaries stay on NPU."""
     supports_zero_input_kernels=True
-    def __init__(self,path,*,weights=None,device='furiosa:0',max_request_states=1):
+    def __init__(self,path,*,weights=None,device='furiosa:0',max_request_states=1,qualification=None):
         if device!='furiosa:0':raise ExecutionPlanError('Only furiosa:0 is qualified')
         if type(max_request_states)!=int or max_request_states<1:raise ExecutionPlanError('max_request_states must be a positive integer')
         from .checkpoint import SafeTensorWeights
@@ -271,6 +271,7 @@ class ExecutionFXB:
         self._memory_modes={'cpu':self.memory}
         self._lock=threading.RLock()
         self._requests=set();self.last_timing=None;self.max_request_states=max_request_states;self._default_ready=False
+        self._lifetime=None;self._qualification_receipt=qualification;self.qualification={'status':'unqualified'}
         from .memory import tensor_bytes
         self._state_bytes=sum(tensor_bytes(t) for t in self.plan['tensors'].values() if t['kind']=='state')
     def __enter__(self):
@@ -312,7 +313,15 @@ class ExecutionFXB:
                 if not _tensor_matches(value,spec,torch) or value.requires_grad:
                     raise ExecutionPlanError('Missing/incompatible frozen external tensor: '+name)
                 _check_value_range(value,spec,torch)
+        self.qualification={'status':'unqualified'}
+        if self._qualification_receipt is not None:
+            from .qualification import validate_qualification
+            self.qualification=validate_qualification(self.path,self.plan,self.weights,self._qualification_receipt)
+        from .native_lifetime import NativeLifetime
         self.torch,self.sdk=torch,sdk
+        self._lifetime=NativeLifetime(sdk,torch,self.device,ExecutionPlanError)
+        from .settings import npu_lock
+        self.stack.enter_context(npu_lock())
         sdk.set_fusion(8);sdk.set_mesh_kind(sdk.MeshKind.Single());runnables={}
         with zipfile.ZipFile(self.path) as archive:
             if _archive_plan(archive)!=self.plan:raise ExecutionPlanError('Execution plan changed after session construction')
@@ -323,11 +332,12 @@ class ExecutionFXB:
                 abi={'inputs':[str(x) for x in program.input_dram_shapes],'outputs':[str(x) for x in program.output_dram_shapes]}
                 if any(abi[d]!=k['abi'][d] for d in ('inputs','outputs')) or getattr(program,'expected_num_fusion',None)!=8:raise ExecutionPlanError('Official EDF ABI/fusion mismatch')
                 runnables[name]=program
-        if not callable(getattr(sdk,'current_stream',None)):raise ExecutionPlanError('Public completion API unavailable')
-        from .settings import npu_lock
-        self.stack.enter_context(npu_lock());set_cpu_fallback(False)
+        self._lifetime.begin()
+        set_cpu_fallback(False)
         if get_cpu_fallback():raise ExecutionPlanError('CPU fallback could not be disabled')
-        for name,program in runnables.items():self.programs[name]=sdk.Runnable(program).to(self.device)
+        for name,program in runnables.items():
+            self.programs[name]=sdk.Runnable(program)
+            self.programs[name]=self.programs[name].to(self.device)
         uploaded={}
         for name,spec in self.plan['tensors'].items():
             if spec['kind'] in ('parameter','buffer'):
@@ -341,7 +351,9 @@ class ExecutionFXB:
                     del value
                 else:self.resident[name]=self.resident[uploaded[target]]
         self._sync();self.states={};self._default_ready=False;self.failed=False
-    def _sync(self):self.sdk.current_stream(self.torch.device(self.device)).synchronize()
+    @property
+    def completion_known(self):return self._lifetime is None or self._lifetime.completion_known
+    def _sync(self):self._lifetime.synchronize()
     def _upload(self,value,spec):
         result=value.to(self.device)
         if not _tensor_matches(result,spec,self.torch) or result.device.type!='furiosa':
@@ -375,7 +387,9 @@ class ExecutionFXB:
             if not self._state_bytes:raise ExecutionPlanError('Plan has no state slots')
             if len(self._requests)>=self.max_request_states:raise ExecutionPlanError('Request state limit reached; release an existing request')
             memory=self._admit_requests(len(self._requests)+1)
-            try:state=RequestState(self,self._allocate_states())
+            try:
+                self._lifetime.begin()
+                state=RequestState(self,self._allocate_states())
             except BaseException:self.failed=True;raise
             self._requests.add(state);self.memory=memory;return state
     def release_state(self,state):
@@ -391,11 +405,14 @@ class ExecutionFXB:
             if state is not None:self._check_state(state)
             self._admit_requests(len(self._requests),default_present=self._default_ready or state is None)
             try:
+                self._lifetime.begin()
                 if state is None:self._reset()
                 else:state._tensors=self._allocate_states()
             except BaseException:self.failed=True;raise
     def _healthy(self):
         if self.stack is None or not self.programs or self.failed:raise ExecutionPlanError('Session must be loaded and healthy')
+        from .native_lifetime import require_healthy_sdk
+        require_healthy_sdk(self.sdk,ExecutionPlanError)
     def predict(self,inputs=(),*,output_device='cpu',state=None):
         return self.run('forward',inputs,output_device=output_device,state=state)
     def run(self,entry,inputs=(),*,output_device='cpu',state=None):
@@ -404,6 +421,10 @@ class ExecutionFXB:
             wait_s=time.perf_counter()-queued;started=time.perf_counter()
             self._healthy()
             if not isinstance(entry,str) or entry not in self.plan['entries'] or output_device not in ('cpu','furiosa'):raise ExecutionPlanError('Unknown entry/output device')
+            if self.qualification['status']=='verified':
+                scope=self.qualification['scope']
+                if entry not in scope['entries'] or output_device not in scope['output_devices']:
+                    raise ExecutionPlanError('Entry/output device is outside the producer qualification scope')
             if state is not None:self._check_state(state)
             self.memory=self._admit_requests(len(self._requests),output_device,default_present=self._default_ready or state is None)
             recipe=self.plan['entries'][entry]
@@ -419,6 +440,7 @@ class ExecutionFXB:
                 _check_value_range(value,self.plan['tensors'][name],self.torch)
             if state is not None:state._borrowed=True
             try:
+                self._lifetime.begin()
                 with self.torch.no_grad():
                     if state is None and not self._default_ready:self._reset()
                     active=self.states if state is None else state._tensors
@@ -455,13 +477,18 @@ class ExecutionFXB:
                 if state is not None:state._borrowed=False
     def close(self):
         with self._lock:
+            error=None
             try:
                 if self.programs:self._sync()
+            except BaseException as failure:
+                self.failed=True;error=failure
             finally:
                 for state in self._requests:state._tensors.clear();state._closed=True
                 self._requests.clear()
                 self.programs.clear();self.resident.clear();self.states.clear();self._default_ready=False
-                if self.stack is not None:self.stack.close();self.stack=None
+                stack,self.stack=self.stack,None
+            from .native_lifetime import finish_close
+            finish_close(stack,error)
     def __exit__(self,kind,error,tb):
         try:self.close()
         except BaseException as cleanup:

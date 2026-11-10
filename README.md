@@ -1,6 +1,6 @@
 # fxbX
 
-**0.8.1 개발 소스:** [TCLMachine 공통 실행 계약](docs/EXECUTION_PLAN.md)으로 다중 EDF와 상주 상태를 연결합니다. 모델명 분기 없이 연산 계약으로 내보내며, 컴파일러 없는 새 프로세스 NPU 재적재를 검증했습니다. 구형 `fxbex`가 새 구현을 가리면 명확한 오류로 중단합니다. PyPI0.7.0과 구분하세요.
+**0.8.3 개발 소스:** [TCLMachine 공통 실행 계약](docs/EXECUTION_PLAN.md)으로 다중 EDF와 상주 상태를 연결합니다. 생산자가 만든 [검증 영수증](docs/VERIFIED_BUILD.md)을 `qualification=`으로 확인하며, [worker 제한 시간·취소와 세션 종료](docs/RUNTIME_READINESS.md)를 지원합니다. 작은 fixture의 기존 NPU 재적재 근거와 이번 수정본의 최종 검증 기록은 구분합니다. 구형 `fxbex`가 새 구현을 가리면 명확한 오류로 중단합니다. 이 소스 변경을 PyPI 배포 완료로 해석하지 마세요.
 
 **FXBEX에서 fxbX로 이름이 바뀌었습니다.** 배포 패키지·CLI·공개 import는 `fxbx`이며, 이름 전환 릴리스는 0.7.0입니다.
 기존 `.fxbex` 모델 파일은 계속 읽을 수 있습니다. [PyPI 0.7.0](https://pypi.org/project/fxbx/0.7.0/)에서 배포합니다.
@@ -435,22 +435,40 @@ python examples/native_static_graph.py build ./linear.fxb
 python examples/native_static_graph.py run ./linear.fxb
 ```
 
-### Shared weights and request state
+### 공유 가중치와 요청별 상태
 
-`build_program` / `tclmachine.export_program` compose named functional calls into
-one native FXB. `GraphFXB.new_state()` isolates request state while retaining
-shared weights. See [official reuse, NPU evidence and limits](docs/OFFICIAL_STATE_REUSE.md).
-Native FXB weights remain separate; functional state is not paged KV support.
+`build_program` / `tclmachine.export_program`은 이름이 있는 functional 호출을
+하나의 native FXB로 묶습니다. `GraphFXB.new_state()`는 가중치를 공유하면서
+요청별 상태를 분리합니다. [공식 경로 재사용·NPU 근거와 범위](docs/OFFICIAL_STATE_REUSE.md)를 참고하세요.
+가중치는 FXB 밖에 유지되며 functional state가 paged KV 지원을 뜻하지는 않습니다.
 
-Native execution-plan FXBs can load [header-first checkpoint weights](docs/CHECKPOINT_WEIGHTS.md)
-with `SafeTensorWeights`, without constructing a complete CPU model.
+native 실행 계획은 `SafeTensorWeights`로 [헤더 우선 체크포인트 적재](docs/CHECKPOINT_WEIGHTS.md)를
+사용할 수 있습니다. 완전한 CPU 모델을 먼저 구성할 필요가 없습니다.
 
 
 ### 생성부터 독립 실행 검증까지
 
 TCLMachine이 생성과 검증 완료를 책임지고 fxbX의 기존 런타임으로 새 프로세스에서 재적재·실행합니다. [단일 호출 사용법과 검증 범위](docs/VERIFIED_BUILD.md)를 참고하세요.
 
+```python
+from fxbx import GraphFXB, SafeTensorWeights
+
+with GraphFXB(
+    './model.fxb',
+    weights=SafeTensorWeights('./model.fxb.verified/weights'),
+    qualification='./model.fxb.verified/qualification.json',
+) as session:
+    outputs = session.predict((input_tensor,))  # 현재 영수증 범위: forward, CPU 출력
+    print(session.qualification['status'])
+```
+
+`qualification`을 생략한 raw 적재는 `unqualified`입니다. 영수증은 제공한 고정 shape fixture의 기존 검증 결과를 FXB·가중치·소비자 소스·SDK에 연결하며, 임의의 입력이나 전체 모델을 증명하지 않습니다. CPU 출력은 NPU 계산 뒤 결과를 호스트로 복사한다는 뜻입니다. 공식 Furiosa-LLM FXB와 legacy graph plan에는 이 정적 영수증을 적용하지 않습니다.
+
 
 ### 실행 경로와 운영 점검
 
 [로더 선택·실패 처리·반복 실행 시험](docs/RUNTIME_READINESS.md)에서 native FXB와 FXB_EX의 올바른 실행 경로, legacy NPU 계약 검사 및 실기 검증 범위를 확인할 수 있습니다.
+
+FXB_EX의 `Model`/`LLM` 작업에는 host 설정의 제한 시간이 적용됩니다. 기본값은 load 600초, request 300초, unload 30초이며 종료 회수에 terminate 15초와 kill 후 wait 5초가 추가될 수 있습니다. 다른 제어 스레드에서 `model.cancel()`을 호출하면 현재 worker 요청만 취소하며 같은 요청을 자동 재시도하지 않습니다. 직접 사용하는 native `GraphFXB`에 worker 취소 API가 생긴 것은 아닙니다.
+
+SDK 2026.4.0에서는 Python `Profiler`를 만들지 않아도 타이밍 수집이 활성화될 수 있습니다. NPU 증거가 필요 없는 일반 작업은 **SDK import 전 새 프로세스**에서 `FURIOSA_TORCH_PROFILE=warn`을 명시하는 운영을 권장합니다. 검증 worker는 `info`를 사용하고 호출별 실제 NPU Task를 요구합니다. 메모리 감소만으로 누수가 해결됐거나 현재 요청의 NPU 증거가 확보됐다고 판정하지 않습니다.

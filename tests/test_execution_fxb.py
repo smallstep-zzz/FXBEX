@@ -1,6 +1,6 @@
 """Offline execution-contract tests; fake SDK never establishes NPU execution."""
 from contextlib import nullcontext
-import copy,hashlib,json,sys,tempfile,types,unittest,zipfile
+import copy,hashlib,json,sys,tempfile,threading,types,unittest,zipfile
 from pathlib import Path
 from unittest.mock import patch
 
@@ -219,7 +219,7 @@ class ExecutionPlanTests(unittest.TestCase):
         with zipfile.ZipFile(self.output,'w') as z:
             for n,v in files.items():z.writestr(n,v)
         modules,calls=self.backend()
-        with patch.dict(sys.modules,modules),patch('importlib.metadata.version',return_value='test'):
+        with patch.dict(sys.modules,modules),patch('importlib.metadata.version',return_value='test'),patch('fxbex.settings.npu_lock',return_value=nullcontext()):
             with self.assertRaisesRegex(ExecutionPlanError,'hash changed'):
                 with model:pass
         self.assertFalse(any(c[0]=='load' for c in calls))
@@ -237,7 +237,7 @@ class ExecutionPlanTests(unittest.TestCase):
                 self.assertEqual(model.resident['p1'].value,3)
     def test_abi_failure_happens_before_device_allocation(self):
         self.export();modules,calls=self.backend(bad_abi=True)
-        with patch.dict(sys.modules,modules),patch('importlib.metadata.version',return_value='test'):
+        with patch.dict(sys.modules,modules),patch('importlib.metadata.version',return_value='test'),patch('fxbex.settings.npu_lock',return_value=nullcontext()):
             with self.assertRaisesRegex(ExecutionPlanError,'ABI'):
                 with ExecutionFXB(self.output):pass
         self.assertFalse(any(c[0]=='load' for c in calls))
@@ -258,5 +258,120 @@ class ExecutionPlanTests(unittest.TestCase):
                 with ExecutionFXB(self.output) as model:model.predict((Tensor(1),))
             self.assertIn('cleanup synchronization failed',str(failure.exception.__cause__))
             self.assertIsNone(model.stack)
+    def test_context_release_error_leaves_session_and_request_closed(self):
+        self.export()
+        class FailedRelease:
+            def __enter__(self):return self
+            def __exit__(self,*args):raise RuntimeError('lock release failed')
+        for fail_step in (False,True):
+            with self.subTest(kernel_failure=fail_step):
+                modules,calls=self.backend(fail_step=fail_step)
+                with patch.dict(sys.modules,modules),patch('importlib.metadata.version',return_value='test'),patch('fxbex.settings.npu_lock',return_value=FailedRelease()):
+                    message='kernel failure' if fail_step else 'lock release failed'
+                    with self.assertRaisesRegex(RuntimeError,message) as failure:
+                        with ExecutionFXB(self.output) as model:
+                            state=model.new_state()
+                            model.predict((Tensor(1),),state=state)
+                    if fail_step:self.assertIn('lock release failed',str(failure.exception.__cause__))
+                    self.assertIsNone(model.stack)
+                    self.assertFalse(model.programs or model.resident or model.states or model._requests)
+                    self.assertTrue(state._closed)
+                    self.assertFalse(state._tensors)
+                    model.close()
+
+    def test_busy_lease_precedes_sdk_configuration_and_deserialization(self):
+        self.export();modules,calls=self.backend()
+        with patch.dict(sys.modules,modules),patch('importlib.metadata.version',return_value='test'),patch('fxbex.settings.npu_lock',side_effect=RuntimeError('busy')):
+            with self.assertRaisesRegex(RuntimeError,'busy'):
+                with ExecutionFXB(self.output):pass
+        self.assertEqual(calls,[])
+
+    def test_partially_moved_program_is_owned_during_failure_cleanup(self):
+        self.export();modules,calls=self.backend()
+        model=ExecutionFXB(self.output)
+        class FailedMove:
+            def __init__(self,ir):self.name=ir.name
+            def to(inner,device):
+                self.assertIs(model.programs[inner.name],inner)
+                raise RuntimeError('partial program move')
+        modules['furiosa.torch'].Runnable=FailedMove
+        with patch.dict(sys.modules,modules),patch('importlib.metadata.version',return_value='test'),patch('fxbex.settings.npu_lock',return_value=nullcontext()):
+            with self.assertRaisesRegex(RuntimeError,'partial program move'):model.__enter__()
+        self.assertIn(('sync',),calls)
+        self.assertFalse(model.programs)
+        self.assertIsNone(model.stack)
+
+    def test_run_and_cross_thread_close_use_last_submitting_stream(self):
+        self.export();modules,calls=self.backend();captures=[];syncs=[];errors=[]
+        owner=threading.get_ident()
+        main=types.SimpleNamespace(synchronize=lambda:syncs.append('main'))
+        worker=types.SimpleNamespace(synchronize=lambda:syncs.append('worker'))
+        def current(device):
+            captures.append(threading.get_ident())
+            return main if threading.get_ident()==owner else worker
+        modules['furiosa.torch'].current_stream=current
+        def predict(model):
+            try:model.predict((Tensor(1),))
+            except BaseException as error:errors.append(error)
+        with patch.dict(sys.modules,modules),patch('importlib.metadata.version',return_value='test'),patch('fxbex.settings.npu_lock',return_value=nullcontext()):
+            model=ExecutionFXB(self.output).__enter__()
+            thread=threading.Thread(target=predict,args=(model,));thread.start();thread.join(2)
+            self.assertFalse(thread.is_alive());self.assertEqual(errors,[])
+            count=len(captures);model.close()
+            self.assertEqual(len(captures),count)
+            self.assertEqual(syncs[-1],'worker')
+
+    def test_unknown_completion_rejects_new_session_on_same_sdk(self):
+        self.export();modules,calls=self.backend()
+        stream=types.SimpleNamespace(synchronize=lambda:None)
+        modules['furiosa.torch'].current_stream=lambda device:stream
+        with patch.dict(sys.modules,modules),patch('importlib.metadata.version',return_value='test'),patch('fxbex.settings.npu_lock',return_value=nullcontext()):
+            model=ExecutionFXB(self.output).__enter__()
+            stream.synchronize=lambda:(_ for _ in ()).throw(RuntimeError('completion failed'))
+            with self.assertRaisesRegex(RuntimeError,'completion failed'):model.close()
+            self.assertFalse(model.completion_known)
+            calls.clear();stream.synchronize=lambda:None
+            with self.assertRaisesRegex(ExecutionPlanError,'NATIVE_COMPLETION_UNKNOWN'):
+                with ExecutionFXB(self.output):pass
+            self.assertEqual(calls,[])
+
+    def test_state_allocation_and_reset_capture_the_submitting_stream(self):
+        self.export();modules,calls=self.backend();captures=[];syncs=[]
+        def current(device):
+            index=len(captures);captures.append(index)
+            return types.SimpleNamespace(synchronize=lambda:syncs.append(index))
+        modules['furiosa.torch'].current_stream=current
+        with patch.dict(sys.modules,modules),patch('importlib.metadata.version',return_value='test'),patch('fxbex.settings.npu_lock',return_value=nullcontext()):
+            model=ExecutionFXB(self.output).__enter__()
+            state=model.new_state();self.assertEqual(captures,[0,1]);self.assertEqual(syncs[-1],1)
+            model.reset(state=state);self.assertEqual(captures,[0,1,2]);self.assertEqual(syncs[-1],2)
+            model.reset();self.assertEqual(captures,[0,1,2,3]);self.assertEqual(syncs[-1],3)
+            model.close();self.assertEqual(captures,[0,1,2,3]);self.assertEqual(syncs[-1],3)
+
+    def test_qualification_factory_validates_once_per_load_and_limits_entries(self):
+        self.plan['entries']['other']=copy.deepcopy(self.plan['entries']['forward'])
+        self.export();modules,calls=self.backend()
+        receipt={'status':'verified','scope':{'entries':['forward'],'output_devices':['cpu']}}
+        from fxbex.graph_fxb import GraphFXB
+        with patch.dict(sys.modules,modules),patch('importlib.metadata.version',return_value='test'),patch('fxbex.settings.npu_lock',return_value=nullcontext()),patch('fxbex.qualification.validate_qualification',return_value=receipt) as check:
+            model=GraphFXB(self.output,qualification='receipt.json')
+            self.assertEqual(model.qualification,{'status':'unqualified'})
+            with model:
+                self.assertEqual(check.call_count,1)
+                self.assertEqual(model.qualification['status'],'verified')
+                with self.assertRaisesRegex(ExecutionPlanError,'qualification scope'):model.run('other',(Tensor(1),))
+                with self.assertRaisesRegex(ExecutionPlanError,'qualification scope'):model.predict((Tensor(1),),output_device='furiosa')
+                self.assertFalse(model.failed)
+                model.predict((Tensor(1),));model.predict((Tensor(2),))
+                self.assertEqual(check.call_count,1)
+            with model:self.assertEqual(check.call_count,2)
+
+    def test_invalid_qualification_fails_before_lease_or_device_calls(self):
+        self.export();modules,calls=self.backend()
+        with patch.dict(sys.modules,modules),patch('importlib.metadata.version',return_value='test'),patch('fxbex.settings.npu_lock') as lease,patch('fxbex.qualification.validate_qualification',side_effect=ValueError('stale receipt')):
+            with self.assertRaisesRegex(ValueError,'stale receipt'):
+                with ExecutionFXB(self.output,qualification='receipt.json'):pass
+            lease.assert_not_called()
+        self.assertEqual(calls,[])
 
 if __name__=='__main__':unittest.main()

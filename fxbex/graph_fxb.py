@@ -12,6 +12,7 @@ import json
 from pathlib import Path
 import shutil
 import tempfile
+import threading
 from typing import Protocol
 import zipfile
 
@@ -231,7 +232,7 @@ def _tensor_matches(value, spec, torch):
 
 class GraphFXB:
     """Explicit single-EDF consumer; not Furiosa-LLM architecture dispatch."""
-    def __new__(cls,path,*,weights=None,device='furiosa:0',max_request_states=1):
+    def __new__(cls,path,*,weights=None,device='furiosa:0',max_request_states=1,qualification=None):
         if cls is GraphFXB:
             from .native_fxb import MAX_JSON_SIZE
             execution=False
@@ -246,9 +247,10 @@ class GraphFXB:
                 pass  # The existing integrity reader returns the detailed error.
             if execution:
                 from .execution_fxb import ExecutionFXB
-                return ExecutionFXB(path,weights=weights,device=device,max_request_states=max_request_states)
+                return ExecutionFXB(path,weights=weights,device=device,max_request_states=max_request_states,qualification=qualification)
         return super().__new__(cls)
-    def __init__(self, path, *, weights=None, device='furiosa:0',max_request_states=1):
+    def __init__(self, path, *, weights=None, device='furiosa:0',max_request_states=1,qualification=None):
+        if qualification is not None:raise GraphFXBError('Producer qualification requires a native execution-plan FXB')
         if max_request_states!=1:raise GraphFXBError('Legacy single-EDF graphs have no request-state API')
         if device != 'furiosa:0':
             raise GraphFXBError('Only the explicit furiosa:0 device is supported')
@@ -262,19 +264,22 @@ class GraphFXB:
         self.failed = False
         self.stack = None
         self.resident_weights = {}
+        self._lock = threading.RLock()
+        self._lifetime = None
 
     def __enter__(self):
-        if self.stack is not None:
-            raise GraphFXBError('Graph is already loaded')
-        self.stack = ExitStack()
-        try:
-            return self._load()
-        except BaseException as error:
+        with self._lock:
+            if self.stack is not None:
+                raise GraphFXBError('Graph is already loaded')
+            self.stack = ExitStack()
             try:
-                self.close()
-            except BaseException as cleanup:
-                raise error from cleanup
-            raise
+                return self._load()
+            except BaseException as error:
+                try:
+                    self.close()
+                except BaseException as cleanup:
+                    raise error from cleanup
+                raise
 
     def _load(self):
         import torch
@@ -299,7 +304,12 @@ class GraphFXB:
         config = self.plan['device_config']
         if config != {'fusion': 8, 'mesh': 'single'}:
             raise GraphFXBError('RUNTIME_BRIDGE_GAP: exact fusion8/single device configuration required')
-        # EDF preprocessing uses this configuration, before device allocation.
+        from .native_lifetime import NativeLifetime
+        self.torch, self.sdk = torch, sdk
+        self._lifetime = NativeLifetime(sdk, torch, self.device, GraphFXBError)
+        from .settings import npu_lock
+        self.stack.enter_context(npu_lock())
+        # EDF preprocessing uses the leased configuration, before allocation.
         sdk.set_fusion(config['fusion'])
         sdk.set_mesh_kind(sdk.MeshKind.Single())
         runnable = sdk.ir.Runnable.from_serialized_edf(raw)
@@ -311,16 +321,12 @@ class GraphFXB:
         if (type(expected_fusion) is not int or expected_fusion != config['fusion']
                 or getattr(runnable, 'expected_num_fusion', None) != expected_fusion):
             raise GraphFXBError('RUNTIME_BRIDGE_GAP: recorded/public EDF fusion configuration differs or is unknown')
-        self.torch, self.sdk = torch, sdk
-        # Verify a completion primitive before allocating device resources.
-        if not callable(getattr(sdk, 'current_stream', None)):
-            raise GraphFXBError('RUNTIME_BRIDGE_GAP: public stream completion API unavailable')
-        from .settings import npu_lock
-        self.stack.enter_context(npu_lock())
+        self._lifetime.begin()
         set_cpu_fallback(False)
         if get_cpu_fallback():
             raise GraphFXBError('Cannot disable CPU model fallback')
-        self.program = sdk.Runnable(runnable).to(self.device)
+        self.program = sdk.Runnable(runnable)
+        self.program = self.program.to(self.device)
         for binding in self.plan['inputs']:
             if binding['kind'] == 'user_input' or binding['target'] in self.resident_weights:
                 continue
@@ -328,12 +334,19 @@ class GraphFXB:
             if not _tensor_matches(value, binding, torch) or value.device.type != 'furiosa':
                 raise GraphFXBError('Weight upload did not preserve its NPU tensor contract')
             self.resident_weights[binding['target']] = value
+        self._synchronize()
         self.failed = False
         return self
 
     def predict(self, inputs, *, output_device='cpu'):
+        with self._lock:
+            return self._predict(inputs, output_device=output_device)
+
+    def _predict(self, inputs, *, output_device):
         if self.program is None or self.failed:
             raise GraphFXBError('Graph must be loaded and healthy before execution')
+        from .native_lifetime import require_healthy_sdk
+        require_healthy_sdk(self.sdk, GraphFXBError)
         if output_device not in ('cpu', 'furiosa'):
             raise GraphFXBError('Output device must be cpu or furiosa')
         user = [x for x in self.plan['inputs'] if x['kind'] == 'user_input']
@@ -353,6 +366,7 @@ class GraphFXB:
                 raise GraphFXBError('Graph input/weight shape, stride, dtype or inference contract mismatch')
             arguments.append(value)
         try:
+            self._lifetime.begin()
             with self.torch.no_grad():
                 uploaded = [value.to(self.device) for value in arguments]
                 if any(not _tensor_matches(value, binding, self.torch) or value.device.type != 'furiosa'
@@ -371,24 +385,28 @@ class GraphFXB:
             self.failed = True
             raise
 
+    @property
+    def completion_known(self):
+        return self._lifetime is None or self._lifetime.completion_known
+
     def _synchronize(self):
-        current = getattr(self.sdk, 'current_stream', None)
-        stream = current(self.torch.device(self.device)) if callable(current) else None
-        synchronize = getattr(stream, 'synchronize', None)
-        if not callable(synchronize):
-            raise GraphFXBError('RUNTIME_BRIDGE_GAP: public stream completion API unavailable')
-        synchronize()
+        self._lifetime.synchronize()
 
     def close(self):
-        try:
-            if self.program is not None:
-                self._synchronize()
-        finally:
-            self.program = None
-            self.resident_weights.clear()
-            if self.stack is not None:
+        with self._lock:
+            error = None
+            try:
+                if self.program is not None:
+                    self._synchronize()
+            except BaseException as failure:
+                self.failed = True
+                error = failure
+            finally:
+                self.program = None
+                self.resident_weights.clear()
                 stack, self.stack = self.stack, None
-                stack.close()
+            from .native_lifetime import finish_close
+            finish_close(stack, error)
 
     def __exit__(self, kind, error, tb):
         try:

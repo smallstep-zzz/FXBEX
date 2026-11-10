@@ -6,6 +6,7 @@ import zipfile
 from pathlib import Path
 from types import SimpleNamespace
 import sys
+import threading
 import unittest
 from unittest.mock import Mock, patch
 import importlib
@@ -102,7 +103,7 @@ class HugTest(unittest.TestCase):
             model, service, _ = self.model(capacity, max_model_len=None)
             self.assertEqual(model.max_model_len, capacity)
             model.generate('hello', SamplingParams(temperature=0, max_tokens=capacity))
-            service.generate.assert_called_with(prompt='hello', max_tokens=capacity)
+            service.generate.assert_called_with(prompt='hello', max_tokens=capacity,deadline=service.deadline.return_value)
             for tokens in (True, False, 0, -1, capacity + 1, 1.5):
                 with self.assertRaises(ValueError):
                     model.generate('hello', SamplingParams(temperature=0, max_tokens=tokens))
@@ -127,7 +128,7 @@ class HugTest(unittest.TestCase):
         self.assertEqual(output.prompt_token_ids, [4, 5])
         self.assertEqual(output.outputs[0].token_ids, [31, 32])
         self.assertEqual(len(model.generate(['one', 'two'])), 2)
-        service.generate.assert_called_with(prompt='two', max_tokens=16)
+        service.generate.assert_called_with(prompt='two', max_tokens=16,deadline=service.deadline.return_value)
         self.assertEqual(len(model.chat([{'role': 'user', 'content': 'hello'}])), 1)
         model.shutdown()
         with self.assertRaises(RuntimeError):
@@ -142,6 +143,13 @@ class HugTest(unittest.TestCase):
         with self.assertRaises(NotImplementedError):
             model.generate('hello', tokenizer_kwargs={'add_special_tokens':False})
 
+    def test_batch_calls_share_one_absolute_deadline(self):
+        model, service, _ = self.model()
+        service.deadline.return_value=123.0
+        model.generate(['first','second'])
+        self.assertEqual(service.deadline.call_count,1)
+        self.assertEqual([call.kwargs['deadline'] for call in service.generate.call_args_list],[123.0,123.0])
+
     def test_stream_uses_callback(self):
         model, service, result = self.model()
         def generate(**kwargs):
@@ -152,6 +160,49 @@ class HugTest(unittest.TestCase):
             return [item async for item in model.stream_generate('hello')]
         items = asyncio.run(collect())
         self.assertEqual(items, ['a', 'nswer'])
+
+    def test_stream_cancellation_signals_only_its_request(self):
+        model, service, _ = self.model()
+        entered, finished = threading.Event(), threading.Event()
+        events = []
+        service.deadline.return_value = 123.0
+        def generate(**kwargs):
+            events.append(kwargs['cancel_event'])
+            self.assertEqual(kwargs['deadline'],123.0)
+            entered.set()
+            if not kwargs['cancel_event'].wait(2):
+                raise AssertionError('stream did not cancel its request')
+            finished.set()
+            raise RuntimeError('request cancelled')
+        service.generate.side_effect = generate
+        async def collect():
+            stream = model.stream_generate('hello')
+            call = asyncio.create_task(anext(stream))
+            self.assertTrue(await asyncio.to_thread(entered.wait,2))
+            call.cancel()
+            with self.assertRaises(asyncio.CancelledError):await call
+            await stream.aclose()
+        asyncio.run(collect())
+        self.assertTrue(finished.is_set())
+        self.assertEqual(len(events),1)
+        self.assertTrue(events[0].is_set())
+        service.stop.assert_not_called()
+
+    def test_context_cleanup_preserves_primary_error_and_closes_facade(self):
+        model, service, _ = self.model()
+        primary, cleanup = RuntimeError('primary inference failure'), RuntimeError('stop failure')
+        service.stop.side_effect = cleanup
+        with self.assertRaisesRegex(RuntimeError,'primary inference failure') as failure:
+            with model:raise primary
+        self.assertIs(failure.exception,primary)
+        self.assertIs(failure.exception.__cause__,cleanup)
+        with self.assertRaisesRegex(RuntimeError,'shut down'):model.generate('again')
+
+    def test_context_cleanup_error_is_visible_without_primary_error(self):
+        model, service, _ = self.model()
+        service.stop.side_effect = RuntimeError('stop failure')
+        with self.assertRaisesRegex(RuntimeError,'stop failure'):
+            with model:pass
 
 class ClassSemantics(unittest.TestCase):
     def test_class_wrapper_preserves_native_identity_and_methods(self):
@@ -170,11 +221,102 @@ class ClassSemantics(unittest.TestCase):
         self.assertEqual(Derived().value,'derived')
 
 class LocalRouting(unittest.TestCase):
+    def archive(self,path,producer=None,manifest=None):
+        with zipfile.ZipFile(path,'w') as archive:
+            archive.writestr('manifest.json',json.dumps({'format_version':2} if manifest is None else manifest))
+            if producer is not None:
+                archive.writestr(facade.PRODUCER_MEMBER,json.dumps(producer))
+
     def test_native_fxb_not_intercepted_and_local_version_is(self):
         import tempfile
         from pathlib import Path
         with tempfile.TemporaryDirectory() as d:
-            root=Path(d);native=root/'official.fxb';native.write_bytes(b'native')
+            root=Path(d);native=root/'official.fxb';self.archive(native)
             self.assertFalse(facade._is_package(native))
             folder=root/'model'/'opt2';folder.mkdir(parents=True);(folder/'model.fxbex').write_bytes(b'package')
             self.assertTrue(facade._is_package(str(root/'model')+'@opt2'))
+
+    def test_local_package_manifest_wins_over_fxb_suffix(self):
+        with tempfile.TemporaryDirectory() as d:
+            path=Path(d)/'renamed.fxb'
+            with zipfile.ZipFile(path,'w') as archive:
+                archive.writestr('manifest.json',json.dumps({'format':'FXB_EX','schema_version':1}))
+            with patch.object(facade,'urlopen',side_effect=AssertionError('local routing must not query catalog')):
+                self.assertTrue(facade._is_package(path))
+            with zipfile.ZipFile(path,'w') as archive:
+                archive.writestr('manifest.json',json.dumps({'format_version':2}))
+            self.assertFalse(facade._is_package(path))
+
+    def test_explicit_package_suffix_keeps_package_loader_guidance(self):
+        with tempfile.TemporaryDirectory() as d:
+            path=Path(d)/'native.fxbex';self.archive(path)
+            self.assertTrue(facade._is_package(path))
+            original=Mock();original._fxbex_hug=False
+            with patch.object(facade,'_PackageLLM') as package:
+                facade.hug(original)(path)
+                package.assert_called_once_with(path)
+            original.assert_not_called()
+
+    def test_tcl_plan_is_rejected_before_official_constructor(self):
+        with tempfile.TemporaryDirectory() as d:
+            path=Path(d)/'custom.fxb'
+            original=Mock();original._fxbex_hug=False
+            wrapped=facade.hug(original)
+            for producer in ({'execution_plan':{}},{'graph_plan':{}},{'explicit_consumer_required':True}):
+                self.archive(path,producer)
+                calls=[lambda:wrapped(path),lambda:wrapped(model=path),
+                       lambda:wrapped(model_id_or_path=path),lambda:wrapped(d,fxb=path)]
+                with patch.object(facade,'urlopen',side_effect=AssertionError('no local catalog request')):
+                    for call in calls:
+                        with self.assertRaisesRegex(ValueError,'TCL_NATIVE_FXB_REQUIRES_GRAPH_LOADER') as failure:call()
+                        self.assertIn('weights=',str(failure.exception))
+            original.assert_not_called()
+
+    def test_official_fxb_option_preserves_constructor_without_catalog(self):
+        with tempfile.TemporaryDirectory() as d:
+            path=Path(d)/'official.fxb';self.archive(path,{'operation_source':'official_model_build'})
+            original=Mock();original._fxbex_hug=False
+            with patch.object(facade,'urlopen',side_effect=AssertionError('no local catalog request')):
+                facade.hug(original)('owner/model',fxb=path,tensor_parallel_size=8)
+            original.assert_called_once_with('owner/model',fxb=path,tensor_parallel_size=8)
+
+    def test_explicit_native_override_keeps_existing_passthrough(self):
+        with tempfile.TemporaryDirectory() as d:
+            path=Path(d)/'custom.fxb';self.archive(path,{'execution_plan':{}})
+            original=Mock();original._fxbex_hug=False
+            facade.hug(original)(d,fxb=path,fxbex=False)
+            original.assert_called_once_with(d,fxb=path)
+
+    def test_package_cannot_be_passed_as_official_fxb_option(self):
+        with tempfile.TemporaryDirectory() as d:
+            path=Path(d)/'renamed.fxb';self.archive(path,manifest={'format':'FXB_EX','schema_version':1})
+            original=Mock();original._fxbex_hug=False
+            with self.assertRaisesRegex(ValueError,'FXB_EX_REQUIRES_PACKAGE_LOADER'):
+                facade.hug(original)(d,fxb=path)
+            original.assert_not_called()
+
+    def test_invalid_local_metadata_never_falls_through_to_official_loader(self):
+        import warnings
+        with tempfile.TemporaryDirectory() as d:
+            path=Path(d)/'invalid.fxb'
+            original=Mock();original._fxbex_hug=False
+            wrapped=facade.hug(original)
+            for invalid in ('not zip','not json','duplicate manifest','duplicate producer','duplicate key','nonfinite','bad producer','oversized'):
+                with self.subTest(invalid=invalid),warnings.catch_warnings():
+                    warnings.simplefilter('ignore')
+                    if invalid=='not zip':path.write_bytes(b'not an FXB')
+                    else:
+                        with zipfile.ZipFile(path,'w') as archive:
+                            manifest='not json' if invalid=='not json' else '{"format_version":2}'
+                            if invalid=='duplicate key':manifest='{"format_version":2,"format_version":2}'
+                            if invalid=='nonfinite':manifest='{"format_version":2,"value":NaN}'
+                            if invalid=='oversized':manifest=' '*(facade.MAX_JSON_SIZE+1)
+                            archive.writestr('manifest.json',manifest)
+                            if invalid=='duplicate manifest':archive.writestr('manifest.json',manifest)
+                            if invalid=='bad producer':archive.writestr(facade.PRODUCER_MEMBER,'[]')
+                            if invalid=='duplicate producer':
+                                archive.writestr(facade.PRODUCER_MEMBER,'{}')
+                                archive.writestr(facade.PRODUCER_MEMBER,'{}')
+                    with patch.object(facade,'urlopen',side_effect=AssertionError('no local catalog request')):
+                        with self.assertRaisesRegex(ValueError,'INVALID_LOCAL_FXB_METADATA'):wrapped(path)
+            original.assert_not_called()

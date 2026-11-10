@@ -25,6 +25,7 @@ class SafeTensorWeights(Mapping):
     def __init__(self, path, *, names=None):
         from safetensors import safe_open
         path = Path(path).absolute()
+        self.path = path
         indexed = None
         if path.is_file():
             files = [path]

@@ -1,0 +1,460 @@
+{
+  "server": "hancom-furi-agent-25",
+  "scope": "diagnostic follow-ups; unsuccessful evidence is preserved; no SDK source modifications",
+  "results": {
+    "resident-weight-v1": {
+      "status": "blocked_compiler_timeout",
+      "stage": "edf_compile",
+      "configured_timeout_s": 300,
+      "observed_processes_after_timeout": [],
+      "physical_npu_allocation": "not_started",
+      "note": "No output EDF orFXB before deadline; not an fxbXruntime failure. Exitcode was not retained byoriginal detachedsupervisor.",
+      "requested_linear_shape": [
+        4,
+        4096,
+        4096
+      ],
+      "compiler_command": [
+        "furiosa-tcc",
+        "--target-npu",
+        "renegade-8pe",
+        "--no-compiler-cache",
+        "--output",
+        "/tmp/tclmachine-edf-fwbn4eva/model.edf",
+        "/tmp/tclmachine-edf-fwbn4eva/source.tc"
+      ],
+      "raw_result": "/root/.cache/hf-librarian/fxb-confidence/resident-weight-v1/result.json"
+    },
+    "unused-weight-v2": {
+      "status": "failed",
+      "scope": "unused replicated8GiB externaltargets; originalsmallEDF performs computation; not9Bweight diversity or IOperformance",
+      "underbudget_rejected_before_allocation": true,
+      "payload_gpu_bytes": 8589934592,
+      "checkpoint_bytes": 33554824,
+      "load_seconds": 1.908966267015785,
+      "error_type": "AssertionError",
+      "error": "SMI did not confirm8GiB residentpayload",
+      "seconds": 2.290181877091527,
+      "memory": [
+        {
+          "label": "before_load",
+          "rss_bytes": 486289408,
+          "npu_bytes": {
+            "npu3": 0
+          }
+        },
+        {
+          "label": "loaded",
+          "rss_bytes": 502374400,
+          "npu_bytes": {
+            "npu3": 0
+          }
+        }
+      ],
+      "raw_result": "/root/.cache/hf-librarian/fxb-confidence/unused-weight-v2/result.json"
+    },
+    "no-profiler-v1": {
+      "status": "failed",
+      "scope": "synthetic fixed [4,8] shared-linear program; no large-checkpoint or long-service claim",
+      "source_fxb_sha256": "7ff441df09c784e6eddc57c5e71100455d0937f484a69583684c86e258981390",
+      "calls": 2048,
+      "continue_on_trace_loss": false,
+      "profiling": "disabled_control",
+      "cascade_depth": 128,
+      "plan_steps": {
+        "cascade": 128,
+        "decode": 3,
+        "prefill": 1
+      },
+      "unique_edfs": 4,
+      "error_type": "AssertionError",
+      "error": "post-warmup memory growth exceeded the explicit bound",
+      "seconds": 21.994345841929317,
+      "closed_rss_bytes": [
+        481927168,
+        492670976,
+        502947840,
+        513249280,
+        523513856,
+        533790720,
+        544051200,
+        554311680,
+        564572160,
+        574812160,
+        585072640,
+        595312640,
+        605556736,
+        615800832,
+        626073600,
+        636325888,
+        646574080,
+        656809984,
+        667086848,
+        677343232,
+        687583232,
+        697823232,
+        708083712,
+        718336000,
+        728580096,
+        738820096,
+        749060096,
+        759296000,
+        769540096,
+        779796480,
+        790048768,
+        800292864
+      ],
+      "closed_rss_first_to_last_growth_bytes": 318365696,
+      "closed_npu_bytes": [
+        {
+          "npu3": 0
+        },
+        {
+          "npu3": 0
+        },
+        {
+          "npu3": 0
+        },
+        {
+          "npu3": 0
+        },
+        {
+          "npu3": 0
+        },
+        {
+          "npu3": 0
+        },
+        {
+          "npu3": 0
+        },
+        {
+          "npu3": 0
+        },
+        {
+          "npu3": 0
+        },
+        {
+          "npu3": 0
+        },
+        {
+          "npu3": 0
+        },
+        {
+          "npu3": 0
+        },
+        {
+          "npu3": 0
+        },
+        {
+          "npu3": 0
+        },
+        {
+          "npu3": 0
+        },
+        {
+          "npu3": 0
+        },
+        {
+          "npu3": 0
+        },
+        {
+          "npu3": 0
+        },
+        {
+          "npu3": 0
+        },
+        {
+          "npu3": 0
+        },
+        {
+          "npu3": 0
+        },
+        {
+          "npu3": 0
+        },
+        {
+          "npu3": 0
+        },
+        {
+          "npu3": 0
+        },
+        {
+          "npu3": 0
+        },
+        {
+          "npu3": 0
+        },
+        {
+          "npu3": 0
+        },
+        {
+          "npu3": 0
+        },
+        {
+          "npu3": 0
+        },
+        {
+          "npu3": 0
+        },
+        {
+          "npu3": 0
+        },
+        {
+          "npu3": 0
+        }
+      ],
+      "raw_result": "/root/.cache/hf-librarian/fxb-confidence/no-profiler-v1/result.json"
+    },
+    "gc-control-v1": {
+      "status": "runtime_numerical_only_trace_disabled",
+      "scope": "synthetic fixed [4,8] shared-linear program; no large-checkpoint or long-service claim",
+      "source_fxb_sha256": "7ff441df09c784e6eddc57c5e71100455d0937f484a69583684c86e258981390",
+      "calls": 512,
+      "continue_on_trace_loss": false,
+      "profiling": "disabled_control",
+      "cascade_depth": 128,
+      "plan_steps": {
+        "cascade": 128,
+        "decode": 3,
+        "prefill": 1
+      },
+      "unique_edfs": 4,
+      "gc_collections": [
+        20,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10
+      ],
+      "expected_calls": 512,
+      "negative_requests_rejected": 24,
+      "request_isolation": "passed",
+      "reset": "passed",
+      "cpu_reference_comparisons": 512,
+      "rss_growth_after_warmup_bytes": 61562880,
+      "npu_growth_after_warmup_bytes": {
+        "npu3": 0
+      },
+      "growth_bound_mib": 128,
+      "warm_host_request_median_s": 0.000593727920204401,
+      "seconds": 8.131319404579699,
+      "closed_rss_bytes": [
+        482234368,
+        492781568,
+        503029760,
+        513302528,
+        523579392,
+        533856256,
+        544104448,
+        554344448
+      ],
+      "closed_rss_first_to_last_growth_bytes": 72110080,
+      "closed_npu_bytes": [
+        {
+          "npu3": 0
+        },
+        {
+          "npu3": 0
+        },
+        {
+          "npu3": 0
+        },
+        {
+          "npu3": 0
+        },
+        {
+          "npu3": 0
+        },
+        {
+          "npu3": 0
+        },
+        {
+          "npu3": 0
+        },
+        {
+          "npu3": 0
+        }
+      ],
+      "raw_result": "/root/.cache/hf-librarian/fxb-confidence/gc-control-v1/result.json"
+    },
+    "tag-cleanup-control-v1": {
+      "status": "runtime_numerical_only_trace_disabled",
+      "scope": "synthetic fixed [4,8] shared-linear program; no large-checkpoint or long-service claim",
+      "source_fxb_sha256": "7ff441df09c784e6eddc57c5e71100455d0937f484a69583684c86e258981390",
+      "calls": 512,
+      "continue_on_trace_loss": false,
+      "profiling": "disabled_control",
+      "cascade_depth": 128,
+      "plan_steps": {
+        "cascade": 128,
+        "decode": 3,
+        "prefill": 1
+      },
+      "unique_edfs": 4,
+      "profile_tags_removed": [
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4
+      ],
+      "gc_collections": [
+        20,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10
+      ],
+      "expected_calls": 512,
+      "negative_requests_rejected": 24,
+      "request_isolation": "passed",
+      "reset": "passed",
+      "cpu_reference_comparisons": 512,
+      "rss_growth_after_warmup_bytes": 58507264,
+      "npu_growth_after_warmup_bytes": {
+        "npu3": 0
+      },
+      "growth_bound_mib": 128,
+      "warm_host_request_median_s": 0.000565101858228445,
+      "seconds": 7.984294070396572,
+      "closed_rss_bytes": [
+        481734656,
+        491991040,
+        501760000,
+        511512576,
+        521256960,
+        531025920,
+        540762112,
+        550498304
+      ],
+      "closed_rss_first_to_last_growth_bytes": 68763648,
+      "closed_npu_bytes": [
+        {
+          "npu3": 0
+        },
+        {
+          "npu3": 0
+        },
+        {
+          "npu3": 0
+        },
+        {
+          "npu3": 0
+        },
+        {
+          "npu3": 0
+        },
+        {
+          "npu3": 0
+        },
+        {
+          "npu3": 0
+        },
+        {
+          "npu3": 0
+        }
+      ],
+      "raw_result": "/root/.cache/hf-librarian/fxb-confidence/tag-cleanup-control-v1/result.json"
+    },
+    "both-tag-cleanup-control-v1": {
+      "status": "runtime_numerical_only_trace_disabled",
+      "scope": "synthetic fixed [4,8] shared-linear program; no large-checkpoint or long-service claim",
+      "source_fxb_sha256": "7ff441df09c784e6eddc57c5e71100455d0937f484a69583684c86e258981390",
+      "calls": 512,
+      "continue_on_trace_loss": false,
+      "profiling": "disabled_control",
+      "cascade_depth": 128,
+      "plan_steps": {
+        "cascade": 128,
+        "decode": 3,
+        "prefill": 1
+      },
+      "unique_edfs": 4,
+      "profile_tags_removed": [
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4
+      ],
+      "gc_collections": [
+        20,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10
+      ],
+      "expected_calls": 512,
+      "negative_requests_rejected": 24,
+      "request_isolation": "passed",
+      "reset": "passed",
+      "cpu_reference_comparisons": 512,
+      "rss_growth_after_warmup_bytes": 58478592,
+      "npu_growth_after_warmup_bytes": {
+        "npu3": 0
+      },
+      "growth_bound_mib": 128,
+      "warm_host_request_median_s": 0.0005848330911248922,
+      "seconds": 8.078669712878764,
+      "closed_rss_bytes": [
+        482496512,
+        492556288,
+        502312960,
+        512069632,
+        521801728,
+        531562496,
+        541298688,
+        551034880
+      ],
+      "closed_rss_first_to_last_growth_bytes": 68538368,
+      "closed_npu_bytes": [
+        {
+          "npu3": 0
+        },
+        {
+          "npu3": 0
+        },
+        {
+          "npu3": 0
+        },
+        {
+          "npu3": 0
+        },
+        {
+          "npu3": 0
+        },
+        {
+          "npu3": 0
+        },
+        {
+          "npu3": 0
+        },
+        {
+          "npu3": 0
+        }
+      ],
+      "raw_result": "/root/.cache/hf-librarian/fxb-confidence/both-tag-cleanup-control-v1/result.json"
+    }
+  },
+  "conclusions": [
+    "No-profiler32reload test failed explicit128MiBhostgrowth bound despite2048 CPU comparisons andzeroNPUmemory afterclose.",
+    "gc.collect andidentity-guardedSDKprofiletag removal didnotremove principalhostRSSslope; lifecyclecause unresolved.",
+    "Dense4096EDF compile didnotfinish within300sec; no physical8GiBcomputation was reached. Thisis aTCL/compilerboundary,notfxbXruntime failure.",
+    "8GiBunusedpayload met4GiBlogicalrejection butSMIreported0afterload; this isnot physical8GiBproof. Lazyunuseddata andSMIsampling were not distinguished."
+  ]
+}

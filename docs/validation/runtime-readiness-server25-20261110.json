@@ -1,0 +1,967 @@
+{
+  "schema": "fxbx.runtime-readiness-evidence.v1",
+  "measured_at": "2026-11-10T08:52:08.831748+00:00",
+  "server": "hancom-furi-agent-25",
+  "device": "npu3 / logical furiosa:0; fusion8 Single",
+  "candidate": "wheel-v4; SDK packages not upgraded",
+  "producer_base": "cf8b5720c5554be6f94a51902f03570f0264bfec",
+  "consumer_base": "1ca68447567cca3b36bbeb1b08d9bdc44b0f6723",
+  "consumer_identity": {
+    "name": "fxbx",
+    "version": "0.8.3",
+    "source_sha256": "323ee3aee930a41dc8e211793a394062f320d8b350aa7ed152b4607fcad88e97",
+    "required_features": [
+      "qualification_receipt_v1"
+    ]
+  },
+  "packages": {
+    "fxbx": "0.8.3",
+    "tplmachine": "0.5.1",
+    "torch": "2.10.0+cpu",
+    "furiosa-torch": "2026.4.0",
+    "furiosa-tcc": "2026.4.0",
+    "safetensors": "0.8.0"
+  },
+  "wheels": {
+    "fxbx-0.8.3-py3-none-any.whl": "0d300ad5c2c8f0cc6d47407598e3f4a362dc181c14d0ac5c9c2749bf54e7db6b",
+    "tplmachine-0.5.1-py3-none-any.whl": "d4cfb8fa24cc9a3e4e3cdcbe95394bfa64254e3bac9a6f76b0bdf50c43b7a273"
+  },
+  "unit": {
+    "fxbx": {
+      "tests": 262,
+      "passed": true,
+      "skipped": 0,
+      "log_sha256": "2468788fab66b5232cdcff0d89558bf7a464519675b13d47a042af0e9608f296"
+    },
+    "tclmachine": {
+      "tests": 417,
+      "passed": true,
+      "skipped": 2,
+      "log_sha256": "3b3666b9aceb20f91c03594e078a0807ae04117cd0a684dfe9f238e405ff4a1e"
+    }
+  },
+  "results": {
+    "legacy-v2": {
+      "status": "passed",
+      "source_fxb_sha256": "98cbe5c6220bace39c58c8861daf40a41039f7371b27c9f4fa68ab4d066989a8",
+      "scope": "qualified single-EDF replay, not model-architecture registration",
+      "calls": 10,
+      "task_events": 20,
+      "cpu_routes": 0,
+      "seconds": 0.07538096979260445
+    },
+    "qualified-v4": {
+      "status": "passed",
+      "models": [
+        {
+          "name": "dense",
+          "producer_status": "verified",
+          "build_and_qualification_s": 3.7533193030394614,
+          "producer_calls": 6,
+          "producer_cpu_routes": 0,
+          "npu_task_steps": 6,
+          "static_preparation_steps_without_task": 0,
+          "strict_reloads": 3,
+          "calls": 15,
+          "receipt": "/root/.cache/hf-librarian/runtime-remediation-20261110/source/fxbx-v4/../../results/qualified-v4/dense/model.fxb.verified/qualification.json",
+          "unqualified_output_device_rejected": true,
+          "stale_consumer_rejected_before_allocation": true,
+          "same_shape_changed_weights_rejected_before_allocation": true,
+          "status": "passed"
+        },
+        {
+          "name": "stateful",
+          "producer_status": "verified",
+          "build_and_qualification_s": 3.8058937387540936,
+          "producer_calls": 6,
+          "producer_cpu_routes": 0,
+          "npu_task_steps": 6,
+          "static_preparation_steps_without_task": 0,
+          "strict_reloads": 3,
+          "calls": 15,
+          "receipt": "/root/.cache/hf-librarian/runtime-remediation-20261110/source/fxbx-v4/../../results/qualified-v4/stateful/model.fxb.verified/qualification.json",
+          "unqualified_output_device_rejected": true,
+          "stale_consumer_rejected_before_allocation": true,
+          "same_shape_changed_weights_rejected_before_allocation": true,
+          "status": "passed"
+        },
+        {
+          "name": "prepared",
+          "producer_status": "verified",
+          "build_and_qualification_s": 3.7381291170604527,
+          "producer_calls": 5,
+          "producer_cpu_routes": 0,
+          "npu_task_steps": 5,
+          "static_preparation_steps_without_task": 0,
+          "strict_reloads": 3,
+          "calls": 15,
+          "receipt": "/root/.cache/hf-librarian/runtime-remediation-20261110/source/fxbx-v4/../../results/qualified-v4/prepared/model.fxb.verified/qualification.json",
+          "unqualified_output_device_rejected": true,
+          "stale_consumer_rejected_before_allocation": true,
+          "status": "passed"
+        }
+      ],
+      "worker_policy": "one process per model; parent never imports SDK",
+      "seconds": 22.038404755759984
+    },
+    "thread-v2": {
+      "status": "passed",
+      "scope": "four host callers; session RLock serializes NPU work; fixed synthetic fixture",
+      "threads": 4,
+      "calls_per_thread": 100,
+      "clients": [
+        {
+          "thread": 0,
+          "calls": 100,
+          "queue_wait_median_s": 0.00046087149530649185
+        },
+        {
+          "thread": 1,
+          "calls": 100,
+          "queue_wait_median_s": 0.0011075809597969055
+        },
+        {
+          "thread": 2,
+          "calls": 100,
+          "queue_wait_median_s": 0.0010555994231253862
+        },
+        {
+          "thread": 3,
+          "calls": 100,
+          "queue_wait_median_s": 0.001070300117135048
+        }
+      ],
+      "cpu_reference_comparisons": 400,
+      "expected_calls": 400,
+      "isolation_and_reset": "passed",
+      "seconds": 0.35628319764509797
+    },
+    "profile-v2": {
+      "status": "passed",
+      "strategy": "single Profiler enclosing all session opens/calls/closes",
+      "scope": "bounded fixed-shape synthetic fixture; no SDK policy bypass",
+      "calls": 24,
+      "reloads": 4,
+      "call_bounded_steps": 1056,
+      "cpu_routes": 0,
+      "checks": [
+        {
+          "label": "audit_call::0",
+          "entry": "prefill",
+          "reload": 0,
+          "host_seconds": 0.0014701797626912594,
+          "matched_steps": 1
+        },
+        {
+          "label": "audit_call::1",
+          "entry": "decode",
+          "reload": 0,
+          "host_seconds": 0.0008440720848739147,
+          "matched_steps": 3
+        },
+        {
+          "label": "audit_call::2",
+          "entry": "cascade",
+          "reload": 0,
+          "host_seconds": 0.014304180163890123,
+          "matched_steps": 128
+        },
+        {
+          "label": "audit_call::3",
+          "entry": "prefill",
+          "reload": 0,
+          "host_seconds": 0.000594818964600563,
+          "matched_steps": 1
+        },
+        {
+          "label": "audit_call::4",
+          "entry": "decode",
+          "reload": 0,
+          "host_seconds": 0.000841102097183466,
+          "matched_steps": 3
+        },
+        {
+          "label": "audit_call::5",
+          "entry": "cascade",
+          "reload": 0,
+          "host_seconds": 0.014914487954229116,
+          "matched_steps": 128
+        },
+        {
+          "label": "audit_call::6",
+          "entry": "prefill",
+          "reload": 1,
+          "host_seconds": 0.0008184919133782387,
+          "matched_steps": 1
+        },
+        {
+          "label": "audit_call::7",
+          "entry": "decode",
+          "reload": 1,
+          "host_seconds": 0.0008057812228798866,
+          "matched_steps": 3
+        },
+        {
+          "label": "audit_call::8",
+          "entry": "cascade",
+          "reload": 1,
+          "host_seconds": 0.013994305860251188,
+          "matched_steps": 128
+        },
+        {
+          "label": "audit_call::9",
+          "entry": "prefill",
+          "reload": 1,
+          "host_seconds": 0.0006076577119529247,
+          "matched_steps": 1
+        },
+        {
+          "label": "audit_call::10",
+          "entry": "decode",
+          "reload": 1,
+          "host_seconds": 0.0008285506628453732,
+          "matched_steps": 3
+        },
+        {
+          "label": "audit_call::11",
+          "entry": "cascade",
+          "reload": 1,
+          "host_seconds": 0.014809857122600079,
+          "matched_steps": 128
+        },
+        {
+          "label": "audit_call::12",
+          "entry": "prefill",
+          "reload": 2,
+          "host_seconds": 0.000813610851764679,
+          "matched_steps": 1
+        },
+        {
+          "label": "audit_call::13",
+          "entry": "decode",
+          "reload": 2,
+          "host_seconds": 0.0008167009800672531,
+          "matched_steps": 3
+        },
+        {
+          "label": "audit_call::14",
+          "entry": "cascade",
+          "reload": 2,
+          "host_seconds": 0.014130076859146357,
+          "matched_steps": 128
+        },
+        {
+          "label": "audit_call::15",
+          "entry": "prefill",
+          "reload": 2,
+          "host_seconds": 0.0005877278745174408,
+          "matched_steps": 1
+        },
+        {
+          "label": "audit_call::16",
+          "entry": "decode",
+          "reload": 2,
+          "host_seconds": 0.0008212910033762455,
+          "matched_steps": 3
+        },
+        {
+          "label": "audit_call::17",
+          "entry": "cascade",
+          "reload": 2,
+          "host_seconds": 0.015058141201734543,
+          "matched_steps": 128
+        },
+        {
+          "label": "audit_call::18",
+          "entry": "prefill",
+          "reload": 3,
+          "host_seconds": 0.0008058310486376286,
+          "matched_steps": 1
+        },
+        {
+          "label": "audit_call::19",
+          "entry": "decode",
+          "reload": 3,
+          "host_seconds": 0.000806921161711216,
+          "matched_steps": 3
+        },
+        {
+          "label": "audit_call::20",
+          "entry": "cascade",
+          "reload": 3,
+          "host_seconds": 0.014063067268580198,
+          "matched_steps": 128
+        },
+        {
+          "label": "audit_call::21",
+          "entry": "prefill",
+          "reload": 3,
+          "host_seconds": 0.0006045079790055752,
+          "matched_steps": 1
+        },
+        {
+          "label": "audit_call::22",
+          "entry": "decode",
+          "reload": 3,
+          "host_seconds": 0.0008333609439432621,
+          "matched_steps": 3
+        },
+        {
+          "label": "audit_call::23",
+          "entry": "cascade",
+          "reload": 3,
+          "host_seconds": 0.01457298407331109,
+          "matched_steps": 128
+        }
+      ],
+      "seconds": 0.4341116161085665
+    },
+    "isolated32-v3": {
+      "status": "passed",
+      "jobs": [
+        {
+          "index": 0,
+          "seconds": 4.492341828066856,
+          "parent_rss": 23879680,
+          "worker_final_rss": 455368704,
+          "calls": 64,
+          "worker_reaped": true,
+          "closed_npu_bytes": {
+            "npu3": 0
+          }
+        },
+        {
+          "index": 1,
+          "seconds": 4.7307623121887445,
+          "parent_rss": 23891968,
+          "worker_final_rss": 455655424,
+          "calls": 64,
+          "worker_reaped": true,
+          "closed_npu_bytes": {
+            "npu3": 0
+          }
+        },
+        {
+          "index": 2,
+          "seconds": 4.380835849326104,
+          "parent_rss": 23908352,
+          "worker_final_rss": 455749632,
+          "calls": 64,
+          "worker_reaped": true,
+          "closed_npu_bytes": {
+            "npu3": 0
+          }
+        },
+        {
+          "index": 3,
+          "seconds": 4.3250490399077535,
+          "parent_rss": 23908352,
+          "worker_final_rss": 455331840,
+          "calls": 64,
+          "worker_reaped": true,
+          "closed_npu_bytes": {
+            "npu3": 0
+          }
+        },
+        {
+          "index": 4,
+          "seconds": 4.384481071028858,
+          "parent_rss": 23908352,
+          "worker_final_rss": 455172096,
+          "calls": 64,
+          "worker_reaped": true,
+          "closed_npu_bytes": {
+            "npu3": 0
+          }
+        },
+        {
+          "index": 5,
+          "seconds": 4.323382600210607,
+          "parent_rss": 23908352,
+          "worker_final_rss": 456015872,
+          "calls": 64,
+          "worker_reaped": true,
+          "closed_npu_bytes": {
+            "npu3": 0
+          }
+        },
+        {
+          "index": 6,
+          "seconds": 4.754270315170288,
+          "parent_rss": 23916544,
+          "worker_final_rss": 455397376,
+          "calls": 64,
+          "worker_reaped": true,
+          "closed_npu_bytes": {
+            "npu3": 0
+          }
+        },
+        {
+          "index": 7,
+          "seconds": 4.378704944159836,
+          "parent_rss": 23920640,
+          "worker_final_rss": 455086080,
+          "calls": 64,
+          "worker_reaped": true,
+          "closed_npu_bytes": {
+            "npu3": 0
+          }
+        },
+        {
+          "index": 8,
+          "seconds": 4.453642381820828,
+          "parent_rss": 23920640,
+          "worker_final_rss": 455540736,
+          "calls": 64,
+          "worker_reaped": true,
+          "closed_npu_bytes": {
+            "npu3": 0
+          }
+        },
+        {
+          "index": 9,
+          "seconds": 4.4335287269204855,
+          "parent_rss": 23924736,
+          "worker_final_rss": 455069696,
+          "calls": 64,
+          "worker_reaped": true,
+          "closed_npu_bytes": {
+            "npu3": 0
+          }
+        },
+        {
+          "index": 10,
+          "seconds": 4.537408229894936,
+          "parent_rss": 23924736,
+          "worker_final_rss": 455622656,
+          "calls": 64,
+          "worker_reaped": true,
+          "closed_npu_bytes": {
+            "npu3": 0
+          }
+        },
+        {
+          "index": 11,
+          "seconds": 4.381980680860579,
+          "parent_rss": 23924736,
+          "worker_final_rss": 455503872,
+          "calls": 64,
+          "worker_reaped": true,
+          "closed_npu_bytes": {
+            "npu3": 0
+          }
+        },
+        {
+          "index": 12,
+          "seconds": 4.38602933101356,
+          "parent_rss": 23924736,
+          "worker_final_rss": 455643136,
+          "calls": 64,
+          "worker_reaped": true,
+          "closed_npu_bytes": {
+            "npu3": 0
+          }
+        },
+        {
+          "index": 13,
+          "seconds": 4.404374184086919,
+          "parent_rss": 23928832,
+          "worker_final_rss": 455380992,
+          "calls": 64,
+          "worker_reaped": true,
+          "closed_npu_bytes": {
+            "npu3": 0
+          }
+        },
+        {
+          "index": 14,
+          "seconds": 4.383006305899471,
+          "parent_rss": 23928832,
+          "worker_final_rss": 455618560,
+          "calls": 64,
+          "worker_reaped": true,
+          "closed_npu_bytes": {
+            "npu3": 0
+          }
+        },
+        {
+          "index": 15,
+          "seconds": 4.390303167980164,
+          "parent_rss": 23928832,
+          "worker_final_rss": 454823936,
+          "calls": 64,
+          "worker_reaped": true,
+          "closed_npu_bytes": {
+            "npu3": 0
+          }
+        },
+        {
+          "index": 16,
+          "seconds": 4.504369525238872,
+          "parent_rss": 23928832,
+          "worker_final_rss": 455729152,
+          "calls": 64,
+          "worker_reaped": true,
+          "closed_npu_bytes": {
+            "npu3": 0
+          }
+        },
+        {
+          "index": 17,
+          "seconds": 4.6983342920430005,
+          "parent_rss": 23928832,
+          "worker_final_rss": 455725056,
+          "calls": 64,
+          "worker_reaped": true,
+          "closed_npu_bytes": {
+            "npu3": 0
+          }
+        },
+        {
+          "index": 18,
+          "seconds": 4.383034524042159,
+          "parent_rss": 23932928,
+          "worker_final_rss": 455069696,
+          "calls": 64,
+          "worker_reaped": true,
+          "closed_npu_bytes": {
+            "npu3": 0
+          }
+        },
+        {
+          "index": 19,
+          "seconds": 4.426428596954793,
+          "parent_rss": 23937024,
+          "worker_final_rss": 455106560,
+          "calls": 64,
+          "worker_reaped": true,
+          "closed_npu_bytes": {
+            "npu3": 0
+          }
+        },
+        {
+          "index": 20,
+          "seconds": 4.3783804890699685,
+          "parent_rss": 23937024,
+          "worker_final_rss": 455516160,
+          "calls": 64,
+          "worker_reaped": true,
+          "closed_npu_bytes": {
+            "npu3": 0
+          }
+        },
+        {
+          "index": 21,
+          "seconds": 4.38790255272761,
+          "parent_rss": 23941120,
+          "worker_final_rss": 455118848,
+          "calls": 64,
+          "worker_reaped": true,
+          "closed_npu_bytes": {
+            "npu3": 0
+          }
+        },
+        {
+          "index": 22,
+          "seconds": 4.394700656179339,
+          "parent_rss": 23941120,
+          "worker_final_rss": 455733248,
+          "calls": 64,
+          "worker_reaped": true,
+          "closed_npu_bytes": {
+            "npu3": 0
+          }
+        },
+        {
+          "index": 23,
+          "seconds": 4.435636061709374,
+          "parent_rss": 23941120,
+          "worker_final_rss": 455327744,
+          "calls": 64,
+          "worker_reaped": true,
+          "closed_npu_bytes": {
+            "npu3": 0
+          }
+        },
+        {
+          "index": 24,
+          "seconds": 4.402965859044343,
+          "parent_rss": 23941120,
+          "worker_final_rss": 455675904,
+          "calls": 64,
+          "worker_reaped": true,
+          "closed_npu_bytes": {
+            "npu3": 0
+          }
+        },
+        {
+          "index": 25,
+          "seconds": 4.429196133743972,
+          "parent_rss": 23941120,
+          "worker_final_rss": 455364608,
+          "calls": 64,
+          "worker_reaped": true,
+          "closed_npu_bytes": {
+            "npu3": 0
+          }
+        },
+        {
+          "index": 26,
+          "seconds": 4.442595152184367,
+          "parent_rss": 23945216,
+          "worker_final_rss": 455016448,
+          "calls": 64,
+          "worker_reaped": true,
+          "closed_npu_bytes": {
+            "npu3": 0
+          }
+        },
+        {
+          "index": 27,
+          "seconds": 4.382049786858261,
+          "parent_rss": 23945216,
+          "worker_final_rss": 455733248,
+          "calls": 64,
+          "worker_reaped": true,
+          "closed_npu_bytes": {
+            "npu3": 0
+          }
+        },
+        {
+          "index": 28,
+          "seconds": 4.439491108059883,
+          "parent_rss": 23949312,
+          "worker_final_rss": 455340032,
+          "calls": 64,
+          "worker_reaped": true,
+          "closed_npu_bytes": {
+            "npu3": 0
+          }
+        },
+        {
+          "index": 29,
+          "seconds": 4.381198946386576,
+          "parent_rss": 23949312,
+          "worker_final_rss": 455516160,
+          "calls": 64,
+          "worker_reaped": true,
+          "closed_npu_bytes": {
+            "npu3": 0
+          }
+        },
+        {
+          "index": 30,
+          "seconds": 4.389718350954354,
+          "parent_rss": 23949312,
+          "worker_final_rss": 455872512,
+          "calls": 64,
+          "worker_reaped": true,
+          "closed_npu_bytes": {
+            "npu3": 0
+          }
+        },
+        {
+          "index": 31,
+          "seconds": 4.4422718291170895,
+          "parent_rss": 23949312,
+          "worker_final_rss": 455643136,
+          "calls": 64,
+          "worker_reaped": true,
+          "closed_npu_bytes": {
+            "npu3": 0
+          }
+        }
+      ],
+      "calls": 2048,
+      "scope": "fresh native process per model job; reused synthetic fixed-shape model",
+      "npu_evidence": "not_collected_here; require separate strict qualification",
+      "collection": "FURIOSA_TORCH_PROFILE=warn before child SDK import",
+      "parent_rss_before": 23855104,
+      "parent_rss_growth_after_warmup": 57344,
+      "memory_outcome": "contained_by_worker_lifecycle",
+      "in_process_sdk_retention": "not_fixed_by_this_probe",
+      "parent_imported_sdk": false,
+      "growth_bound_mib": 128,
+      "seconds": 142.22224963689223
+    },
+    "official-v4": {
+      "status": "passed",
+      "route": "official_llm",
+      "fxb": "/root/.cache/hf-librarian/fxb-confidence/native/repacked.fxb",
+      "snapshot": "/root/.cache/huggingface/hub/models--Qwen--Qwen3-4B-FP8/snapshots/96b30dc13593a244a5e59e84687309f53c375cfa",
+      "scope": "official cached load and deterministic functional generation",
+      "npu_step_evidence": "not_collected",
+      "builder_attempts": [],
+      "outputs": [
+        {
+          "prompt": "Reply with only the number: what is 2+2?",
+          "expected": "4",
+          "text": "4",
+          "request_seconds": 0.04704087832942605,
+          "reported_cached_tokens": 0
+        },
+        {
+          "prompt": "Reply with exactly this word: READY",
+          "expected": "READY",
+          "text": "READY",
+          "request_seconds": 0.022178623359650373,
+          "reported_cached_tokens": 21
+        },
+        {
+          "prompt": "Reply with exactly this word: READY",
+          "expected": "READY",
+          "text": "READY",
+          "request_seconds": 0.021249906159937382,
+          "reported_cached_tokens": 39
+        }
+      ],
+      "load_seconds": 4.907149005215615,
+      "generation_host_median_seconds": 0.022178623359650373,
+      "seconds": 8.593529579229653
+    }
+  },
+  "memory_collector_control": {
+    "default": {
+      "status": "completed",
+      "phase": "reload",
+      "calls": 512,
+      "source_sha256": "f48ed9f80809792f816b8aba4eab1796d458618169c04e0e8e05dce5a54f476d",
+      "scope": "diagnostic, no profiler; not NPU execution qualification",
+      "profiler_mode": "default",
+      "initial_profiler_type": "NoneType",
+      "current_profiler_type": "NoneType",
+      "final": {
+        "VmRSS": 696340480,
+        "Threads": 23,
+        "Rss": 696340480,
+        "Pss": 653163520,
+        "Private_Clean": 110174208,
+        "Private_Dirty": 505458688,
+        "Anonymous": 505163776,
+        "fds": 69
+      },
+      "live_python_wrappers": 0,
+      "rss_growth_after_two_rounds": 219910144,
+      "private_growth_after_two_rounds": 219906048,
+      "seconds": 11.667525123339146,
+      "raw_result": "/root/.cache/hf-librarian/fxb-confidence/lifetime-separation-v2/default/result.json"
+    },
+    "none": {
+      "status": "completed",
+      "phase": "reload",
+      "calls": 512,
+      "source_sha256": "f48ed9f80809792f816b8aba4eab1796d458618169c04e0e8e05dce5a54f476d",
+      "scope": "diagnostic, no profiler; not NPU execution qualification",
+      "profiler_mode": "none",
+      "initial_profiler_type": "NoneType",
+      "previous_profiler_type": "NoneType",
+      "current_profiler_type": "NoneType",
+      "final": {
+        "VmRSS": 696909824,
+        "Threads": 23,
+        "Rss": 696909824,
+        "Pss": 653675520,
+        "Private_Clean": 110542848,
+        "Private_Dirty": 505511936,
+        "Anonymous": 505217024,
+        "fds": 69
+      },
+      "live_python_wrappers": 0,
+      "rss_growth_after_two_rounds": 219869184,
+      "private_growth_after_two_rounds": 219865088,
+      "seconds": 9.642899306025356,
+      "raw_result": "/root/.cache/hf-librarian/fxb-confidence/lifetime-separation-v2/none/result.json"
+    },
+    "warn": {
+      "status": "completed",
+      "phase": "reload",
+      "calls": 512,
+      "source_sha256": "f48ed9f80809792f816b8aba4eab1796d458618169c04e0e8e05dce5a54f476d",
+      "scope": "diagnostic, no profiler; not NPU execution qualification",
+      "profiler_mode": "warn",
+      "initial_profiler_type": "NoneType",
+      "current_profiler_type": "NoneType",
+      "final": {
+        "VmRSS": 471486464,
+        "Threads": 23,
+        "Rss": 471486464,
+        "Pss": 428309504,
+        "Private_Clean": 110862336,
+        "Private_Dirty": 279891968,
+        "Anonymous": 279597056,
+        "fds": 69
+      },
+      "live_python_wrappers": 0,
+      "rss_growth_after_two_rounds": 14860288,
+      "private_growth_after_two_rounds": 14860288,
+      "seconds": 8.813503820914775,
+      "raw_result": "/root/.cache/hf-librarian/fxb-confidence/lifetime-separation-v2/warn/result.json"
+    }
+  },
+  "lifetime_phase_control": {
+    "deserialize": {
+      "status": "completed",
+      "phase": "deserialize",
+      "calls": 0,
+      "source_sha256": "9dd7de824fb2a8860c05af473fd433851f428123317915536a930b342cd33bf2",
+      "scope": "diagnostic, no profiler; not NPU execution qualification",
+      "final": {
+        "VmRSS": 447336448,
+        "Threads": 18,
+        "Rss": 447336448,
+        "Pss": 404013056,
+        "Private_Clean": 105291776,
+        "Private_Dirty": 261070848,
+        "Anonymous": 261070848,
+        "fds": 4
+      },
+      "live_python_wrappers": 0,
+      "rss_growth_after_two_rounds": 0,
+      "private_growth_after_two_rounds": 0,
+      "seconds": 6.145828313194215
+    },
+    "wrap": {
+      "status": "completed",
+      "phase": "wrap",
+      "calls": 0,
+      "source_sha256": "9dd7de824fb2a8860c05af473fd433851f428123317915536a930b342cd33bf2",
+      "scope": "diagnostic, no profiler; not NPU execution qualification",
+      "final": {
+        "VmRSS": 476553216,
+        "Threads": 18,
+        "Rss": 476553216,
+        "Pss": 433136640,
+        "Private_Clean": 104906752,
+        "Private_Dirty": 290471936,
+        "Anonymous": 290471936,
+        "fds": 4
+      },
+      "live_python_wrappers": 0,
+      "rss_growth_after_two_rounds": 27492352,
+      "private_growth_after_two_rounds": 27492352,
+      "seconds": 6.220668782945722
+    },
+    "upload": {
+      "status": "completed",
+      "phase": "upload",
+      "calls": 0,
+      "source_sha256": "9dd7de824fb2a8860c05af473fd433851f428123317915536a930b342cd33bf2",
+      "scope": "diagnostic, no profiler; not NPU execution qualification",
+      "final": {
+        "VmRSS": 467148800,
+        "Threads": 23,
+        "Rss": 467148800,
+        "Pss": 423884800,
+        "Private_Clean": 107704320,
+        "Private_Dirty": 278482944,
+        "Anonymous": 278372352,
+        "fds": 69
+      },
+      "live_python_wrappers": 0,
+      "rss_growth_after_two_rounds": 15208448,
+      "private_growth_after_two_rounds": 15208448,
+      "seconds": 6.976099899969995
+    },
+    "load": {
+      "status": "completed",
+      "phase": "load",
+      "calls": 0,
+      "source_sha256": "9dd7de824fb2a8860c05af473fd433851f428123317915536a930b342cd33bf2",
+      "scope": "diagnostic, no profiler; not NPU execution qualification",
+      "final": {
+        "VmRSS": 467668992,
+        "Threads": 23,
+        "Rss": 467668992,
+        "Pss": 424278016,
+        "Private_Clean": 107483136,
+        "Private_Dirty": 279126016,
+        "Anonymous": 278978560,
+        "fds": 69
+      },
+      "live_python_wrappers": 0,
+      "rss_growth_after_two_rounds": 15446016,
+      "private_growth_after_two_rounds": 15446016,
+      "seconds": 6.589099876116961
+    },
+    "reuse": {
+      "status": "completed",
+      "phase": "reuse",
+      "calls": 2048,
+      "source_sha256": "9dd7de824fb2a8860c05af473fd433851f428123317915536a930b342cd33bf2",
+      "scope": "diagnostic, no profiler; not NPU execution qualification",
+      "final": {
+        "VmRSS": 468365312,
+        "Threads": 23,
+        "Rss": 468365312,
+        "Pss": 425164800,
+        "Private_Clean": 110817280,
+        "Private_Dirty": 276774912,
+        "Anonymous": 276480000,
+        "fds": 69
+      },
+      "live_python_wrappers": 0,
+      "rss_growth_after_two_rounds": 13303808,
+      "private_growth_after_two_rounds": 13303808,
+      "seconds": 7.3843747531063855
+    },
+    "reload": {
+      "status": "completed",
+      "phase": "reload",
+      "calls": 2048,
+      "source_sha256": "9dd7de824fb2a8860c05af473fd433851f428123317915536a930b342cd33bf2",
+      "scope": "diagnostic, no profiler; not NPU execution qualification",
+      "final": {
+        "VmRSS": 484216832,
+        "Threads": 23,
+        "Rss": 484216832,
+        "Pss": 440918016,
+        "Private_Clean": 110084096,
+        "Private_Dirty": 293187584,
+        "Anonymous": 292892672,
+        "fds": 69
+      },
+      "live_python_wrappers": 0,
+      "rss_growth_after_two_rounds": 28364800,
+      "private_growth_after_two_rounds": 28364800,
+      "seconds": 7.656194807030261
+    }
+  },
+  "preserved_failure": {
+    "result": {
+      "status": "failed",
+      "scope": "fixed-shape frozen synthetic fixtures; not full pretrained-model support",
+      "models": [
+        {
+          "name": "dense",
+          "producer_status": "verified",
+          "build_and_qualification_s": 4.561209498904645,
+          "producer_calls": 6,
+          "producer_cpu_routes": 0,
+          "compute_steps": 6,
+          "static_preparation_steps": 0,
+          "strict_reloads": 3,
+          "calls": 15,
+          "receipt": "/root/.cache/hf-librarian/runtime-remediation-20261110/results/qualified-v2/dense/model.fxb.verified/qualification.json",
+          "unqualified_output_device_rejected": true,
+          "stale_consumer_rejected_before_allocation": true,
+          "same_shape_changed_weights_rejected_before_allocation": true,
+          "status": "passed"
+        }
+      ],
+      "error_type": "VerifiedBuildError",
+      "error": "Independent FXB replay failed: Failed to get device index 0 with mesh MeshId(npu3): HAL error on ClusterId(npu3pe0-3): EBUSY: Device or resource busy; evidence=/root/.cache/hf-librarian/runtime-remediation-20261110/results/qualified-v2/stateful/model.fxb.verified/result.json",
+      "seconds": 10.660687998868525
+    },
+    "interpretation": "direct native load in the parent retained its SDK device context; the next replay worker received EBUSY. Per-model parent/worker isolation passed; SMI memory0 alone did not prove a transferable device context."
+  },
+  "limits": [
+    "qualification v1 covers provided fixed-shape forward fixtures and CPU output; not universal alias/mutation proof",
+    "raw multi-entry runtime tests have separate evidence and do not inherit the forward receipt",
+    "official LLM test is cached functional generation; native per-step trace not collected",
+    "SDK default task-timing retention and residual in-process wrapper growth are not claimed fixed; normal jobs use public warn collector setting and model-worker process exit",
+    "physical HBM fit of a large custom checkpoint and full JEV-9B support are not established",
+    "two existing Rust-native differential tests skipped on server25; CI exercises Rust separately"
+  ],
+  "raw_results": "/root/.cache/hf-librarian/runtime-remediation-20261110/results",
+  "raw_runtime_v2_to_v4_native_sources_identical": true
+}

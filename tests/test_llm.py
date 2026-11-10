@@ -1,4 +1,5 @@
 import unittest
+import time
 from unittest.mock import patch,MagicMock
 from fxbex import LLM
 
@@ -26,3 +27,10 @@ class LLMTest(unittest.TestCase):
         with self.assertRaises(RuntimeError):model.converse('next')
         self.assertEqual(len(model.history),2)
         model.reset();self.assertEqual(model.history,[]);model.close()
+    def test_converse_uses_one_deadline_through_nested_chat(self):
+        model=LLM('x.fxbex');deadline=time.monotonic()+10
+        with patch('fxbex.model.request_deadline',return_value=deadline) as policy:
+            model.converse('hi')
+        policy.assert_called_once_with('request')
+        self.assertEqual(self.mock.return_value.chat.call_args.kwargs['deadline'],deadline)
+        model.close()
