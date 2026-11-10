@@ -38,7 +38,7 @@ jobs:
           print("Publishing version", version)
           PY
       - name: Install release tools and package
-        run: python -m pip install build twine .
+        run: python -m pip install build twine ".[weights]"
       - name: Install CPU-only PyTorch for replay contract tests
         run: |
           python -m pip install numpy

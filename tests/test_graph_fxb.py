@@ -168,6 +168,66 @@ class GraphFXBTests(unittest.TestCase):
             self.assertLess(calls.index(('fusion',8)),calls.index(('preprocess',8)))
             self.assertIsNone(model.program)
 
+    def test_cpu_output_cannot_satisfy_npu_contract(self):
+        self.export();modules,calls=self.backend()
+        original=modules['furiosa.torch'].Runnable
+        def program(value):
+            result=original(value)
+            result.__class__.__call__=lambda self,*args:[Tensor('wrong-cpu-output',device='cpu')]
+            return result
+        modules['furiosa.torch'].Runnable=program
+        with patch.dict(sys.modules,modules),patch('importlib.metadata.version',return_value='test'),patch('fxbex.settings.npu_lock',return_value=nullcontext()):
+            with GraphFXB(self.output,weights={'weight':Tensor('weight')}) as model:
+                with self.assertRaisesRegex(GraphFXBError,'output metadata'):
+                    model.predict((Tensor('x'),),output_device='furiosa')
+                self.assertTrue(model.failed)
+
+    def test_cpu_weight_upload_stops_before_execution(self):
+        self.export();modules,calls=self.backend()
+        class CPUWeight(Tensor):
+            def to(self,device):return Tensor(self.name,device='cpu')
+        with patch.dict(sys.modules,modules),patch('importlib.metadata.version',return_value='test'),patch('fxbex.settings.npu_lock',return_value=nullcontext()):
+            model=GraphFXB(self.output,weights={'weight':CPUWeight('weight')})
+            with self.assertRaisesRegex(GraphFXBError,'Weight upload'):
+                model.__enter__()
+            self.assertIsNone(model.program);self.assertIsNone(model.stack)
+            self.assertFalse(any(c[0]=='call' for c in calls))
+
+    def test_cpu_input_upload_stops_before_execution(self):
+        self.export();modules,calls=self.backend()
+        class CPUInput(Tensor):
+            def to(self,device):return Tensor(self.name,device='cpu')
+        with patch.dict(sys.modules,modules),patch('importlib.metadata.version',return_value='test'),patch('fxbex.settings.npu_lock',return_value=nullcontext()):
+            with GraphFXB(self.output,weights={'weight':Tensor('weight')}) as model:
+                with self.assertRaisesRegex(GraphFXBError,'Input upload'):
+                    model.predict((CPUInput('x'),))
+                self.assertFalse(any(c[0]=='call' for c in calls))
+
+    def test_primary_call_error_survives_cleanup_sync_error(self):
+        self.export();modules,calls=self.backend()
+        primary=RuntimeError('original kernel error');cleanup=RuntimeError('cleanup failed')
+        with patch.dict(sys.modules,modules),patch('importlib.metadata.version',return_value='test'),patch('fxbex.settings.npu_lock',return_value=nullcontext()):
+            model=GraphFXB(self.output,weights={'weight':Tensor('weight')})
+            with self.assertRaises(RuntimeError) as caught:
+                with model:
+                    modules['furiosa.torch'].current_stream=lambda device:types.SimpleNamespace(synchronize=lambda:(_ for _ in ()).throw(cleanup))
+                    with patch.object(type(model.program),'__call__',side_effect=primary):
+                        model.predict((Tensor('x'),))
+            self.assertIs(caught.exception,primary);self.assertIs(primary.__cause__,cleanup)
+            self.assertIsNone(model.program);self.assertIsNone(model.stack);self.assertEqual(model.resident_weights,{})
+
+    def test_primary_load_error_survives_cleanup_sync_error(self):
+        self.export();modules,calls=self.backend()
+        primary=RuntimeError('upload failed');cleanup=RuntimeError('cleanup failed')
+        class BadWeight(Tensor):
+            def to(self,device):raise primary
+        modules['furiosa.torch'].current_stream=lambda device:types.SimpleNamespace(synchronize=lambda:(_ for _ in ()).throw(cleanup))
+        with patch.dict(sys.modules,modules),patch('importlib.metadata.version',return_value='test'),patch('fxbex.settings.npu_lock',return_value=nullcontext()):
+            model=GraphFXB(self.output,weights={'weight':BadWeight('weight')})
+            with self.assertRaises(RuntimeError) as caught:model.__enter__()
+            self.assertIs(caught.exception,primary);self.assertIs(primary.__cause__,cleanup)
+            self.assertIsNone(model.program);self.assertIsNone(model.stack)
+
     def test_runtime_abi_mismatch_stops_before_device_loading(self):
         self.export()
         modules, calls = self.backend(mismatch=True)
