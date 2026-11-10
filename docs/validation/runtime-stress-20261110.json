@@ -1,0 +1,381 @@
+{
+  "server": "hancom-furi-agent-25",
+  "sdk": "2026.4.0",
+  "runtime_base_fxbx": "6e475fb44e226895a08baee6571d504ca750ff7b",
+  "scope": "synthetic shared-linear [4,8] stateful fixture with128-step genuine EDF cascade, not larger checkpoint or long-service proof",
+  "strict_short": {
+    "status": "passed",
+    "scope": "synthetic fixed [4,8] shared-linear program; no large-checkpoint or long-service claim",
+    "source_fxb_sha256": "7ff441df09c784e6eddc57c5e71100455d0937f484a69583684c86e258981390",
+    "calls": 512,
+    "reloads": [
+      {
+        "index": 0,
+        "load_s": 0.0789518291130662,
+        "calls": 128,
+        "warm_host_request_median_s": 0.0005682762712240219
+      },
+      {
+        "index": 1,
+        "load_s": 0.021574043203145266,
+        "calls": 128,
+        "warm_host_request_median_s": 0.0004937457852065563
+      },
+      {
+        "index": 2,
+        "load_s": 0.019716591574251652,
+        "calls": 128,
+        "warm_host_request_median_s": 0.0005600857548415661
+      },
+      {
+        "index": 3,
+        "load_s": 0.018542359117418528,
+        "calls": 128,
+        "warm_host_request_median_s": 0.0005504158325493336
+      }
+    ],
+    "cascade_depth": 128,
+    "plan_steps": {
+      "cascade": 128,
+      "decode": 3,
+      "prefill": 1
+    },
+    "unique_edfs": 4,
+    "expected_calls": 512,
+    "negative_requests_rejected": 12,
+    "request_isolation": "passed",
+    "reset": "passed",
+    "cpu_reference_comparisons": 512,
+    "rss_growth_after_warmup_bytes": 2039808,
+    "npu_growth_after_warmup_bytes": {
+      "npu3": 0
+    },
+    "growth_bound_mib": 128,
+    "warm_host_request_median_s": 0.0005495562218129635,
+    "seconds": 4.503307526931167,
+    "memory_sample_count": 17,
+    "rss_peak_bytes": 500563968,
+    "npu_peak_bytes": {
+      "npu3": 0
+    },
+    "complete_trace_samples": 12,
+    "raw_result": "/root/.cache/hf-librarian/fxb-confidence/endurance-v1/result.json"
+  },
+  "strict_long_attempt": {
+    "status": "failed",
+    "scope": "synthetic fixed [4,8] shared-linear program; no large-checkpoint or long-service claim",
+    "source_fxb_sha256": "7ff441df09c784e6eddc57c5e71100455d0937f484a69583684c86e258981390",
+    "calls": 4098,
+    "reloads": [
+      {
+        "index": 0,
+        "load_s": 0.07773481821641326,
+        "calls": 1024,
+        "warm_host_request_median_s": 0.0005656159482896328
+      },
+      {
+        "index": 1,
+        "load_s": 0.020891997031867504,
+        "calls": 1024,
+        "warm_host_request_median_s": 0.0005624471232295036
+      },
+      {
+        "index": 2,
+        "load_s": 0.01883316319435835,
+        "calls": 1024,
+        "warm_host_request_median_s": 0.0005623563192784786
+      },
+      {
+        "index": 3,
+        "load_s": 0.014899438712745905,
+        "calls": 1024,
+        "warm_host_request_median_s": 0.0005598072893917561
+      }
+    ],
+    "cascade_depth": 128,
+    "plan_steps": {
+      "cascade": 128,
+      "decode": 3,
+      "prefill": 1
+    },
+    "unique_edfs": 4,
+    "error_type": "AssertionError",
+    "error": "trace mismatch: expected=128, spans=127, tasks=126, cpu=0",
+    "seconds": 24.94621608313173,
+    "memory_sample_count": 74,
+    "rss_peak_bytes": 634871808,
+    "npu_peak_bytes": {
+      "npu3": 0
+    },
+    "complete_trace_samples": 14,
+    "raw_result": "/root/.cache/hf-librarian/fxb-confidence/endurance-v2/result.json"
+  },
+  "numeric_memory_long_with_explicit_evidence_loss": {
+    "status": "runtime_numerical_passed_evidence_incomplete",
+    "scope": "synthetic fixed [4,8] shared-linear program; no large-checkpoint or long-service claim",
+    "source_fxb_sha256": "7ff441df09c784e6eddc57c5e71100455d0937f484a69583684c86e258981390",
+    "calls": 16384,
+    "reloads": [
+      {
+        "index": 0,
+        "load_s": 0.07624582201242447,
+        "calls": 1024,
+        "warm_host_request_median_s": 0.0005685067735612392
+      },
+      {
+        "index": 1,
+        "load_s": 0.016266896855086088,
+        "calls": 1024,
+        "warm_host_request_median_s": 0.000485795084387064
+      },
+      {
+        "index": 2,
+        "load_s": 0.014856189955025911,
+        "calls": 1024,
+        "warm_host_request_median_s": 0.0005066562443971634
+      },
+      {
+        "index": 3,
+        "load_s": 0.020089060068130493,
+        "calls": 1024,
+        "warm_host_request_median_s": 0.0005374359898269176
+      },
+      {
+        "index": 4,
+        "load_s": 0.020333843305706978,
+        "calls": 1024,
+        "warm_host_request_median_s": 0.000540437176823616
+      },
+      {
+        "index": 5,
+        "load_s": 0.02048006420955062,
+        "calls": 1024,
+        "warm_host_request_median_s": 0.0005414360202848911
+      },
+      {
+        "index": 6,
+        "load_s": 0.020189770963042974,
+        "calls": 1024,
+        "warm_host_request_median_s": 0.0005399258807301521
+      },
+      {
+        "index": 7,
+        "load_s": 0.020195780787616968,
+        "calls": 1024,
+        "warm_host_request_median_s": 0.0005423673428595066
+      },
+      {
+        "index": 8,
+        "load_s": 0.020368114113807678,
+        "calls": 1024,
+        "warm_host_request_median_s": 0.0005413559265434742
+      },
+      {
+        "index": 9,
+        "load_s": 0.01454581692814827,
+        "calls": 1024,
+        "warm_host_request_median_s": 0.0005011246539652348
+      },
+      {
+        "index": 10,
+        "load_s": 0.02051249472424388,
+        "calls": 1024,
+        "warm_host_request_median_s": 0.0005490463227033615
+      },
+      {
+        "index": 11,
+        "load_s": 0.018521082121878862,
+        "calls": 1024,
+        "warm_host_request_median_s": 0.0005502058193087578
+      },
+      {
+        "index": 12,
+        "load_s": 0.019021668005734682,
+        "calls": 1024,
+        "warm_host_request_median_s": 0.0005016657523810863
+      },
+      {
+        "index": 13,
+        "load_s": 0.019100648816674948,
+        "calls": 1024,
+        "warm_host_request_median_s": 0.0005469867028295994
+      },
+      {
+        "index": 14,
+        "load_s": 0.014502446167171001,
+        "calls": 1024,
+        "warm_host_request_median_s": 0.0005080057308077812
+      },
+      {
+        "index": 15,
+        "load_s": 0.01463288813829422,
+        "calls": 1024,
+        "warm_host_request_median_s": 0.0005327858962118626
+      }
+    ],
+    "trace_failures": [
+      {
+        "reload": 8,
+        "entry": "decode",
+        "trace": "trace-8-decode.json",
+        "trace_sha256": "d9c8d51ad2a7af287b441c7ad53e999e93db50f0380ac231f0ce4d7742a5be88",
+        "error": "trace mismatch: expected=3, spans=3, tasks=2, cpu=0"
+      },
+      {
+        "reload": 10,
+        "entry": "decode",
+        "trace": "trace-10-decode.json",
+        "trace_sha256": "71fdb6fb5df413fda3dddcf28917241d6a24189a5d0c684c181a9b72689751bd",
+        "error": "trace mismatch: expected=3, spans=3, tasks=2, cpu=0"
+      },
+      {
+        "reload": 11,
+        "entry": "decode",
+        "trace": "trace-11-decode.json",
+        "trace_sha256": "8cee59a50d0afb781b80c7637697ad0ec98bc76e7214c8d3fb22dad0a58f50d1",
+        "error": "trace mismatch: expected=3, spans=3, tasks=2, cpu=0"
+      },
+      {
+        "reload": 11,
+        "entry": "cascade",
+        "trace": "trace-11-cascade.json",
+        "trace_sha256": "eb2502abb08aa6b790b737784b5b43d57f49e566a288943cf2f38bde77be0ed0",
+        "error": "trace mismatch: expected=128, spans=128, tasks=126, cpu=0"
+      },
+      {
+        "reload": 12,
+        "entry": "cascade",
+        "trace": "trace-12-cascade.json",
+        "trace_sha256": "fde1c3bfa13dc00b95fdb4b09ab87cedf3a149c024438d943cf6e710f8b9780a",
+        "error": "trace mismatch: expected=128, spans=128, tasks=127, cpu=0"
+      },
+      {
+        "reload": 13,
+        "entry": "decode",
+        "trace": "trace-13-decode.json",
+        "trace_sha256": "562f30aeecfa6b0d8c77428523851f987e3b2e3aae17a8147b0593d565857875",
+        "error": "trace mismatch: expected=3, spans=3, tasks=1, cpu=0"
+      },
+      {
+        "reload": 13,
+        "entry": "cascade",
+        "trace": "trace-13-cascade.json",
+        "trace_sha256": "600e9be9a416f08e0397860a8ab516653c883c2f179495832f786cfb5ab7973e",
+        "error": "trace mismatch: expected=128, spans=128, tasks=125, cpu=0"
+      },
+      {
+        "reload": 14,
+        "entry": "decode",
+        "trace": "trace-14-decode.json",
+        "trace_sha256": "eda198cae85e5a38fa1e2df77846799418dd344dbb24c722ab277d8561d15b8f",
+        "error": "trace mismatch: expected=3, spans=0, tasks=0, cpu=0"
+      },
+      {
+        "reload": 14,
+        "entry": "cascade",
+        "trace": "trace-14-cascade.json",
+        "trace_sha256": "bd34215d6a2c4114c3a022a4e5d7088dffe02cb14ee9b6001d50df2e166a1b5b",
+        "error": "trace mismatch: expected=128, spans=128, tasks=126, cpu=0"
+      },
+      {
+        "reload": 15,
+        "entry": "prefill",
+        "trace": "trace-15-prefill.json",
+        "trace_sha256": "cdaf657402c6cc252ac48b4089ed655cbacccac1aed93e803ffcdddf74e21b23",
+        "error": "trace mismatch: expected=1, spans=1, tasks=0, cpu=0"
+      },
+      {
+        "reload": 15,
+        "entry": "decode",
+        "trace": "trace-15-decode.json",
+        "trace_sha256": "f2644b74feba2bd5d0723d73df9b2177e00db7f9a4969c509e6536d86d9293d5",
+        "error": "trace mismatch: expected=3, spans=3, tasks=2, cpu=0"
+      },
+      {
+        "reload": 15,
+        "entry": "cascade",
+        "trace": "trace-15-cascade.json",
+        "trace_sha256": "27a7620dc24e82f3a2875f57e6078a10dc5063f5f374953c3f8eb8ba259b930c",
+        "error": "trace mismatch: expected=128, spans=128, tasks=126, cpu=0"
+      }
+    ],
+    "continue_on_trace_loss": true,
+    "cascade_depth": 128,
+    "plan_steps": {
+      "cascade": 128,
+      "decode": 3,
+      "prefill": 1
+    },
+    "unique_edfs": 4,
+    "expected_calls": 16384,
+    "negative_requests_rejected": 48,
+    "request_isolation": "passed",
+    "reset": "passed",
+    "cpu_reference_comparisons": 16384,
+    "rss_growth_after_warmup_bytes": 8937472,
+    "npu_growth_after_warmup_bytes": {
+      "npu3": 0
+    },
+    "growth_bound_mib": 128,
+    "warm_host_request_median_s": 0.0005382711533457041,
+    "seconds": 93.39478328311816,
+    "memory_sample_count": 289,
+    "rss_peak_bytes": 641892352,
+    "npu_peak_bytes": {
+      "npu3": 0
+    },
+    "complete_trace_samples": 36,
+    "raw_result": "/root/.cache/hf-librarian/fxb-confidence/endurance-v3/result.json"
+  },
+  "host_thread_calls": {
+    "status": "passed",
+    "scope": "four host callers; session RLock serializes NPU work; fixed synthetic fixture",
+    "threads": 4,
+    "calls_per_thread": 100,
+    "clients": [
+      {
+        "thread": 0,
+        "calls": 100,
+        "queue_wait_median_s": 0.0017663799226284027
+      },
+      {
+        "thread": 1,
+        "calls": 100,
+        "queue_wait_median_s": 0.001585458405315876
+      },
+      {
+        "thread": 2,
+        "calls": 100,
+        "queue_wait_median_s": 0.0017478300724178553
+      },
+      {
+        "thread": 3,
+        "calls": 100,
+        "queue_wait_median_s": 0.0018072959501296282
+      }
+    ],
+    "cpu_reference_comparisons": 400,
+    "expected_calls": 400,
+    "isolation_and_reset": "passed",
+    "seconds": 0.34323844872415066,
+    "raw_result": "/root/.cache/hf-librarian/fxb-confidence/thread-stress-v1/result.json"
+  },
+  "session_profile_strategy_probe": {
+    "status": "passed",
+    "strategy": "single Profiler enclosing all session opens/calls/closes",
+    "scope": "bounded fixed-shape synthetic fixture; no SDK policy bypass",
+    "calls": 24,
+    "reloads": 4,
+    "call_bounded_steps": 1056,
+    "cpu_routes": 0,
+    "seconds": 0.4427398187108338,
+    "raw_result": "/root/.cache/hf-librarian/fxb-confidence/session-profile-v1/result.json"
+  },
+  "limitations": [
+    "16,384-call run passed CPU comparisons but12/48 sampled traces lacked required SDK spans/Tasks. It is not marked verified.",
+    "SDK logs reported invalid trace reference times under repeated per-sample Profiler scopes.",
+    "One Profiler enclosing session construction/execution/cleanup preserved call-bounded evidence in a separate24-call probe; this does not prove an indefinite SDK fix.",
+    "Four host threads serialize NPU dispatch through the session lock; no parallel NPU execution claim.",
+    "Observed memory bounds apply only to tiny tensor geometry despite128 execution steps."
+  ]
+}
