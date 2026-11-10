@@ -28,6 +28,28 @@ class ExecutionPlanError(NativeFXBError):
     pass
 
 
+def frozen_buffer_sha256(value):
+    """Hash a bounded plain CPU buffer without modifying or casting its values.
+
+    Framing shared with producers: canonical dtype ASCII, newline, compact JSON
+    shape ASCII, newline, then contiguous raw CPU tensor bytes (uint8 view).
+    This plain-byte contract needs no producer/compiler package at runtime.
+    """
+    import torch
+    if (type(value) is not torch.Tensor or value.device.type!='cpu'
+            or value.requires_grad or value.layout!=torch.strided
+            or value.is_conj() or value.is_neg()):
+        raise ExecutionPlanError('Frozen buffer hashing requires a plain frozen CPU tensor')
+    from .memory import tensor_bytes
+    shape=list(value.shape);dtype=str(value.dtype).removeprefix('torch.')
+    size=tensor_bytes({'shape':shape,'dtype':dtype})
+    if size is None or size>64*1024 or len(shape)>16 or any(n<=0 for n in shape):
+        raise ExecutionPlanError('Frozen buffer hashing requires supported tensors of at most 64 KiB')
+    raw=bytes(value.detach().contiguous().reshape(-1).view(torch.uint8).tolist())
+    header=dtype.encode('ascii')+b'\n'+json.dumps(shape,separators=(',',':')).encode('ascii')+b'\n'
+    return hashlib.sha256(header+raw).hexdigest()
+
+
 class RequestState:
     """A session-owned state loan, separate from shared model weights.
 
@@ -108,7 +130,14 @@ def validate_execution_plan(plan, *, archived=False):
                 or not identifier(value.get('dtype'))):fail('Tensor requires concrete shape/dtype/stride')
         from .memory import tensor_bytes
         if tensor_bytes(value) is None:fail('Unknown tensor dtype')
-    if plan.get('schema')!='tclmachine.execution-plan.v1':fail('Unsupported execution plan schema')
+    schema=plan.get('schema')
+    if schema not in ('tclmachine.execution-plan.v1','tclmachine.execution-plan.v2'):
+        fail('Unsupported execution plan schema')
+    if schema=='tclmachine.execution-plan.v1' and 'frozen_buffer_guards' in plan:
+        fail('Frozen buffer guards require execution plan schema v2')
+    guards=plan.get('frozen_buffer_guards')
+    if schema=='tclmachine.execution-plan.v2' and (not isinstance(guards,list) or not guards):
+        fail('Execution plan schema v2 requires nonempty frozen_buffer_guards')
     if not isinstance(plan.get('source_metadata'),dict) or not identifier(plan['source_metadata'].get('architecture')):
         fail('Actual source architecture is required')
     if plan.get('device_config')!={'fusion':8,'mesh':'single'} or type(plan['device_config']['fusion'])!=int:fail('Only fusion8/Single is qualified')
@@ -138,6 +167,24 @@ def validate_execution_plan(plan, *, archived=False):
             stride=[];width=1
             for dimension in reversed(value['shape']):stride.insert(0,width);width*=dimension
             if value['stride']!=stride:fail('Zero state requires contiguous declared strides')
+    guard_targets=set();guard_bytes=0
+    for guard in guards or []:
+        if (not isinstance(guard,dict) or set(guard)!={'target','shape','dtype','sha256'}
+                or not identifier(guard.get('target')) or not digest(guard.get('sha256'))
+                or not isinstance(guard.get('shape'),list)
+                or any(type(n) is not int or n<=0 for n in guard['shape'])):
+            fail('Invalid frozen buffer guard')
+        target=guard['target']
+        if target in guard_targets:fail('Duplicate frozen buffer guard target')
+        declared=[s for s in tensors.values() if s.get('target')==target]
+        if (not declared or any(s['kind']!='buffer' or guard['shape']!=s['shape']
+                or guard['dtype']!=s['dtype'].removeprefix('torch.') for s in declared)):
+            fail('Frozen buffer guard must match a declared buffer target/shape/dtype')
+        from .memory import tensor_bytes
+        size=tensor_bytes(guard)
+        if size is None or size>64*1024:fail('Frozen buffer guard exceeds 64 KiB')
+        guard_bytes+=size;guard_targets.add(target)
+        if guard_bytes>1024*1024:fail('Frozen buffer guards exceed 1 MiB total')
     for index,(name,kernel) in enumerate(kernels.items()):
         if not identifier(name) or not isinstance(kernel,dict):fail('Invalid kernel')
         if not digest(kernel.get('edf_sha256')) or type(kernel.get('expected_num_fusion'))!=int or kernel['expected_num_fusion']!=8:fail('Kernel needs EDF hash/fusion8')
@@ -260,6 +307,7 @@ def read_execution_plan(path):
 class ExecutionFXB:
     """Exclusive fixed-shape tensor-plan session; state and temporaries stay on NPU."""
     supports_zero_input_kernels=True
+    supports_frozen_buffer_guards=True
     def __init__(self,path,*,weights=None,device='furiosa:0',max_request_states=1):
         if device!='furiosa:0':raise ExecutionPlanError('Only furiosa:0 is qualified')
         if type(max_request_states)!=int or max_request_states<1:raise ExecutionPlanError('max_request_states must be a positive integer')
@@ -312,6 +360,13 @@ class ExecutionFXB:
                 if not _tensor_matches(value,spec,torch) or value.requires_grad:
                     raise ExecutionPlanError('Missing/incompatible frozen external tensor: '+name)
                 _check_value_range(value,spec,torch)
+        for guard in self.plan.get('frozen_buffer_guards',[]):
+            value=self.weights[guard['target']]
+            if (list(value.shape)!=guard['shape']
+                    or str(value.dtype).removeprefix('torch.')!=guard['dtype']
+                    or frozen_buffer_sha256(value)!=guard['sha256']):
+                raise ExecutionPlanError('Frozen buffer hash mismatch: '+guard['target'])
+            del value
         self.torch,self.sdk=torch,sdk
         sdk.set_fusion(8);sdk.set_mesh_kind(sdk.MeshKind.Single());runnables={}
         with zipfile.ZipFile(self.path) as archive:

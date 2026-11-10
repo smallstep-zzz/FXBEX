@@ -79,10 +79,34 @@ and retain the normal numerical/official-trace gates. Feature discovery is
 `ExecutionFXB.supports_zero_input_kernels`; older consumers fail before compile.
 
 An inputless EDF can return a resident compiler constant. Logical memory admission
-therefore conservatively counts these outputs as persistent, and GPU outputs are
+therefore conservatively counts these outputs as persistent, and NPU outputs are
 cloned before exposure so caller mutation cannot change future results. CPU output
 copies follow the usual transport path. Source tests include exact ABI rejection
 and mutation isolation. SDK2026.4 int32/int64 arange packages were exported,
 reloaded and numerically checked over five calls. This certifies prepared values,
 not a new integer arithmetic engine or whole-model support. 0.8.3 source is not
 claimed as a PyPI deployment by these checks.
+
+## Source update: guarded frozen-buffer specialization
+
+`tclmachine.execution-plan.v2` adds nonempty `frozen_buffer_guards`. Each entry
+binds a declared buffer target to its exact shape, canonical dtype and SHA256.
+Hash framing is dtype ASCII + newline + compact JSON shape + newline + contiguous
+raw tensor bytes. Only frozen plain CPU buffers are eligible (64KiB each,1MiB
+total); parameters and runtime input values are not static buffer constants.
+
+The producer must check `ExecutionFXB.supports_frozen_buffer_guards` before
+specializing. The consumer validates dict or streamed weights before runnable
+deserialization and NPU allocation. A changed value fails closed. Unguarded
+programs stay schema v1; v1 with guards and v2 without guards are invalid. Older
+consumers reject v2, so use a matching consumer source, not an assumed version.
+This update has not been published to PyPI in this validation checkpoint.
+
+Server5 SDK2026.4 qualified guarded embedding and scalar preparation over five
+calls each, including rejection of a changed buffer. MiniLM BF16 encoder[1,16]
+then reloaded an actual native FXB in a producer-free fresh process: eight calls,
+zero compiler attempts/SDK CPU routes, all330 steps with NPU Task evidence.
+There are31 distinct compute EDFs and2 prepared-value EDFs. CPU BF16 hidden-state
+cosine was0.99996543; observed unprofiled warm median12.95ms is not an isolated
+performance comparison. Other sequence lengths and sentence pooling remain
+unverified; this is not arbitrary-model or full-context acceptance.
