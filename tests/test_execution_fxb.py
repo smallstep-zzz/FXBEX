@@ -22,6 +22,28 @@ class Tensor:
 
 
 class ExecutionPlanTests(unittest.TestCase):
+    def test_zero_input_kernel_requires_exact_nonempty_output_abi(self):
+        p=copy.deepcopy(self.plan)
+        p['tensors'].pop('x');p['tensors'].pop('state')
+        entry=p['entries']['forward'];entry['inputs']=[];entry['state_updates']={}
+        entry['steps'][0]['inputs']=[];p['kernels']['add']['abi']['inputs']=[]
+        validate_execution_plan(p)
+        p['kernels']['add']['abi']['outputs']=[]
+        with self.assertRaisesRegex(ExecutionPlanError,'ABI'):validate_execution_plan(p)
+    def test_zero_input_resident_result_is_not_exposed_to_gpu_callers(self):
+        spec=self.plan['tensors']['y'];self.plan['tensors']={'y':spec}
+        self.plan['kernels']={'double':self.plan['kernels']['double']};self.plan['kernels']['double']['abi']['inputs']=[]
+        self.plan['entries']['forward']={'inputs':[],'outputs':['y'],'state_updates':{},'steps':[{'kernel':'double','inputs':[],'outputs':['y']}]}
+        self.export();modules,calls=self.backend();constant=Tensor(7,'furiosa:0')
+        class Constant:
+            def __init__(self,ir):pass
+            def to(self,device):return self
+            def __call__(self):return [constant]
+        modules['furiosa.torch'].Runnable=Constant
+        with patch.dict(sys.modules,modules),patch('importlib.metadata.version',return_value='test'),patch('fxbex.settings.npu_lock',return_value=nullcontext()):
+            with ExecutionFXB(self.output) as model:
+                actual,=model.predict(output_device='furiosa');actual.value=999
+                self.assertIsNot(actual,constant);self.assertEqual(model.predict()[0].value,7)
     def setUp(self):
         self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup);self.root=Path(self.temp.name)
         self.output=self.root/'plan.fxb'

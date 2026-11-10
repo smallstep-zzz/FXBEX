@@ -69,3 +69,20 @@ In the matching SDK environment, install the checkout normally:
 `python -m pip install --force-reinstall --no-deps /path/to/fxbX` (without `-e`).
 The server5 isolated wheel installation passed the real2.03GB checkpoint lookup;
 SDK packages were unchanged. Metadata/mmap load time is not disk-read throughput.
+
+## 0.8.3 source: inputless prepared values
+
+Exact EDF ABI may have zero inputs; outputs must still be nonempty. The producer
+may label a kernel `execution_kind: static_value_preparation` only with zero
+inputs. This is not NPU-compute evidence. Other kernels default to `npu_compute`
+and retain the normal numerical/official-trace gates. Feature discovery is
+`ExecutionFXB.supports_zero_input_kernels`; older consumers fail before compile.
+
+An inputless EDF can return a resident compiler constant. Logical memory admission
+therefore conservatively counts these outputs as persistent, and GPU outputs are
+cloned before exposure so caller mutation cannot change future results. CPU output
+copies follow the usual transport path. Source tests include exact ABI rejection
+and mutation isolation. SDK2026.4 int32/int64 arange packages were exported,
+reloaded and numerically checked over five calls. This certifies prepared values,
+not a new integer arithmetic engine or whole-model support. 0.8.3 source is not
+claimed as a PyPI deployment by these checks.

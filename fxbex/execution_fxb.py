@@ -51,6 +51,11 @@ def _last_uses(entry):
     return {name:index for index,step in enumerate(entry['steps']) for name in step['inputs']}
 
 
+def _zero_input_outputs(entry):
+    # An inputless EDF can return resident compiler constants rather than launch.
+    return {name for step in entry['steps'] if not step['inputs'] for name in step['outputs']}
+
+
 def _check_value_range(value,spec,torch):
     bounds=spec.get('value_range')
     if bounds is None:return
@@ -66,6 +71,7 @@ def _memory_gate(plan,*,clone_persistent_outputs=False):
     from .memory import tensor_bytes,check_budget
     specs=plan['tensors'];sizes={n:tensor_bytes(s) for n,s in specs.items()}
     persistent={n for n,s in specs.items() if s['kind'] in ('parameter','buffer','state')}
+    persistent.update(n for e in plan['entries'].values() for n in _zero_input_outputs(e))
     # reset keeps the committed states alive until all replacement zeros finish.
     peak=sum(sizes[n] for n in persistent)+sum(sizes[n] for n in persistent if specs[n]['kind']=='state')
     for entry in plan['entries'].values():
@@ -136,8 +142,11 @@ def validate_execution_plan(plan, *, archived=False):
         if not identifier(name) or not isinstance(kernel,dict):fail('Invalid kernel')
         if not digest(kernel.get('edf_sha256')) or type(kernel.get('expected_num_fusion'))!=int or kernel['expected_num_fusion']!=8:fail('Kernel needs EDF hash/fusion8')
         abi=kernel.get('abi',{})
-        if not isinstance(abi,dict) or any(not isinstance(abi.get(k),list) or not abi[k] or any(not isinstance(x,str) or not x or len(x)>65536 for x in abi[k]) for k in ('inputs','outputs')):
+        if not isinstance(abi,dict) or any(not isinstance(abi.get(k),list) or (k=='outputs' and not abi[k]) or any(not isinstance(x,str) or not x or len(x)>65536 for x in abi[k]) for k in ('inputs','outputs')):
             fail('Kernel exact EDF input/output ABI is required')
+        role=kernel.get('execution_kind','npu_compute')
+        if role not in ('npu_compute','static_value_preparation') or (role=='static_value_preparation' and abi['inputs']):
+            fail('Static value preparation requires a zero-input EDF; other kernels require NPU evidence')
         if archived:
             member=kernel.get('member')
             if member!=f'edfs/kernel-{index:04d}.edf' or 'edf_path' in kernel:
@@ -250,6 +259,7 @@ def read_execution_plan(path):
 
 class ExecutionFXB:
     """Exclusive fixed-shape tensor-plan session; state and temporaries stay on NPU."""
+    supports_zero_input_kernels=True
     def __init__(self,path,*,weights=None,device='furiosa:0',max_request_states=1):
         if device!='furiosa:0':raise ExecutionPlanError('Only furiosa:0 is qualified')
         if type(max_request_states)!=int or max_request_states<1:raise ExecutionPlanError('max_request_states must be a positive integer')
@@ -429,7 +439,7 @@ class ExecutionFXB:
                         for name in step['inputs']+step['outputs']:
                             if (self.plan['tensors'][name]['kind'] in ('user_input','intermediate')
                                     and name not in retain and last.get(name,index)<=index):tensors.pop(name,None)
-                    persistent_outputs=set(self.resident)|set(active)|set(recipe['state_updates'].values())
+                    persistent_outputs=set(self.resident)|set(active)|set(recipe['state_updates'].values())|_zero_input_outputs(recipe)
                     output=tuple(tensors[n].cpu() if output_device=='cpu' else
                                  tensors[n].clone() if n in persistent_outputs else tensors[n]
                                  for n in recipe['outputs'])
