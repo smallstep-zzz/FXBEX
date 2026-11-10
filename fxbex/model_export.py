@@ -30,7 +30,7 @@ def _official_build(model, output, *, concurrency, options):
 
 def build_model(model, output, *, example_inputs=None, contract_provider=None,
                 source_metadata=None, concurrency=4, work_dir=None,
-                state_inputs=None,state_updates=None,user_output_indices=None,**options):
+                state_inputs=None,state_updates=None,user_output_indices=None,verification=None,**options):
     """Build a registered model, or package TCLMachine's static execution plan.
 
     A HF ID/local asset directory uses the official architecture-aware compiler.
@@ -47,6 +47,13 @@ def build_model(model, output, *, example_inputs=None, contract_provider=None,
              'compiler_cache_dir','no_compiler_cache','tokenwise_buckets','attention_buckets',
              'build_report','dump_tc'}
     if set(options)-allowed:raise ValueError('unsupported compiler options: '+','.join(sorted(set(options)-allowed)))
+    if verification is not None:
+        required={'validation_inputs','atol','rtol'}
+        if (not isinstance(verification,dict) or not required <= set(verification)
+                or set(verification)-required-{'repeats','replay_timeout'}):
+            raise ValueError('verification requires validation_inputs/atol/rtol and optional repeats/replay_timeout')
+        if isinstance(model,(str,os.PathLike)) or contract_provider is not None:
+            raise ValueError('Producer-owned verification requires the TCLMachine Torch route')
     output.parent.mkdir(parents=True,exist_ok=True)
     work=Path(work_dir).absolute() if work_dir else output.parent/(output.name+'.build')
     work.mkdir(parents=True,exist_ok=False)
@@ -81,6 +88,14 @@ def build_model(model, output, *, example_inputs=None, contract_provider=None,
             if options:
                 raise ValueError('STATIC_GRAPH_OPTIONS_UNSUPPORTED: custom graph export cannot honor model context/bucket/compiler options: '+','.join(sorted(options)))
             if example_inputs is None:raise ValueError('torch models require example_inputs')
+            if contract_provider is None and verification is not None:
+                from tclmachine import build_verified_model
+                result=build_verified_model(model,tuple(example_inputs),output,source_metadata=source_metadata,
+                    state_inputs=state_inputs,state_updates=state_updates,user_output_indices=user_output_indices,
+                    compile_workers=min(concurrency,8),**verification)
+                report.update(route='tclmachine_verified_build',status=result['status'],result=result,
+                              npu_execution='see_producer_replay_evidence')
+                return report
             if contract_provider is None:
                 from tplmachine.execution_plan import export_model
                 report['route']='tclmachine_execution_plan'
