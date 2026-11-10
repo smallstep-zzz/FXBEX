@@ -1,3 +1,15 @@
+## 기본 명령
+
+```bash
+fxbx Qwen/Qwen3-4B-FP8 -o 결과.fxb
+fxbx build ./compiled_model -o 결과.fxbex
+fxbx inspect 결과.fxb
+```
+
+첫 명령은 Hugging Face 모델 ID 또는 로컬 모델 디렉터리를 공식 NPU FXB 빌더로 전달합니다. 지원 아키텍처와 맞는 Furiosa SDK가 필요하며 미지원 모델을 자동으로 다른 모델이나 CPU 경로로 대체하지 않습니다. Python Torch 모델의 사용자 정의 정적 변환은 기존 `build_model` API를 사용합니다.
+
+`build`는 기존 컴파일 산출물을 FXB_EX로 패키징합니다. `inspect`는 확장자와 무관하게 FXB/FXB_EX 내용을 구분하여 무결성·실행계획·기록된 호환성 정보를 확인합니다. 공식 LLM FXB에 TCL 실행계획이 없으면 이를 명시합니다. inspect는 NPU 실행 성공을 검증하지 않습니다.
+
 # fxbX
 
 **0.8.3 개발 소스:** [TCLMachine 공통 실행 계약](docs/EXECUTION_PLAN.md)으로 다중 EDF와 상주 상태를 연결합니다. 생산자가 만든 [검증 영수증](docs/VERIFIED_BUILD.md)을 `qualification=`으로 확인하며, [worker 제한 시간·취소와 세션 종료](docs/RUNTIME_READINESS.md)를 지원합니다. 작은 fixture의 기존 NPU 재적재 근거와 이번 수정본의 최종 검증 기록은 구분합니다. 구형 `fxbex`가 새 구현을 가리면 명확한 오류로 중단합니다. 이 소스 변경을 PyPI 배포 완료로 해석하지 마세요.

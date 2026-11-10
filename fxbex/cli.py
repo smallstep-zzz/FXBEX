@@ -41,10 +41,16 @@ def _load_with_progress(callback, stream, interval=5):
 
 
 def _main(argv=None):
+    argv=list(sys.argv[1:] if argv is None else argv)
+    commands={'build','convert','inspect','validate','describe','sample','doctor','ui','run','chat','predict','serve','fetch','cache'}
+    if argv and not argv[0].startswith('-') and argv[0] not in commands:
+        argv.insert(0,'convert')
     parser = argparse.ArgumentParser(
-        prog='fxbx', description='Build, inspect and run compiled FXB_EX model packages.',
+        prog='fxbx', description='모델을 NPU FXB로 변환하고 컴파일 산출물을 패키징합니다.',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""Examples:
+  fxbx 모델 -o 결과.fxb
+  fxbx inspect 결과.fxb
   fxbx build ./compiled_model -o model.fxbex
   fxbx inspect model.fxbex
   fxbx validate model.fxbex --integrity-only
@@ -59,6 +65,10 @@ Model-specific exporters and capture commands belong to their adapter plugins.""
     sub = parser.add_subparsers(dest='action', required=True)
     from . import __version__
     parser.add_argument('--version',action='version',version='%(prog)s '+__version__)
+    p = sub.add_parser('convert', help='모델을 NPU용 FXB로 변환')
+    p.add_argument('model', help='Hugging Face 모델 ID 또는 로컬 모델 디렉터리')
+    p.add_argument('-o','--output',required=True,help='새 .fxb 파일')
+    p.add_argument('--concurrency',type=int,default=4)
     p = sub.add_parser('build', help='Pack a compiled directory with checksums (no compilation)')
     p.add_argument('source', help='Compiled directory containing manifest and required JSON configurations')
     p.add_argument('-o', '--output', required=True, help='New .fxbex file; existing files are never overwritten')
@@ -66,7 +76,7 @@ Model-specific exporters and capture commands belong to their adapter plugins.""
     p.add_argument('--source-revision',help='Original checkpoint revision (prefer immutable commit)')
     p.add_argument('--standalone', action='store_true', help='Copy referenced external weights into the archive')
     p = sub.add_parser('inspect', help='Verify integrity and display the manifest; no SDK needed')
-    p.add_argument('package', help='Path to a .fxbex archive')
+    p.add_argument('package', help='Path to a .fxb or .fxbex archive')
     p.add_argument('--memory', action='store_true', help='Show logical memory/lifetime plan without loading the NPU')
     p = sub.add_parser('validate', help='Check integrity, SDK, adapter, weights and device availability without inference')
     p.add_argument('package', help='Path to a .fxbex archive')
@@ -120,7 +130,7 @@ Model-specific exporters and capture commands belong to their adapter plugins.""
         from .hub import resolve_package
         print(json.dumps({'package':str(resolve_package(args.package,refresh=args.refresh))}))
         return 0
-    if args.action in ('run','chat','predict','serve','doctor') or (args.action=='validate' and not args.integrity_only):
+    if args.action in ('convert','run','chat','predict','serve','doctor') or (args.action=='validate' and not args.integrity_only):
         from .settings import runtime_python
         interpreter=runtime_python()
         if Path(interpreter)!=Path(sys.executable):
@@ -128,6 +138,41 @@ Model-specific exporters and capture commands belong to their adapter plugins.""
             print('Using SDK Python: '+interpreter,file=sys.stderr,flush=True)
             code=subprocess.call([interpreter,'-m','fxbx',*(sys.argv[1:] if argv is None else map(str,argv))])
             return code if code>=0 else 128-code
+    if args.action=='convert':
+        from .model_export import build_model
+        result=build_model(args.model,args.output,concurrency=args.concurrency)
+        print(json.dumps(result,ensure_ascii=False,indent=2))
+        return 0
+    if args.action=='inspect' and Path(args.package).is_file():
+        from .native_fxb import MAX_JSON_SIZE
+        import zipfile
+        with zipfile.ZipFile(args.package) as archive:
+            if archive.getinfo('manifest.json').file_size>MAX_JSON_SIZE:
+                raise ValueError('Manifest exceeds JSON limit')
+            manifest=json.loads(archive.read('manifest.json'))
+        if isinstance(manifest,dict) and manifest.get('format_version')==2:
+            from .native_fxb import validate_native
+            result=validate_native(args.package,verify_official=False)
+            producer=result.pop('producer_metadata') or {}
+            result['model']=manifest['model']
+            if 'execution_plan' in producer:
+                from .execution_fxb import read_execution_plan,_memory_gate
+                plan=read_execution_plan(args.package)
+                result['execution_plan']=plan
+                result['compatibility']=plan['compatibility']
+                if args.memory:result['memory_plan']=_memory_gate(plan)
+            elif 'graph_plan' in producer:
+                from .graph_fxb import read_graph_plan
+                plan=read_graph_plan(args.package)
+                result['execution_plan']=plan
+                result['compatibility']=plan['compatibility']
+            else:
+                result['execution_plan']=None
+                result['compatibility']=manifest['versions']
+                result['runtime']='furiosa_llm.LLM(model_dir, fxb=path)'
+            result['compatibility_scope']='기록된 계약 확인. 현재 환경 적합성과 실행 성공은 미검증'
+            print(json.dumps(result,ensure_ascii=False,indent=2))
+            return 0
     if args.action=='chat' and not args.input:
         print('Welcome to FXBEX Chat!\nModel: '+args.package+
               '\n모델을 준비하고 있습니다. 적재가 완료되면 >>> 뒤에 질문을 입력하세요.'+
