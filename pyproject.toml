@@ -34,3 +34,6 @@ fxbx = "fxbex.cli:main"
 
 [tool.setuptools.packages.find]
 include = ["fxbx*", "fxbex*"]
+
+[tool.setuptools.package-data]
+fxbex = ["web_demo.html"]

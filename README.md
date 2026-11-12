@@ -55,6 +55,95 @@ fxbx doctor
 
 `run`은 채팅 어댑터를 실행합니다. 텐서 모델은 `--input inputs.json -o result.json`을 받습니다. `chat`에서는 `/reset`, `/quit`을 사용할 수 있습니다. `serve`는 채팅 어댑터용 비스트리밍 `/v1/chat/completions`와 텐서 어댑터용 `/predict`를 localhost에 제공합니다. `fxbx ui --port 7861`은 선택 기능이며 Gradio가 필요합니다. 모든 명령은 `--help`를 지원합니다.
 
+### 빠른 실행
+
+```bash
+fxbx run sdxl-turbo -o image.png
+```
+
+현재 폴더에 PNG가 저장됩니다.
+
+### 모델별 실행 예제
+
+| 용도 | 모델 또는 패키지 | 요청 경로 |
+| --- | --- | --- |
+| 이미지 생성 | `sdxl-turbo`, `FLUX.2-klein-4B` | `POST /predict` |
+| 언어 모델 | 호환 채팅 패키지 `./chat.fxbx` | `POST /v1/chat/completions` |
+| 의사결정 | 호환 의사결정 패키지 `./decision.fxbx` | `POST /predict` |
+| PyTorch 텐서 추론 | 텐서 입출력 명세가 있는 RunnableDAG `./tensor.fxbx` | Python `as_torch()` |
+
+실제로 배포된 모델과 버전별 SDK 요건은 [FuryAwesome 모델 목록](https://github.com/smallstep-zzz/furyawesome)에서 확인합니다. `./chat.fxbx`, `./decision.fxbx`, `./tensor.fxbx`는 보유한 호환 패키지 경로로 바꿉니다.
+
+#### 서버 실행과 SSH 터널
+
+NPU 서버에서 모델을 적재합니다.
+
+```bash
+fxbx serve sdxl-turbo --port 8081
+```
+
+같은 머신에서는 `http://127.0.0.1:8081/`을 바로 엽니다. 원격 NPU 서버라면 내 컴퓨터의 다른 터미널에서 SSH 포워딩을 시작합니다. `SERVER`는 실제 SSH 호스트나 별칭으로 바꿉니다.
+
+```bash
+ssh -N -o ExitOnForwardFailure=yes -L 127.0.0.1:8081:127.0.0.1:8081 SERVER
+```
+
+예를 들어 3번 서버의 전용 SSH 설정을 쓰는 환경이라면 다음과 같이 접속합니다.
+
+```bash
+ssh -F /path/to/furiosa_3/.ssh/config -N -o ExitOnForwardFailure=yes \
+  -L 127.0.0.1:8081:127.0.0.1:8081 furiosa-npu-3
+```
+
+터널을 유지한 채 내 컴퓨터의 브라우저에서 `http://127.0.0.1:8081/`을 엽니다. 웹 화면은 패키지의 입력 예제를 불러오고, 채팅 답변과 생성 이미지 및 어댑터가 반환한 의사결정 결과를 표시합니다. 예제 파일은 [샘플 JSON 및 이미지](examples/web)에서 받을 수 있습니다. 첫 요청에는 런타임 준비 시간이 추가될 수 있습니다.
+
+#### 적재된 모델에 HTTP 요청
+
+아래 명령은 서버와 같은 머신 또는 SSH 터널을 연 컴퓨터에서 실행합니다. 한 서버 프로세스에서 적재한 모델을 반복 호출합니다.
+
+```bash
+curl -fsS http://127.0.0.1:8081/status
+
+curl -fsS http://127.0.0.1:8081/predict \
+  -H 'Content-Type: application/json' \
+  -d '{"prompt":"A lighthouse at dawn","seed":42}'
+```
+
+이미지 생성 응답의 `image_path`는 **서버 파일 경로**입니다. 브라우저에서는 생성 이미지를 미리 볼 수 있습니다. 의사결정 모델을 서버에 적재했다면 `/predict`에 그 패키지의 입력 계약에 맞는 JSON을 보냅니다. 호환 채팅 패키지를 적재했다면 다음과 같이 호출합니다.
+
+```bash
+curl -fsS http://127.0.0.1:8081/v1/chat/completions \
+  -H 'Content-Type: application/json' \
+  -d '{"messages":[{"role":"user","content":"안녕하세요"}],"max_tokens":32}'
+```
+
+모델이 요구하는 입력 이름과 예제는 `fxbx describe MODEL`, `fxbx sample MODEL`로 확인합니다.
+
+#### Python 및 PyTorch에서 직접 실행
+
+이미지 생성 어댑터는 Python에서 다음과 같이 호출할 수 있습니다.
+
+```python
+from fxbx import ImageGeneration
+
+with ImageGeneration("sdxl-turbo") as model:
+    result = model.generate("A lighthouse at dawn", seed=42)
+    print(result["image_path"])
+```
+
+텐서 입출력을 선언한 호환 패키지는 PyTorch 모듈로 적재할 수 있습니다. 예시의 shape와 dtype을 실제 컴파일 계약에 맞춥니다.
+
+```python
+import torch
+from fxbx import as_torch
+
+x = torch.ones((1, 4), dtype=torch.float32)
+with as_torch("./tensor.fxbx", output_device="cpu") as model:
+    outputs = model(x)
+```
+
+`as_torch()`는 선언된 RunnableDAG 텐서 계약을 사용하는 추론 래퍼입니다. 이미지 생성 등 전처리와 후처리가 있는 패키지는 위의 모델 클래스나 HTTP API를 사용합니다. Python에서 직접 적재할 때는 실행할 NPU를 기존 서비스와 공유할 수 있는지 먼저 확인합니다.
+
 ### OpenAI Python 클라이언트와 사용하기
 
 ```bash

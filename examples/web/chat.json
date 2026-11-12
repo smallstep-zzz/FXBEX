@@ -1,0 +1,6 @@
+{
+  "messages": [
+    {"role": "user", "content": "개발 서버에 올릴 변경사항을 검토하는 체크리스트를 세 줄로 작성해줘."}
+  ],
+  "max_new_tokens": 64
+}

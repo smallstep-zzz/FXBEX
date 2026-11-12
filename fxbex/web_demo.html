@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="ko">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>fxbX</title>
+<style>
+:root { font: 16px/1.5 "Atkinson Hyperlegible Next", system-ui, sans-serif; color: #172b27; background: #f2f5f2; }
+* { box-sizing: border-box; }
+body { max-width: 1040px; margin: auto; padding: 40px 20px; }
+header { border-bottom: 1px solid #c9d4cd; margin-bottom: 24px; padding-bottom: 18px; }
+header span { font-weight: 750; letter-spacing: .06em; color: #14644d; }
+h1 { margin: 6px 0 0; font-size: clamp(1.5rem, 4vw, 2.2rem); overflow-wrap: anywhere; }
+h2 { font-size: 1.18rem; margin: 0 0 16px; }
+main { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+section { min-width: 0; background: white; border: 1px solid #c9d4cd; border-radius: 12px; padding: 22px; }
+label { display: block; font-weight: 600; margin-bottom: 6px; }
+input, textarea, button { font: inherit; }
+input, textarea { width: 100%; border: 1px solid #aabdb4; border-radius: 6px; padding: 9px 11px; margin-bottom: 14px; color: inherit; }
+textarea { min-height: 100px; resize: vertical; }
+textarea.json { min-height: 240px; font-family: "IBM Plex Mono", monospace; font-size: .88rem; }
+button { border: 1px solid #14644d; border-radius: 6px; padding: 8px 14px; background: #14644d; color: white; cursor: pointer; }
+button.secondary { color: #14644d; background: white; }
+#sample-file { margin: 12px 0 0; padding: 0; border: 0; }
+button:disabled { opacity: .55; cursor: wait; }
+p { margin: 0 0 12px; }
+#status { margin-top: 14px; }
+pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+img { display: block; max-width: 100%; height: auto; border-radius: 6px; }
+img[hidden] { display: none; }
+summary { cursor: pointer; }
+@media (max-width: 670px) { body { padding-top: 24px; } main { grid-template-columns: 1fr; } }
+</style>
+<header><span>fxbX</span><h1 id="model">모델 정보 불러오는 중</h1></header>
+<main>
+  <section>
+    <h2>입력</h2>
+    <p id="expected" hidden></p>
+    <form>
+      <div id="fields"></div>
+      <button id="run" disabled>실행</button>
+      <button id="reset" type="button" class="secondary" disabled>예제 입력</button>
+      <label for="sample-file">JSON 입력 파일</label>
+      <input id="sample-file" type="file" accept=".json,application/json" disabled>
+    </form>
+    <p id="status" role="status" aria-live="polite"></p>
+  </section>
+  <section aria-label="실행 결과">
+    <h2>결과</h2>
+    <img id="image" alt="모델이 생성한 이미지" hidden>
+    <pre id="answer"></pre>
+    <details id="details" hidden><summary>응답 JSON</summary><pre id="result"></pre></details>
+  </section>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const fields = $('fields');
+const run = $('run');
+const reset = $('reset');
+let config;
+let readInput;
+const labels = {prompt: '프롬프트', seed: '시드', state: '상황', context: '문맥',
+  question: '질문', questions: '질문', options: '선택지', choices: '선택지', max_new_tokens: '최대 생성 토큰'};
+
+function field(key, value) {
+  const structured = value === null || typeof value === 'object' || typeof value === 'boolean';
+  const input = document.createElement(structured || typeof value === 'string' ? 'textarea' : 'input');
+  input.id = 'field-' + fields.children.length;
+  if (structured) input.className = 'json';
+  if (typeof value === 'number') { input.type = 'number'; input.step = 'any'; input.required = true; }
+  input.value = structured ? JSON.stringify(value, null, 2) : value;
+  const label = document.createElement('label');
+  label.htmlFor = input.id;
+  label.textContent = labels[key] || key;
+  fields.append(label, input);
+  return () => structured ? JSON.parse(input.value) : input.type === 'number' ? input.valueAsNumber : input.value;
+}
+function showExample(sample = config.example) {
+  fields.replaceChildren();
+  if (config.method === 'chat' && Array.isArray(sample.messages)
+      && sample.messages.length === 1 && sample.messages[0].role === 'user'
+      && typeof sample.messages[0].content === 'string') {
+    const prompt = field('prompt', sample.messages[0].content);
+    const limit = field('max_new_tokens', sample.max_new_tokens ?? 32);
+    readInput = () => ({...sample, messages: [{role: 'user', content: prompt()}], max_new_tokens: limit()});
+  } else if (Object.keys(sample).length) {
+    const readers = Object.entries(sample).map(([key, value]) => [key, field(key, value)]);
+    readInput = () => Object.fromEntries(readers.map(([key, read]) => [key, read()]));
+  } else {
+    readInput = field('입력 JSON', {});
+  }
+}
+const sampleFile = $('sample-file');
+reset.addEventListener('click', () => {
+  sampleFile.value = '';
+  showExample();
+  $('status').textContent = '';
+});
+sampleFile.addEventListener('change', async () => {
+  const file = sampleFile.files[0];
+  if (!file) return;
+  try {
+    if (file.size > 65536) throw new Error('JSON 파일은 64 KiB 이하여야 합니다.');
+    const sample = JSON.parse(await file.text());
+    if (!sample || typeof sample !== 'object' || Array.isArray(sample)) {
+      throw new Error('JSON 입력은 객체여야 합니다.');
+    }
+    showExample(sample);
+    $('status').textContent = '';
+  } catch (error) {
+    $('status').textContent = error.message;
+  }
+});
+document.querySelector('form').addEventListener('submit', async event => {
+  event.preventDefault();
+  run.disabled = reset.disabled = sampleFile.disabled = true;
+  $('status').textContent = '실행 중. 첫 요청은 준비 시간이 길 수 있습니다.';
+  $('answer').textContent = '';
+  $('details').hidden = true;
+  $('image').hidden = true;
+  const start = performance.now();
+  try {
+    const response = await fetch('/demo/run', {method: 'POST',
+      headers: {'Content-Type': 'application/json', 'X-FXBX-Demo': '1'},
+      body: JSON.stringify(readInput())});
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error?.message || '실행 실패');
+    const result = data.result;
+    if (data.image_url) {
+      $('image').src = data.image_url;
+      $('image').hidden = false;
+    } else {
+      const primary = result?.text ?? result?.answers ?? result?.decision ?? result;
+      $('answer').textContent = typeof primary === 'string' ? primary : JSON.stringify(primary, null, 2);
+    }
+    $('result').textContent = JSON.stringify(result, null, 2);
+    $('details').hidden = false;
+    $('status').textContent = '완료 · ' + ((performance.now() - start) / 1000).toFixed(2) + '초';
+  } catch (error) {
+    $('status').textContent = error.message;
+  } finally {
+    run.disabled = reset.disabled = sampleFile.disabled = false;
+  }
+});
+fetch('/demo/config').then(response => response.json()).then(data => {
+  config = data;
+  $('model').textContent = config.model;
+  if (typeof config.expected_result === 'string') {
+    $('expected').textContent = config.expected_result;
+    $('expected').hidden = false;
+  }
+  showExample();
+  run.disabled = reset.disabled = sampleFile.disabled = false;
+}).catch(error => { $('status').textContent = error.message; });
+</script>
+</html>
