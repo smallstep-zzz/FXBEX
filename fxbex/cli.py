@@ -7,6 +7,7 @@ import threading
 import time
 from .package import build, inspect
 from .validation import validate
+from .hub import PACKAGE_SUFFIXES
 
 
 def _runtime_call(callback, log_path, verbose=False):
@@ -45,13 +46,13 @@ def _main(argv=None):
         prog='fxbx', description='Build, inspect and run compiled FXB_EX model packages.',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""Examples:
-  fxbx build ./compiled_model -o model.fxbex
-  fxbx inspect model.fxbex
-  fxbx validate model.fxbex --integrity-only
-  fxbx validate model.fxbex --weights-dir ./weights
-  fxbx run model.fxbex --input inputs.json -o result.json
-  fxbx chat model.fxbex
-  fxbx serve model.fxbex --port 8000
+  fxbx build ./compiled_model -o model.fxbx
+  fxbx inspect model.fxbx
+  fxbx validate model.fxbx --integrity-only
+  fxbx validate model.fxbx --weights-dir ./weights
+  fxbx run model.fxbx --input inputs.json -o result.json
+  fxbx chat model.fxbx
+  fxbx serve model.fxbx --port 8000
   fxbx doctor
 
 Validation checks static readiness; it does not run inference or prove NPU execution.
@@ -61,15 +62,15 @@ Model-specific exporters and capture commands belong to their adapter plugins.""
     parser.add_argument('--version',action='version',version='%(prog)s '+__version__)
     p = sub.add_parser('build', help='Pack a compiled directory with checksums (no compilation)')
     p.add_argument('source', help='Compiled directory containing manifest and required JSON configurations')
-    p.add_argument('-o', '--output', required=True, help='New .fxbex file; existing files are never overwritten')
+    p.add_argument('-o', '--output', help='Output package (default: SOURCE.fxbx)')
     p.add_argument('--source-model',help='Original HF model ID or HTTPS model URL')
     p.add_argument('--source-revision',help='Original checkpoint revision (prefer immutable commit)')
     p.add_argument('--standalone', action='store_true', help='Copy referenced external weights into the archive')
     p = sub.add_parser('inspect', help='Verify integrity and display the manifest; no SDK needed')
-    p.add_argument('package', help='Path to a .fxbex archive')
+    p.add_argument('package', help='Path to a .fxbx or legacy .fxbex archive')
     p.add_argument('--memory', action='store_true', help='Show logical memory/lifetime plan without loading the NPU')
     p = sub.add_parser('validate', help='Check integrity, SDK, adapter, weights and device availability without inference')
-    p.add_argument('package', help='Path to a .fxbex archive')
+    p.add_argument('package', help='Path to a .fxbx or legacy .fxbex archive')
     p.add_argument('--integrity-only', action='store_true', help='Verify archive only; skip SDK, weights and device checks')
     p.add_argument('--weights-dir', help='Override the external checkpoint/weights directory')
     for name in ('describe','sample'):
@@ -85,7 +86,7 @@ Model-specific exporters and capture commands belong to their adapter plugins.""
         ('serve', 'Serve the loaded package over local HTTP'),
     ):
         p = sub.add_parser(name, help=help_text, description=help_text)
-        p.add_argument('package', help='Path to a .fxbex archive')
+        p.add_argument('package', help='Path to a .fxbx or legacy .fxbex archive')
         p.add_argument('--verbose',action='store_true',help='Show internal SDK/compiler diagnostics on the terminal')
         p.add_argument('--report-dir', help='Directory for runtime logs and evidence')
         p.add_argument('--weights-dir', help='Override external checkpoint/weights directory')
@@ -108,7 +109,7 @@ Model-specific exporters and capture commands belong to their adapter plugins.""
     if args.action=='cache':
         from .settings import cache_root
         root=cache_root()/'models'
-        files=sorted(root.rglob('*.fxbex')) if root.exists() else []
+        files=sorted(p for suffix in PACKAGE_SUFFIXES for p in root.rglob('*'+suffix)) if root.exists() else []
         if args.operation=='clear':
             if not args.yes:raise ValueError('Use cache clear --yes to delete FXBEX-managed downloads')
             import shutil
@@ -147,7 +148,7 @@ Model-specific exporters and capture commands belong to their adapter plugins.""
             raise ValueError('Image file does not exist')
         if sample_contract['method']=='chat' and not args.sample:
             sample_contract=None
-    if args.action=='build':result={'package':str(build(args.source,args.output,standalone=args.standalone,source_url=args.source_model,source_revision=args.source_revision))}
+    if args.action=='build':result={'package':str(build(args.source,args.output or Path(args.source).resolve().with_name(Path(args.source).resolve().name+'.fxbx'),standalone=args.standalone,source_url=args.source_model,source_revision=args.source_revision))}
     elif args.action == 'inspect':
         m=inspect(args.package)
         result={'model':m['model'],'runtime':m['runtime'],'compatibility':m['compatibility'],

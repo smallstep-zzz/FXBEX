@@ -1,6 +1,7 @@
 """Reusable Gradio shell. Agents supply model-specific controls through controls(run)."""
 import json
 from pathlib import Path
+from .hub import PACKAGE_SUFFIXES
 import shutil
 import threading
 import time
@@ -12,7 +13,7 @@ from .execution import memory_text
 def save_package(source, directory):
     """Copy a local package without silently replacing an existing delivery."""
     source=Path(source).resolve();directory=Path(directory).resolve()
-    if source.suffix != '.fxbex' or not source.is_file():raise ValueError('Expected a .fxbex file')
+    if source.suffix not in PACKAGE_SUFFIXES or not source.is_file():raise ValueError('Expected a .fxbx or .fxbex file')
     directory.mkdir(parents=True,exist_ok=True)
     target=directory/source.name
     if source==target:return str(target)
@@ -39,7 +40,7 @@ def build_ui(service_factory=None, default_package="", package_dir="fxbex", cont
     from .service import PackageService
     service_factory=service_factory or PackageService
     directory=Path(package_dir).resolve();directory.mkdir(parents=True,exist_ok=True)
-    packages=lambda:sorted(str(p) for p in directory.glob('*.fxbex'))
+    packages=lambda:sorted(str(p) for suffix in PACKAGE_SUFFIXES for p in directory.glob('*'+suffix))
     state={'session':None};lock=threading.RLock()
     def unload():
         with lock:
@@ -73,7 +74,7 @@ def build_ui(service_factory=None, default_package="", package_dir="fxbex", cont
     path=gr.Textbox(label='Package path on server',value=default_package)
     selected.change(lambda p:p,selected,path)
     refresh.click(lambda:gr.Dropdown(choices=packages()),outputs=selected)
-    upload=gr.File(label='Save a trusted package to fxbex/',file_types=['.fxbex'],type='filepath')
+    upload=gr.File(label='Save a trusted package to fxbex/',file_types=list(PACKAGE_SUFFIXES),type='filepath')
     upload.change(lambda p:save_package(p,directory) if p else '',upload,path)
     with gr.Row():load_button=gr.Button('Load');unload_button=gr.Button('Unload')
     status=gr.Textbox(label='Status / load time / report')

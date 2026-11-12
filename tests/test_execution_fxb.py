@@ -72,6 +72,11 @@ class ExecutionPlanTests(unittest.TestCase):
             self.assertEqual(set(manifest['kernels']),{'add','double'})
             self.assertEqual(manifest['model']['architecture'],'OfflineStatefulFixture')
         with self.assertRaises(FileExistsError):self.export()
+    def test_custom_plan_round_trips_with_fxbx_extension(self):
+        self.output = self.output.with_suffix(".fxbx")
+        self.export()
+        self.assertEqual(set(read_execution_plan(self.output)["kernels"]), {"add", "double"})
+
     def test_bad_dataflow_and_state_contracts_are_rejected(self):
         changes=[lambda p:p['entries']['forward']['steps'][0]['inputs'].__setitem__(0,'missing'),
                  lambda p:p['entries']['forward']['steps'][0]['inputs'].__setitem__(0,'y'),

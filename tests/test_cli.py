@@ -49,6 +49,12 @@ class CliTests(unittest.TestCase):
         self.assertIsNone(json.loads(out)['statically_ready'])
         self.assertFalse(json.loads(out)['inference_validated'])
 
+    def test_build_defaults_to_fxbx(self):
+        self.assertEqual(self.invoke("build", str(self.source))[0], 0)
+        output = self.source.with_suffix(".fxbx")
+        self.assertTrue(output.is_file())
+        self.assertEqual(self.invoke("inspect", str(output))[0], 0)
+
     def test_missing_file_no_traceback(self):
         code, _, err = self.invoke('validate', self.package)
         self.assertEqual(code, 1)
@@ -73,7 +79,7 @@ class CliTests(unittest.TestCase):
         with contextlib.redirect_stdout(out), self.assertRaises(SystemExit) as raised:
             main(['--help'])
         self.assertEqual(raised.exception.code, 0)
-        self.assertIn('build ./compiled_model -o model.fxbex', out.getvalue())
+        self.assertIn('build ./compiled_model -o model.fxbx', out.getvalue())
         self.assertIn('--port 8000', out.getvalue())
         self.assertNotIn('capture-qwen', out.getvalue())
 

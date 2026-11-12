@@ -146,8 +146,9 @@ def build_native(source_dir, output, *, verify_official=True, producer_metadata=
     source, output = Path(source_dir).resolve(), Path(output).absolute()
     if not source.is_dir():
         raise NativeFXBError('Source must be an extracted native artifact directory')
-    if output.suffix != '.fxb':
-        raise NativeFXBError('Native output must use .fxb')
+    custom_plan = isinstance((producer_metadata or {}).get('execution_plan'), dict)
+    if output.suffix != '.fxb' and not (custom_plan and output.suffix == '.fxbx'):
+        raise NativeFXBError('Native output must use .fxb; custom execution plans may use .fxbx')
     if output.exists() or output.is_symlink():
         raise FileExistsError(output)
     manifest_path = source / 'manifest.json'
@@ -173,7 +174,7 @@ def build_native(source_dir, output, *, verify_official=True, producer_metadata=
     _json(metadata_bytes)
     output.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix='.native-fxb-', dir=output.parent) as temporary:
-        staged = Path(temporary) / output.name
+        staged = Path(temporary) / output.with_suffix('.fxb').name
         with zipfile.ZipFile(staged, 'w', compression=zipfile.ZIP_STORED, allowZip64=True) as archive:
             archive.writestr('manifest.json', manifest_bytes)
             for name in sorted(files):

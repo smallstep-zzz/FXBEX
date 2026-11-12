@@ -39,7 +39,9 @@ def build_model(model, output, *, example_inputs=None, contract_provider=None,
     """
     from .native_fxb import NativeFXBError, build_native
     output=Path(output).absolute()
-    if output.suffix!='.fxb':raise ValueError('output must end in .fxb')
+    custom_plan = not isinstance(model, (str, os.PathLike)) and contract_provider is None
+    if output.suffix != '.fxb' and not (custom_plan and output.suffix == '.fxbx'):
+        raise ValueError('Official output uses .fxb; custom execution plans may use .fxbx')
     if output.exists() or output.is_symlink():raise FileExistsError(output)
     if type(concurrency) is not int or not 1<=concurrency<=32:
         raise ValueError('concurrency must be 1..32')

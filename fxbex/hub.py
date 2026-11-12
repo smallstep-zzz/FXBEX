@@ -6,10 +6,13 @@ from urllib.parse import urlsplit
 
 CATALOG='https://raw.githubusercontent.com/smallstep-zzz/furyawesome/main/catalog.json'
 
+PACKAGE_SUFFIXES = ('.fxbx', '.fxbex')
+
+
 def _local_package(path, *, announce=True):
     if path.is_file():return path.resolve()
     if not path.is_dir():return None
-    candidates=[p for p in path.rglob('*.fxbex') if p.is_file()]
+    candidates=[p for suffix in PACKAGE_SUFFIXES for p in path.rglob('*'+suffix) if p.is_file()]
     if not candidates:return None
     selected=max(candidates,key=lambda p:(p.stat().st_mtime_ns,str(p)))
     if announce:print('Selected model: '+str(selected.resolve()),file=sys.stderr,flush=True)
@@ -36,7 +39,7 @@ def resolve_package(value, *, refresh=False):
     name,sep,version=identifier.partition('@')
     if sep and not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]{0,59}',version):raise ValueError('Invalid release version')
     path=Path(value).expanduser()
-    explicit_local=isinstance(value,os.PathLike) or str(value).startswith(('.', '/', '~')) or identifier.endswith('.fxbex') or path.is_file()
+    explicit_local=isinstance(value,os.PathLike) or str(value).startswith(('.', '/', '~')) or identifier.endswith(PACKAGE_SUFFIXES) or path.is_file()
     inferred=None
     if '/' not in name and not path.exists():
         folders=[p for p in Path('.').glob('*/'+name) if p.is_dir()]
@@ -48,7 +51,7 @@ def resolve_package(value, *, refresh=False):
     if local and (explicit_local or sep) and not refresh:
         print('Selected model: '+str(local),file=sys.stderr,flush=True)
         return local
-    if explicit_local and (isinstance(value,os.PathLike) or identifier.endswith('.fxbex') or identifier.startswith(('.', '/', '~'))):raise FileNotFoundError(path)
+    if explicit_local and (isinstance(value,os.PathLike) or identifier.endswith(PACKAGE_SUFFIXES) or identifier.startswith(('.', '/', '~'))):raise FileNotFoundError(path)
     # Inferred publisher/model folders are caches, not explicit local selections.
     # A short catalog ID must not silently select an older, recently touched file.
     try:
@@ -80,7 +83,8 @@ def resolve_package(value, *, refresh=False):
     print(f'Selected release: {source_id}@{selected_version}',file=sys.stderr,flush=True)
     from .settings import cache_root
     destination=cache_root()/"models"/source_id/selected_version
-    target=destination/(source_id.split('/')[-1]+'.fxbex')
+    suffix = '.fxbx' if parts[-1].endswith('.fxbx') else '.fxbex'
+    target=destination/(source_id.split('/')[-1]+suffix)
     if target.exists() and not refresh:
         local_hash=hashlib.sha256()
         with target.open('rb') as stream:

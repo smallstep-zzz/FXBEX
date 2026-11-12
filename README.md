@@ -3,11 +3,11 @@
 **0.8.1 개발 소스:** [TCLMachine 공통 실행 계약](docs/EXECUTION_PLAN.md)으로 다중 EDF와 상주 상태를 연결합니다. 모델명 분기 없이 연산 계약으로 내보내며, 컴파일러 없는 새 프로세스 NPU 재적재를 검증했습니다. 구형 `fxbex`가 새 구현을 가리면 명확한 오류로 중단합니다. PyPI0.7.0과 구분하세요.
 
 **FXBEX에서 fxbX로 이름이 바뀌었습니다.** 배포 패키지·CLI·공개 import는 `fxbx`이며, 이름 전환 릴리스는 0.7.0입니다.
-기존 `.fxbex` 모델 파일은 계속 읽을 수 있습니다. [PyPI 0.7.0](https://pypi.org/project/fxbx/0.7.0/)에서 배포합니다.
+새 fxbX 패키지에는 `.fxbx` 확장자를 사용합니다. 기존 `.fxbex` 모델 파일은 계속 읽을 수 있습니다. [PyPI 0.7.0](https://pypi.org/project/fxbx/0.7.0/)에서 배포합니다.
 설치는 `python -m pip install --upgrade fxbx`를 사용하세요.
 기존 `fxbex` 배포와 엔진 이름 공간을 공유하므로, 같은 환경으로 이전할 때는 기존 배포를 먼저 제거해야 합니다. 실행 중인 서비스가 있다면 별도 환경에서 이전을 검증하세요.
 
-Furiosa RNGD에서 사전 컴파일한 실행 파일을 패키징하고 실행하는 Linux CLI입니다. `.fxbex`는 FXBEX가 정의한 독립 형식이며, **Furiosa 공식 FXB 형식이 아닙니다.**
+Furiosa RNGD에서 사전 컴파일한 실행 파일을 패키징하고 실행하는 Linux CLI입니다. `.fxbx`와 기존 `.fxbex`는 fxbX가 읽는 패키지입니다. Furiosa 공식 번들은 `.fxb`를 사용합니다. TCLMachine 커스텀 실행 계획도 `.fxbx`로 저장할 수 있으며, 이 산출물은 `ExecutionFXB`로 엽니다.
 
 ## Python 및 Furiosa SDK 호환성
 
@@ -43,13 +43,13 @@ TPLMachine/FHA 최적화 후보는 실제 수치·NPU trace·반복 실행 검�
 ## 명령어
 
 ```bash
-fxbx build ./compiled_model -o model.fxbex
-fxbx build ./compiled_model -o model-standalone.fxbex --standalone
-fxbx inspect model.fxbex
-fxbx validate model.fxbex
-fxbx run model.fxbex
-fxbx chat model.fxbex
-fxbx serve model.fxbex --port 8000
+fxbx build ./compiled_model -o model.fxbx
+fxbx build ./compiled_model -o model-standalone.fxbx --standalone
+fxbx inspect model.fxbx
+fxbx validate model.fxbx
+fxbx run model.fxbx
+fxbx chat model.fxbx
+fxbx serve model.fxbx --port 8000
 fxbx doctor
 ```
 
@@ -81,7 +81,7 @@ print(response.choices[0].message.content)
 `validate`는 체크섬, 외부 가중치, SDK 버전, 어댑터 계약과 RNGD 장치를 확인하지만 **추론을 실행하지 않습니다.** SDK나 NPU가 없는 시스템에서는 다음처럼 무결성만 검사할 수 있습니다.
 
 ```bash
-fxbx validate model.fxbex --integrity-only
+fxbx validate model.fxbx --integrity-only
 ```
 
 `--weights-dir /path/to/snapshot`은 해시 검증을 유지하면서 외부 가중치 위치를 지정합니다.
@@ -111,10 +111,10 @@ bash tests/install_fxbex.sh /root/FXBEX
 
 ## 재사용 가능한 Gradio 모델 페이지
 
-`examples/model_page.py`를 복사하고 `PACKAGE = Path('fxbex/model.fxbex')`를 설정한 뒤 SDK가 설치된 호스트에서 실행합니다. 전달할 패키지는 애플리케이션의 `fxbex/` 폴더에 둡니다.
+`examples/model_page.py`를 복사하고 `PACKAGE = Path('fxbex/model.fxbx')`를 설정한 뒤 SDK가 설치된 호스트에서 실행합니다. 전달할 패키지는 애플리케이션의 `fxbex/` 폴더에 둡니다.
 
 ```bash
-fxbx build ./compiled_model -o fxbex/model.fxbex
+fxbx build ./compiled_model -o fxbex/model.fxbx
 ```
 
 페이지는 저장된 패키지 목록, 기존 파일을 덮어쓰지 않는 업로드, Load/Unload, 요청 시간 측정과 선택한 파일명을 포함한 Python 예제를 제공합니다. `mode='chat'` 또는 `mode='predict'`를 사용합니다. 이미지 입력·출력 같은 모델별 처리에는 `controls(run)` 콜백을 제공할 수 있습니다. 콜백은 `run('predict', named_inputs)`를 호출하고 `(result, timing)`을 받습니다. 입력 변환과 출력 렌더링은 검증된 모델 어댑터 계약에 맞춰야 합니다. 템플릿은 새 모델 지원을 추가하지 않습니다. 기존 Model Forge가 동일한 페이지 골격과 공유 서비스를 사용합니다. 패키지 파일은 Git에 포함하지 않습니다.
@@ -155,7 +155,7 @@ python -m pip install dist/fxbx-0.7.1-py3-none-any.whl
 
 ```bash
 cd /root/rngd-model-forge
-python -m tools.export_portable_qwen fxbex/model.fxbex -o /large-disk/model-portable.fxbex
+python -m tools.export_portable_qwen fxbex/model.fxbx -o /large-disk/model-portable.fxbex
 ```
 
 이 명령은 고정된 프로젝트 소스를 확인하고 체크포인트 파일, 토크나이저, 컴파일된 커널과 Python 어댑터를 포함합니다. 다운로드나 별도의 Model Forge 설치는 필요하지 않지만 호환 RNGD 드라이버, Furiosa SDK와 Python 의존성은 호스트에 있어야 합니다. 따라서 `pip install fxbx`와 파일 하나만으로 실행 가능한 조건은 **이미 호환되는 RNGD 호스트에서 FXBEX 0.3.0 이상을 사용하는 경우**입니다. PyPI 0.2.1은 bundled adapter를 지원하지 않습니다. 완전한 portable 배포라고 안내하기 전에 다른 환경에서 실제 추론을 검증해야 합니다. 임시 디스크에는 패키지와 압축 해제된 파일을 함께 둘 공간이 필요합니다.
@@ -201,9 +201,9 @@ ChunSik, 커널 매칭, 후보 생성과 튜닝 정책은 Furiosa-Hug-Anything�
 ### 모델 입력과 출력 확인하기 — 소스 버전
 
 ```bash
-fxbx describe model.fxbex
-fxbx sample model.fxbex > inputs.json
-fxbx run model.fxbex --input inputs.json -o result.json
+fxbx describe model.fxbx
+fxbx sample model.fxbx > inputs.json
+fxbx run model.fxbx --input inputs.json -o result.json
 ```
 
 내보내기 도구는 선택적으로 `manifest.io_contract`를 제공합니다. 여기에는 `schema_version=1`, 실행 방식(`chat`/`predict`), `inputs`, `outputs`, `example_input`, 실제 검증 범위를 반영한 `expected_result` 설명이 들어갑니다. 메타데이터가 없으면 누락 사실을 알리며 추측하지 않습니다.
@@ -240,7 +240,7 @@ fxbx run ./RedHatAI/Qwen3.5-9B-FP8-dynamic
 
 ### 과거 릴리스: 0.4.1 다운로드 위치 수정
 
-이 버전에서는 `./` 유무와 관계없이 모델 ID로 현재 작업 디렉터리 아래 폴더를 만들고 `model.fxbex`를 저장합니다. HF 전송과 로컬 복사 진행률을 표시하며 기존 파일은 재사용합니다. HF 캐시와 로컬 복사본이 각각 디스크 공간을 차지할 수 있습니다. 당시 업그레이드 명령은 `python -m pip install --upgrade fxbex==0.4.1`이었습니다.
+이 버전에서는 `./` 유무와 관계없이 모델 ID로 현재 작업 디렉터리 아래 폴더를 만들고 `model.fxbx`를 저장합니다. HF 전송과 로컬 복사 진행률을 표시하며 기존 파일은 재사용합니다. HF 캐시와 로컬 복사본이 각각 디스크 공간을 차지할 수 있습니다. 당시 업그레이드 명령은 `python -m pip install --upgrade fxbex==0.4.1`이었습니다.
 
 ### Qwen 런타임 호환성 조사 기록
 
@@ -255,7 +255,7 @@ from fxbx import hug
 LLM = hug(LLM)
 # 공식 모델은 원래 생성자·옵션·메서드·객체를 유지합니다.
 # llm = LLM("your-official-model", ...)
-llm = LLM(model="./model.fxbex", dtype="bf16")  # 패키지가 BF16인 경우
+llm = LLM(model="./model.fxbx", dtype="bf16")  # 패키지가 BF16인 경우
 try:
     output = llm.generate("The numbers are one, two,", SamplingParams(temperature=0, max_tokens=16))
     print(output.outputs[0].text)
@@ -266,7 +266,7 @@ finally:
     llm.shutdown()
 ```
 
-래퍼는 공식 클래스를 전역 수정하지 않습니다. 공식 모델 생성 시 원래 객체를 반환하고, 래핑된 클래스도 상속한 클래스 도우미와 인스턴스 검사를 유지합니다. 로컬 `.fxbex` 경로, `model.fxbex`가 들어 있는 폴더, 정확한 FuryAwesome ID는 fxbX 경로를 선택합니다.
+래퍼는 공식 클래스를 전역 수정하지 않습니다. 공식 모델 생성 시 원래 객체를 반환하고, 래핑된 클래스도 상속한 클래스 도우미와 인스턴스 검사를 유지합니다. 로컬 `.fxbex` 경로, `model.fxbx`가 들어 있는 폴더, 정확한 FuryAwesome ID는 fxbX 경로를 선택합니다.
 `fxbex=True`는 이 경로를 요구하고, `fxbex=False`는 공식 엔진 경로를 강제합니다. 같은 모델 ID가 두 곳에 있을 때 유용합니다. 오프라인에서 알 수 없는 카탈로그 ID는 경고 후 공식 생성자로 전달합니다. 카탈로그 ID에는 기존 검증·다운로드·캐시를 사용합니다. 공식 엔진의 가중치·SDK·라이선스는 별도로 필요하며, 래퍼가 해당 엔진의 미지원 모델을 지원하게 만들지는 않습니다.
 
 ### 실시간 스트리밍
@@ -333,13 +333,13 @@ fxbx chat RedHatAI/Qwen3.5-9B-FP8-dynamic@2026.4.0-portable2
 # fxbex chat RedHatAI/Qwen3.5-9B-FP8-dynamic@opt3
 ```
 
-릴리스 이름은 명시적으로 지정합니다. 위 `opt3`는 설명용 예시이며 공개 모델이 아닙니다. 로컬 버전은 오프라인에서 동작합니다. 여러 로컬 버전이 있으면 `@VERSION` 또는 정확한 파일 경로가 필요하며, 문자열 정렬로 최신·최적 버전을 추측하지 않습니다. 기존 `model.fxbex`는 이름을 바꾸거나 삭제하지 않습니다. 버전을 지정하면 버전 없는 구형 패키지를 잘못 재사용하지 않습니다. hug 어댑터도 같은 해석 규칙을 사용합니다. HF 캐시와 로컬 복사본은 별개입니다.
+릴리스 이름은 명시적으로 지정합니다. 위 `opt3`는 설명용 예시이며 공개 모델이 아닙니다. 로컬 버전은 오프라인에서 동작합니다. 여러 로컬 버전이 있으면 `@VERSION` 또는 정확한 파일 경로가 필요하며, 문자열 정렬로 최신·최적 버전을 추측하지 않습니다. 기존 `model.fxbx`는 이름을 바꾸거나 삭제하지 않습니다. 버전을 지정하면 버전 없는 구형 패키지를 잘못 재사용하지 않습니다. hug 어댑터도 같은 해석 규칙을 사용합니다. HF 캐시와 로컬 복사본은 별개입니다.
 
 ## 원본 모델 출처 기록 — 0.5.2
 
 ```bash
-fxbx build ./compiled_model -o model.fxbex --standalone --source-model stabilityai/TripoSR --source-revision ORIGINAL_COMMIT
-fxbx inspect model.fxbex
+fxbx build ./compiled_model -o model.fxbx --standalone --source-model stabilityai/TripoSR --source-revision ORIGINAL_COMMIT
+fxbx inspect model.fxbx
 ```
 
 매니페스트에는 `provenance.source_url`, 선택적인 `revision`, `status`를 기록합니다. Python 빌더는 `build()`에 `source_url=`과 `source_revision=`을 전달합니다. 명시적인 기존 출처 정보는 유지합니다. 출처가 없으면 `unknown`으로 기록하고, 표시 이름을 출처 근거로 사용하지 않습니다. FHA는 모델 준비·다운로드 기록에서 출처를 채우고 게시 전에 확인합니다. 이 필드가 없는 구형 패키지도 적재할 수 있습니다. 메타데이터를 수정하면 새 아티팩트 해시와 릴리스가 필요하며 기존 파일을 덮어쓰지 않습니다.
@@ -363,7 +363,7 @@ fxbx run ./models
 
 ### 논리 메모리 계획과 안전한 텐서 수명 — 0.6.2
 
-`fxbx build`는 `runnable-dag-v1`의 작은 그래프·shape·인덱스 JSON 문서에서 연결 관계가 고정된 메모리 계획을 만듭니다. 중간 텐서 shape와 dtype은 `runtime_config.tensor_specs`, 가중치 메타데이터는 `weights_index`에 선언하세요. 누락되거나 동적인 크기는 미확인으로 둡니다. `fxbx inspect model.fxbex --memory`는 NPU 적재 없이 계획을 표시하며, 전체 inspect는 무결성도 검사합니다. 메타데이터만 분석하려면 `fxbex.memory.inspect_archive(path)`를 사용합니다.
+`fxbx build`는 `runnable-dag-v1`의 작은 그래프·shape·인덱스 JSON 문서에서 연결 관계가 고정된 메모리 계획을 만듭니다. 중간 텐서 shape와 dtype은 `runtime_config.tensor_specs`, 가중치 메타데이터는 `weights_index`에 선언하세요. 누락되거나 동적인 크기는 미확인으로 둡니다. `fxbx inspect model.fxbx --memory`는 NPU 적재 없이 계획을 표시하며, 전체 inspect는 무결성도 검사합니다. 메타데이터만 분석하려면 `fxbex.memory.inspect_archive(path)`를 사용합니다.
 
 가중치를 올리기 전에 오래된 연결 정보 또는 명시한 `memory_plan.policy.budget_bytes` 초과를 거부합니다. 논리 추정치가 맞더라도 물리 HBM 용량을 보장하지는 않습니다. 별칭, 패딩, 네이티브 실행 파일의 작업 공간과 할당기 여유분은 측정하지 않습니다. 구형 사용자 어댑터는 `fxbex.memory.stateful_plan`으로 실제 shape를 선언할 때까지 `unplanned`로 남습니다.
 
@@ -402,7 +402,7 @@ TCLMachine 0.3은 지원하는 소형 그래프 모델을 FHA 없이 전달할 �
 ```python
 from fxbx import as_torch
 
-with as_torch('./model.fxbex', output_device='cpu') as model:
+with as_torch('./model.fxbx', output_device='cpu') as model:
     outputs = model(input_tensor)  # 컴파일된 shape와 dtype을 정확히 사용합니다.
 ```
 
@@ -435,16 +435,11 @@ python examples/native_static_graph.py build ./linear.fxb
 python examples/native_static_graph.py run ./linear.fxb
 ```
 
-### Shared weights and request state
+### 공유 가중치와 요청별 상태
 
-`build_program` / `tclmachine.export_program` compose named functional calls into
-one native FXB. `GraphFXB.new_state()` isolates request state while retaining
-shared weights. See [official reuse, NPU evidence and limits](docs/OFFICIAL_STATE_REUSE.md).
-Native FXB weights remain separate; functional state is not paged KV support.
+`build_program`과 `tclmachine.export_program`은 이름을 붙인 여러 실행 함수를 하나의 번들로 묶습니다. `GraphFXB.new_state()`로 가중치를 공유하면서 요청별 상태를 분리할 수 있습니다. 가중치는 별도로 공급하며, 함수의 상태와 페이지 기반 KV 캐시는 서로 다른 계약입니다. [공식 구성 재사용과 NPU 검증 범위](docs/OFFICIAL_STATE_REUSE.md)
 
-Native execution-plan FXBs can load [header-first checkpoint weights](docs/CHECKPOINT_WEIGHTS.md)
-with `SafeTensorWeights`, without constructing a complete CPU model.
-
+`SafeTensorWeights`는 전체 CPU 모델을 만들지 않고 체크포인트 헤더부터 확인해 가중치를 읽습니다. [가중치 적재 방식](docs/CHECKPOINT_WEIGHTS.md)
 
 ### 생성부터 독립 실행 검증까지
 

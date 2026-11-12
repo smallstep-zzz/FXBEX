@@ -189,6 +189,8 @@ def build(source, output, standalone=False, *, max_total_size=DEFAULT_MAX_TOTAL_
     """
     source = Path(source).resolve()
     output = Path(output).absolute()
+    if not output.suffix:
+        output = output.with_suffix('.fxbx')
     if not source.is_dir():
         raise PackageError('Source must be a directory')
     if output.resolve().is_relative_to(source):
