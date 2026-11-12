@@ -55,6 +55,19 @@ fxbx doctor
 
 `run`은 채팅 어댑터를 실행합니다. 텐서 모델은 `--input inputs.json -o result.json`을 받습니다. `chat`에서는 `/reset`, `/quit`을 사용할 수 있습니다. `serve`는 채팅 어댑터용 비스트리밍 `/v1/chat/completions`와 텐서 어댑터용 `/predict`를 localhost에 제공합니다. `fxbx ui --port 7861`은 선택 기능이며 Gradio가 필요합니다. 모든 명령은 `--help`를 지원합니다.
 
+### 브라우저에서 모델 실행
+
+```bash
+fxbx serve sdxl-turbo --port 8081
+```
+
+같은 머신의 브라우저에서 `http://127.0.0.1:8081/`을 엽니다. SSH 서버에서 실행한다면 먼저 로컬 터미널에서 `ssh -L 8081:127.0.0.1:8081 SERVER`로 연결합니다.
+
+한 번 적재한 모델을 같은 세션에서 반복 실행합니다. 패키지의 `io_contract`가 제공하는 예제를 입력 양식에 불러옵니다. 채팅은 답변, 이미지 생성은 미리보기, 의사결정은 어댑터가 반환한 선택과 점수를 표시합니다. 의사결정 모델을 포함한 각 모델에는 실행 가능한 호환 패키지가 필요합니다. 첫 요청에는 런타임 준비 시간이 추가될 수 있습니다.
+
+JSON과 테스트 이미지 예제는 [examples/web](examples/web)에서 받을 수 있습니다. 기존 HTTP API는 같은 포트에서 사용할 수 있습니다.
+
+
 ### OpenAI Python 클라이언트와 사용하기
 
 ```bash
