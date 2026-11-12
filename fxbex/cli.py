@@ -1,5 +1,6 @@
 """CLI for local FXB_EX packages; SDK is imported only for runtime operations."""
 import argparse
+import shutil
 import json
 from pathlib import Path
 import sys
@@ -8,6 +9,30 @@ import time
 from .package import build, inspect
 from .validation import validate
 from .hub import PACKAGE_SUFFIXES
+
+
+def _save_result(result, report_dir, output):
+    result['report_dir'] = str(report_dir)
+    destination = Path(output).resolve() if output else report_dir / 'result.json'
+    if destination.suffix.lower() == '.png':
+        image = result.get('image_path')
+        if not isinstance(image, str):
+            raise ValueError('PNG output requires a model that returns an image')
+        source = Path(image).resolve()
+        with source.open('rb') as stream:
+            if stream.read(8) != b'\x89PNG\r\n\x1a\n':
+                raise ValueError('The model did not return a PNG image')
+        if source != destination:
+            shutil.copyfile(source, destination)
+        result['image_path'] = str(destination)
+        result_path = report_dir / 'result.json'
+        image_path = destination
+    else:
+        result_path = destination
+        image_path = None
+    result['result_file'] = str(result_path)
+    result_path.write_text(json.dumps(result, ensure_ascii=False, indent=2))
+    return image_path
 
 
 def _runtime_call(callback, log_path, verbose=False):
@@ -92,7 +117,7 @@ Model-specific exporters and capture commands belong to their adapter plugins.""
         p.add_argument('--weights-dir', help='Override external checkpoint/weights directory')
         if name != 'serve':
             p.add_argument('--input', help='JSON file: named tensors for predict, or {"messages": [...]} for chat')
-            p.add_argument('-o', '--output', help='Write response JSON to this file')
+            p.add_argument('-o', '--output', help='Save response JSON, or use a .png path for a PNG-generating model')
             p.add_argument('--max-new-tokens', type=int, default=32, help='Chat token limit (default: 32)')
             if name == 'run':
                 p.add_argument('--sample', action='store_true', help='Run the packaged example once, including for chat models')
@@ -221,10 +246,10 @@ Model-specific exporters and capture commands belong to their adapter plugins.""
                 return
             if isinstance(result,dict):result.setdefault('memory',getattr(session,'memory',None))
         finally:invoke(lambda: session.__exit__(None,None,None))
-        result['report_dir']=str(session.report_dir)
-        result_path=Path(args.output).resolve() if args.output else session.report_dir/'result.json'
-        result['result_file']=str(result_path)
-        result_path.write_text(json.dumps(result,ensure_ascii=False,indent=2))
+        image_path = _save_result(result, session.report_dir, args.output)
+        if image_path is not None:
+            print(image_path)
+            return 0 if result.get('valid', True) else 1
         if not args.verbose:
             # Full raw diagnostics remain in result.json and runtime.log.
             result={key:value for key,value in result.items() if key not in

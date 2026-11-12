@@ -55,6 +55,14 @@ fxbx doctor
 
 `run`은 채팅 어댑터를 실행합니다. 텐서 모델은 `--input inputs.json -o result.json`을 받습니다. `chat`에서는 `/reset`, `/quit`을 사용할 수 있습니다. `serve`는 채팅 어댑터용 비스트리밍 `/v1/chat/completions`와 텐서 어댑터용 `/predict`를 localhost에 제공합니다. `fxbx ui --port 7861`은 선택 기능이며 Gradio가 필요합니다. 모든 명령은 `--help`를 지원합니다.
 
+### 빠른 실행
+
+```bash
+fxbx run sdxl-turbo -o image.png
+```
+
+현재 폴더에 PNG가 저장됩니다.
+
 ### 모델별 실행 예제
 
 | 용도 | 모델 또는 패키지 | 요청 경로 |
