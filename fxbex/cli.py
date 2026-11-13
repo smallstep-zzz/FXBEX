@@ -182,6 +182,9 @@ Model-specific exporters and capture commands belong to their adapter plugins.""
                 'standalone':m['standalone'],'bundled_python':bool(m['runtime'].get('bundled_python')),
                 'delivery':m.get('delivery'), 'provenance':m.get('provenance',{'status':'unknown'}), 'files':len(m['files']),
                 'artifact_bytes':sum(x['size'] for x in m['files'].values()),'integrity_verified':True}
+        for field in ('release_version', 'verified_runtime_support'):
+            if field in m:
+                result[field] = m[field]
         if args.memory:
             from .memory import inspect_archive, summarize
             result['memory_plan'] = summarize(inspect_archive(args.package))
