@@ -491,6 +491,14 @@ FXBEX_WORKER_PYTHON=/path/to/sdk/bin/python fxbx run Julia-1 --sample
 사전 컴파일된 내부 EDF를 읽을 때 `furiosa-tcc`는 빌드 정보로 사용합니다.
 기존 `--allow-sdk-mismatch` 옵션도 계속 사용할 수 있습니다.
 
+저장된 SDK Runnable은 같은 Linux 아키텍처·glibc와 같은 PyTorch 및 Furiosa Torch
+런타임을 요구합니다. 같은 Linux 커널 계열과 같은 TCC 릴리스 계열의 패치 버전은
+달라도 재생을 시도합니다. 실제 Runnable 역직렬화 및 그래프 검사는 계속 적용됩니다.
+
+실행 중 `Memory`는 SMI가 보고한 장치 DRAM과 모델의 논리적 텐서 바이트를 따로 표시합니다.
+기존 번들에서 지원되는 경우 PyTorch 모델에 등록된 NPU 파라미터와 버퍼를 집계합니다.
+이 값은 SDK 작업 공간이나 장치의 물리 할당량을 포함하지 않습니다.
+
 대화형 터미널에서 `run`, `chat`, `predict`, `serve`가 지원 목록의 Python
 패키지 누락을 발견하면 실행용 Python 경로와 설치 명령을 표시합니다.
 `[y/N]`에 동의하면 그 환경에 설치하고 모델 적재를 다시 시도합니다. 재시도에서

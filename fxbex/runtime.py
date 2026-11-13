@@ -145,11 +145,13 @@ class Session:
         if self.telemetry is not None:
             self.memory = self.telemetry.sample(phase)
             summary=getattr(self.adapter,'memory_summary',None)
-            if callable(summary):
-                try:
-                    self.memory['model_logical_memory']=summary()
+            try:
+                from .execution import module_memory_summary
+                logical = summary() if callable(summary) else module_memory_summary(getattr(self.adapter, 'model', None))
+                if logical is not None:
+                    self.memory['model_logical_memory']=logical
                     (self.report_dir/'memory_latest.json').write_text(json.dumps(self.memory,indent=2))
-                except Exception as exc:self.memory['model_memory_error']=type(exc).__name__
+            except Exception as exc:self.memory['model_memory_error']=type(exc).__name__
         return self.memory
 
     def _call(self, operation, callback):

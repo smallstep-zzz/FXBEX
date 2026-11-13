@@ -7,7 +7,7 @@ from unittest.mock import patch
 
 import torch
 import torch.export._trace
-from fxbex.replay import capture, replay, ReplayError
+from fxbex.replay import capture, replay, ReplayError, _runtime_identity
 
 
 class Runnable:
@@ -21,6 +21,15 @@ class Runnable:
 
 
 class ReplayTests(unittest.TestCase):
+    def test_kernel_and_tcc_patch_drift_preserve_runtime_identity(self):
+        before = {'platform': 'Linux-6.8.0-124-generic-x86_64-with-glibc2.35',
+                  'python': '3.10.12', 'sdk': {'furiosa-tcc': '2026.4.0', 'furiosa-torch': '2026.4.0'}}
+        after = {'platform': 'Linux-6.8.0-117-generic-x86_64-with-glibc2.35',
+                 'python': '3.11.18', 'sdk': {'furiosa-tcc': '2026.4.1', 'furiosa-torch': '2026.4.0'}}
+        self.assertEqual(_runtime_identity(before), _runtime_identity(after))
+        after['platform'] = after['platform'].replace('glibc2.35', 'glibc2.36')
+        self.assertNotEqual(_runtime_identity(before), _runtime_identity(after))
+
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)

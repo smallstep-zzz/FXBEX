@@ -12,9 +12,11 @@ from .package import PackageError
 RNGD_SETUP = 'https://developer.furiosa.ai/v2026.4.0/en/get_started/prerequisites.html'
 _PYPI = frozenset({'furiosa-torch', 'furiosa-tcc', 'furiosa-kernels',
                   'furiosa-kernels-contrib', 'transformers', 'safetensors',
-                  'onnx', 'onnx2torch', 'numpy', 'pillow', 'sentencepiece'})
+                  'onnx', 'onnx2torch', 'numpy', 'pillow', 'sentencepiece',
+                  'trimesh', 'scikit-image', 'einops', 'omegaconf', 'xatlas', 'moderngl'})
 _IMPORTS = {name: name for name in (*_PYPI, 'torch', 'torchvision') if '-' not in name}
 _IMPORTS.update({'PIL': 'pillow', 'furiosa': 'furiosa-torch', 'furiosa.torch': 'furiosa-torch'})
+_IMPORTS['skimage'] = 'scikit-image'
 _VERSION = re.compile(r'[0-9][0-9A-Za-z.]*(?:\+[0-9A-Za-z.]+)?')
 
 
@@ -65,6 +67,9 @@ def installation_commands(missing):
     if pypi:
         if 'onnx2torch' in missing:
             pypi.append(f'torch=={torch_version}')
+        # Resolve adapter dependencies together with the CLI's own Hub requirement.
+        if 'transformers' in missing:
+            pypi.append('huggingface_hub>=0.24,<2')
         commands.append([sys.executable, '-m', 'pip', 'install', '--no-input', '--index-url',
                          'https://pypi.org/simple', *pypi])
     return commands

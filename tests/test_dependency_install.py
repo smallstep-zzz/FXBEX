@@ -21,6 +21,7 @@ class DependencyInstall(unittest.TestCase):
         self.assertEqual(installation_commands({'arbitrary-provider': '1.0'}), [])
         self.assertEqual(installation_commands({'onnx': '1.0; arbitrary'}), [])
         self.assertIn('https://download.pytorch.org/whl/cpu', installation_commands({'torch': '2.10.0+cpu'})[0])
+        self.assertIn('huggingface_hub>=0.24,<2', installation_commands({'transformers': '4.35.0'})[0])
 
     def test_non_interactive_and_decline_do_not_install(self):
         error = MissingPackages({'onnx': '1.20.0'})

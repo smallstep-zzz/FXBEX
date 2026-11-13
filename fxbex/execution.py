@@ -4,18 +4,43 @@ import json
 import time
 from pathlib import Path
 import subprocess
+import sys
+
+def module_memory_summary(module):
+    """Count registered device tensors once, excluding CPU tensors and SDK workspaces."""
+    torch = sys.modules.get('torch')
+    if torch is None or not isinstance(module, torch.nn.Module):
+        return None
+    seen = set()
+    summary = {'weight_logical_bytes': 0, 'buffer_logical_bytes': 0}
+    for key, tensors in (('weight_logical_bytes', module.parameters()),
+                         ('buffer_logical_bytes', module.buffers())):
+        for tensor in tensors:
+            if tensor.device.type == 'furiosa' and id(tensor) not in seen:
+                seen.add(id(tensor))
+                summary[key] += tensor.numel() * tensor.element_size()
+    return summary if seen else None
+
 
 def memory_text(snapshot):
     snapshot=snapshot or {}
     logical=snapshot.get('model_logical_memory',{})
     values=[]
-    for key,label in [('weight_logical_bytes','weights'),('kv_logical_bytes','KV'),('recurrent_logical_bytes','recurrent')]:
-        if key in logical:values.append(f"{label}={logical[key]/1024**3:.3f} GiB")
+    for key,label in [('weight_logical_bytes','weights'),('buffer_logical_bytes','buffers'),
+                      ('kv_logical_bytes','KV'),('recurrent_logical_bytes','recurrent')]:
+        if key in logical:values.append(f"{label}={logical[key]/1024**2:.2f} MiB")
     execution=logical.get('execution') or {}
     if 'peak_live_tensor_logical_bytes' in execution:
         values.append(f"live tensor peak={execution['peak_live_tensor_logical_bytes']/1024**2:.2f} MiB")
         values.append(f"released bindings={execution.get('released_tensor_bindings',0)}")
-    return 'physical HBM unmeasured; SMI zero is inconclusive. Logical NPU tensors: '+(', '.join(values) or 'not reported')
+    counters = []
+    for device in snapshot.get('devices') or []:
+        memory = device.get('memory') or {}
+        memory = memory.get('DRAM', memory)
+        used = memory.get('used_size')
+        if type(used) is int and used >= 0:
+            counters.append(f"{device.get('device', '?')}={used/1024**2:.2f} MiB" + (' (unconfirmed)' if used == 0 else ''))
+    return 'SMI device DRAM: '+(', '.join(counters) or 'unavailable') + '. Logical NPU tensors: '+(', '.join(values) or 'not reported')
 
 
 

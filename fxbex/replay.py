@@ -46,16 +46,21 @@ def _compatibility(torch, sdk):
             'torch': torch.__version__, 'sdk': versions, 'sdk_sources': sources}
 
 
-def _compatible_runtime(recorded, current):
-    """Allow Python minor-version changes, while pinning the SDK/torch ABI."""
-    if not isinstance(recorded, dict) or not isinstance(current, dict):
-        return False
-    recorded_python = recorded.get('python', '')
-    current_python = current.get('python', '')
-    if str(recorded_python).split('.', 1)[0] != str(current_python).split('.', 1)[0]:
-        return False
-    return ({key: value for key, value in recorded.items() if key != 'python'} ==
-            {key: value for key, value in current.items() if key != 'python'})
+def _runtime_identity(compatibility):
+    identity = dict(compatibility)
+    identity['python'] = str(identity.get('python', '')).split('.', 1)[0]
+    # Linux patch releases are independent of the userspace Runnable ABI.
+    system = identity.get('platform', '')
+    if isinstance(system, str):
+        match = re.fullmatch(r'Linux-(\d+\.\d+)\..+-(x86_64|aarch64)-with-(glibc\d+\.\d+)', system)
+        if match:
+            identity['platform'] = ('Linux', *match.groups())
+    sdk = identity.get('sdk')
+    if isinstance(sdk, dict):
+        tcc = sdk.get('furiosa-tcc')
+        if isinstance(tcc, str) and re.fullmatch(r'\d+\.\d+\.\d+', tcc):
+            identity['sdk'] = dict(sdk, **{'furiosa-tcc': tcc.rsplit('.', 1)[0]})
+    return identity
 
 
 def _value(value, torch, *, tensor_data=False):
@@ -145,9 +150,15 @@ def _session(root, recording, guard_native=True):
         plan = {'format': 'sdk-runnable', 'version': 1, 'compatibility': compatibility, 'steps': []}
     else:
         plan = json.loads(plan_path.read_text())
-        if (plan.get('format') != 'sdk-runnable' or plan.get('version') != 1
-                or not _compatible_runtime(plan.get('compatibility'), compatibility)):
-            raise ReplayError('Runnable plan format or environment compatibility mismatch')
+        if plan.get('format') != 'sdk-runnable' or plan.get('version') != 1:
+            raise ReplayError('Unsupported Runnable plan format or version')
+        recorded = plan.get('compatibility')
+        if not isinstance(recorded, dict):
+            raise ReplayError('Missing Runnable runtime compatibility metadata')
+        expected, actual = _runtime_identity(recorded), _runtime_identity(compatibility)
+        different = sorted(key for key in expected.keys() | actual.keys() if expected.get(key) != actual.get(key))
+        if different:
+            raise ReplayError('Runnable runtime compatibility mismatch: ' + ', '.join(different))
     records = {}
     for record in plan['steps']:
         key = record['key']
