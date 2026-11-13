@@ -5,6 +5,8 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import sys
+import warnings
 import time
 from .package import extract, PackageError
 from .settings import lock_path, runs_path
@@ -36,27 +38,46 @@ def resolve_adapter(name):
     return entries[0].load()
 
 
-def package_compatibility(manifest):
-    actual = environment(); notices=[]
-    import sys
+def package_compatibility(manifest, *, allow_sdk_mismatch=False):
+    actual = environment()
+    notices = []
+    required = manifest['compatibility'].get('packages', {})
+    missing = [f'{name}=={expected}' for name, expected in required.items() if actual.get(name) is None]
+    if missing:
+        raise PackageError(
+            f'Missing required packages in Python {sys.executable}: {", ".join(missing)}. '
+            'Use a compatible SDK Python with fxbX installed '
+            '(set FXBEX_WORKER_PYTHON to its executable).'
+        )
     if (manifest.get('model',{}).get('name')=='RedHatAI/Qwen3.5-9B-FP8-dynamic'
             and sys.version_info[:2]==(3,11) and actual.get('furiosa-torch')=='2026.4.0'
             and actual.get('torch')=='2.10.0+cpu' and actual.get('transformers')=='5.22.1'):
         raise PackageError('Known unstable Qwen runtime combination: Python 3.11, SDK 2026.4.0, transformers 5.22.1 caused native crashes. Use the validated transformers==5.20.2 in this environment.')
-    for name, expected in manifest['compatibility'].get('packages', {}).items():
+    for name, expected in required.items():
         installed=actual.get(name)
         if installed == expected:continue
         if (name=='transformers' and isinstance(installed,str) and isinstance(expected,str)
                 and installed.split('.')[0].isdigit() and installed.split('.')[0]==expected.split('.')[0]):
             notices.append(f'transformers differs: package={expected}, installed={installed}; proceeding with adapter validation; compatibility is not yet established')
+        elif allow_sdk_mismatch:
+            notices.append(
+                f'SDK mismatch {name}: package={expected}, installed={installed}; '
+                'attempting execution with this unverified combination'
+            )
         else:
-            raise PackageError(f'SDK mismatch {name}: package={expected}, installed={installed}; rebuild explicitly')
+            raise PackageError(
+                f'SDK mismatch {name} in Python {sys.executable}: package={expected}, installed={installed}. '
+                'Use the matching SDK Python or pass --allow-sdk-mismatch to attempt execution.'
+            )
     return notices
 
 
-def check_compatibility(manifest):
-    import warnings
-    for message in package_compatibility(manifest):warnings.warn(message,RuntimeWarning,stacklevel=2)
+def check_compatibility(manifest, *, allow_sdk_mismatch=False, report_warning=None):
+    for message in package_compatibility(manifest, allow_sdk_mismatch=allow_sdk_mismatch):
+        if report_warning is None:
+            warnings.warn(message, RuntimeWarning, stacklevel=2)
+        else:
+            report_warning(message)
     if manifest['compatibility'].get('hardware', 'rngd') != 'rngd' or manifest['compatibility'].get('fusion',8) != 8:
         raise PackageError('This adapter version requires RNGD fusion8')
     from .bundled import specification
@@ -64,7 +85,10 @@ def check_compatibility(manifest):
 
 
 class Session:
-    def __init__(self, path, *, report_dir=None, weights_dir=None):
+    def __init__(self, path, *, report_dir=None, weights_dir=None,
+                 allow_sdk_mismatch=False, report_warning=None):
+        self.allow_sdk_mismatch = allow_sdk_mismatch
+        self.report_warning = report_warning
         self.path = Path(path)
         self.weights_dir = Path(weights_dir).resolve() if weights_dir else None
         self.stack = ExitStack()
@@ -79,7 +103,8 @@ class Session:
         try:
             self.root = self.stack.enter_context(extract(self.path))
             self.manifest = json.loads((self.root/'manifest.json').read_text())
-            check_compatibility(self.manifest)
+            check_compatibility(self.manifest, allow_sdk_mismatch=self.allow_sdk_mismatch,
+                                report_warning=self.report_warning)
             from .validation import preflight
             preflight(self.root, self.manifest, self.weights_dir)
             from .memory import analyze

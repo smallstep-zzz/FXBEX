@@ -115,6 +115,8 @@ Model-specific exporters and capture commands belong to their adapter plugins.""
         p.add_argument('--verbose',action='store_true',help='Show internal SDK/compiler diagnostics on the terminal')
         p.add_argument('--report-dir', help='Directory for runtime logs and evidence')
         p.add_argument('--weights-dir', help='Override external checkpoint/weights directory')
+        p.add_argument('--allow-sdk-mismatch', action='store_true',
+                       help='Attempt execution with installed but different SDK versions')
         if name != 'serve':
             p.add_argument('--input', help='JSON file: named tensors for predict, or {"messages": [...]} for chat')
             p.add_argument('-o', '--output', help='Save response JSON, or use a .png path for a PNG-generating model')
@@ -200,16 +202,17 @@ Model-specific exporters and capture commands belong to their adapter plugins.""
         import contextlib
         if args.action == 'predict' and not args.input:
             raise ValueError('--input JSON file is required for tensor prediction')
-        from .runtime import package_compatibility
-        session=Session(args.package,report_dir=args.report_dir,weights_dir=args.weights_dir)
+        progress_stream = sys.stderr
+        def report_warning(message):
+            print('Warning: '+message, file=progress_stream, flush=True)
+
+        session=Session(args.package,report_dir=args.report_dir,weights_dir=args.weights_dir,
+                        allow_sdk_mismatch=args.allow_sdk_mismatch,report_warning=report_warning)
         log_path=session.report_dir/'runtime.log'
         print(f'Loading package; diagnostics: {log_path}',file=sys.stderr,flush=True)
         def invoke(callback):return _runtime_call(callback,log_path,args.verbose)
-        progress_stream = sys.stderr
         _load_with_progress(lambda: invoke(session.__enter__), progress_stream)
         try:
-            for message in package_compatibility(session.manifest):
-                print('Warning: '+message,file=sys.stderr,flush=True)
             print(f'NPU package ready; reports: {session.report_dir}',file=sys.stderr,flush=True)
             from .execution import memory_text
             print('Memory: '+memory_text(getattr(session,'memory',None)),file=sys.stderr,flush=True)

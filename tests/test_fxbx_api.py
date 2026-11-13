@@ -6,7 +6,7 @@ class PublicAPI(unittest.TestCase):
  def test_exports_share_the_artifact_engine_without_copying_implementation(self):
   for name in ('LLM','Model','YOLO','ImageGeneration','hug','as_torch','GraphFXB','build_model','build_program','SafeTensorWeights'):
    self.assertIs(getattr(fxbx,name),getattr(fxbex,name))
-  self.assertEqual(fxbx.__version__,'0.8.4')
+  self.assertEqual(fxbx.__version__,'0.8.5')
  def test_shadowed_legacy_engine_has_actionable_fail_closed_error(self):
   engine=types.ModuleType('fxbex');engine.__file__='/other-sdk/site-packages/fxbex/__init__.py'
   engine.__all__=[];engine.__version__='legacy'

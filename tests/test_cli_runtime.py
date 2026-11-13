@@ -21,7 +21,7 @@ class RuntimeCLI(unittest.TestCase):
             session=SimpleNamespace(report_dir=report,memory={},root=report,manifest={'runtime':{'adapter':'chat'}},
                 __enter__=lambda:None,__exit__=lambda *a:None,chat=chat)
             contract={'method':'chat','example_input':{'messages':[{'role':'user','content':'sample'}]}}
-            with patch('fxbex.settings.runtime_python',return_value=sys.executable),patch('fxbex.hub.resolve_package',return_value=report/'model.fxbex'),patch('fxbex.schema.describe',return_value=contract),patch('fxbex.cli.inspect',return_value={}) as inspect,patch('fxbex.runtime.package_compatibility',return_value=[]),patch('fxbex.runtime.Session',return_value=session),patch('builtins.input',side_effect=['hello','next','/quit']),contextlib.redirect_stdout(io.StringIO()):
+            with patch('fxbex.settings.runtime_python',return_value=sys.executable),patch('fxbex.hub.resolve_package',return_value=report/'model.fxbex'),patch('fxbex.schema.describe',return_value=contract),patch('fxbex.cli.inspect',return_value={}) as inspect,patch('fxbex.runtime.Session',return_value=session),patch('builtins.input',side_effect=['hello','next','/quit']),contextlib.redirect_stdout(io.StringIO()):
                 self.assertEqual(main(['run','Model']),0)
             inspect.assert_not_called()
             self.assertEqual([x['content'] for x in calls[1]],['hello','answer','next'])
@@ -62,10 +62,11 @@ class RuntimeCLI(unittest.TestCase):
                 session=SimpleNamespace(report_dir=report,memory={},root=report,manifest={'runtime':{'adapter':'chat'}},
                     __enter__=lambda:None,__exit__=lambda *a:None,chat=lambda *a:dict(result))
                 output=io.StringIO()
-                args=['run','Model','--sample']+(['--verbose'] if verbose else [])
+                args=['run','Model','--sample','--allow-sdk-mismatch']+(['--verbose'] if verbose else [])
                 contract={'method':'chat','example_input':{'messages':[{'role':'user','content':'2+2?'}]}}
-                with contextlib.redirect_stdout(output),patch('fxbex.settings.runtime_python',return_value=sys.executable),patch('fxbex.hub.resolve_package',return_value=report/'model.fxbex'),patch('fxbex.schema.describe',return_value=contract),patch('fxbex.package.inspect',return_value={}),patch('fxbex.cli.inspect',return_value={}),patch('fxbex.runtime.package_compatibility',return_value=[]),patch('fxbex.runtime.Session',return_value=session):
+                with contextlib.redirect_stdout(output),patch('fxbex.settings.runtime_python',return_value=sys.executable),patch('fxbex.hub.resolve_package',return_value=report/'model.fxbex'),patch('fxbex.schema.describe',return_value=contract),patch('fxbex.package.inspect',return_value={}),patch('fxbex.cli.inspect',return_value={}),patch('fxbex.runtime.Session',return_value=session) as session_factory:
                     self.assertEqual(main(args),0)
+                    self.assertTrue(session_factory.call_args.kwargs['allow_sdk_mismatch'])
                 displayed=json.loads(output.getvalue())
                 self.assertEqual(displayed['text'],'4')
                 self.assertEqual(displayed['metrics']['context_limit'],262144)

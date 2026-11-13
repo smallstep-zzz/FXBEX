@@ -477,3 +477,17 @@ python examples/native_static_graph.py run ./linear.fxb
 ### 생성부터 독립 실행 검증까지
 
 furyNo5이 생성과 검증 완료를 책임지고 fxbX의 기존 런타임으로 새 프로세스에서 재적재·실행합니다. [단일 호출 사용법과 검증 범위](docs/VERIFIED_BUILD.md)를 참고하세요.
+
+### SDK 버전이 다를 때
+
+fxbX는 모델이 요구하는 SDK 패키지를 실행용 Python에서 확인합니다. 패키지가 빠졌다면 오류에 표시된 Python과 누락 목록을 확인하고, fxbX와 호환 SDK가 설치된 Python을 지정합니다.
+
+```bash
+FXBEX_WORKER_PYTHON=/path/to/sdk/bin/python fxbx run Julia-1 --sample
+```
+
+패키지가 모두 설치되어 있고 버전만 다르면 아래처럼 실제 로드와 샘플 추론을 시도할 수 있습니다. 경고 뒤에 로드나 추론 오류가 나오면 해당 실행이 실패한 것입니다.
+
+```bash
+fxbx run Julia-1 --sample --allow-sdk-mismatch
+```
