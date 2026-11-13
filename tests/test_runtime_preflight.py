@@ -9,6 +9,39 @@ from fxbex.runtime import Session, RunnableDAG
 
 
 class RuntimePreflight(unittest.TestCase):
+    def test_runnable_fusion_is_checked_before_weight_upload(self):
+        from types import ModuleType, SimpleNamespace
+        from unittest.mock import Mock
+        import sys
+
+        sdk = ModuleType('furiosa.torch')
+        sdk.__path__ = []
+        package = ModuleType('furiosa')
+        package.__path__ = []
+        package.torch = sdk
+        sdk.ir = SimpleNamespace(Runnable=SimpleNamespace(
+            deserialize=Mock(return_value=SimpleNamespace(expected_num_fusion=1))))
+        sdk.Runnable = Mock()
+        sdk.MeshKind = SimpleNamespace(Single=Mock())
+        sdk.set_fusion, sdk.set_mesh_kind = Mock(), Mock()
+        config = SimpleNamespace(set_cpu_fallback=Mock(), get_cpu_fallback=Mock(return_value=False))
+        torch = SimpleNamespace(load=Mock())
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root/'kernel').write_bytes(b'test input')
+            (root/'runtime_config.json').write_text('{}')
+            (root/'execution_plan.json').write_text(json.dumps({
+                'format': 'runnable-dag-v1',
+                'steps': [{'id': 'text', 'artifact': 'kernel'}],
+            }))
+            with patch('fxbex.memory.analyze', return_value={}), patch.dict(sys.modules, {
+                'furiosa': package, 'furiosa.torch': sdk, 'furiosa.torch.config': config, 'torch': torch,
+            }):
+                with self.assertRaisesRegex(PackageError, 'text fusion mismatch: compiled=1, runtime=8'):
+                    RunnableDAG(root)
+            torch.load.assert_not_called()
+            sdk.Runnable.assert_not_called()
+
     def test_output_conversion_preserves_large_integers_and_booleans(self):
         from types import SimpleNamespace
         class Tensor:

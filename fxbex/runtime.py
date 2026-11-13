@@ -193,7 +193,23 @@ class RunnableDAG:
         self.config = json.loads((root/'runtime_config.json').read_text())
         plan = json.loads((root/'execution_plan.json').read_text())
         if plan.get('format') != 'runnable-dag-v1': raise PackageError('Expected runnable-dag-v1 plan')
+        device_config = plan.get('device_config', {'fusion': 8, 'mesh': 'single'})
+        if (not isinstance(device_config, dict) or type(device_config.get('fusion')) is not int
+                or device_config != {'fusion': 8, 'mesh': 'single'}):
+            raise PackageError('Runnable DAG requires device_config fusion=8, mesh=single')
         self.steps = plan['steps']
+        programs = {}
+        for step in self.steps:
+            name = step['id']
+            artifact = (root/step['artifact']).resolve()
+            if not artifact.is_relative_to(root.resolve()):
+                raise PackageError('Artifact escapes package')
+            program = ir.Runnable.deserialize(artifact.read_bytes())
+            fusion = getattr(program, 'expected_num_fusion', None)
+            if type(fusion) is not int or fusion != device_config['fusion']:
+                raise PackageError(f'Runnable step {name} fusion mismatch: compiled={fusion}, '
+                                   f'runtime={device_config["fusion"]}; recompile with matching fusion')
+            programs[name] = program
         self.constants = {}
         index = json.loads((root/'weights_index.json').read_text())
         for item in index['weights']:
@@ -216,9 +232,7 @@ class RunnableDAG:
         for step in self.steps:
             if any(name not in known for name in step['inputs']): raise PackageError('Unbound or forward DAG input')
             if any(name in known for name in step['outputs']): raise PackageError('Duplicate DAG tensor binding')
-            artifact = root/step['artifact']
-            if not artifact.resolve().is_relative_to(root.resolve()): raise PackageError('Artifact escapes package')
-            self.modules[step['id']] = Runnable(ir.Runnable.deserialize(artifact.read_bytes())).to('furiosa:0')
+            self.modules[step['id']] = Runnable(programs.pop(step['id'])).to('furiosa:0')
             known.update(step['outputs'])
         if any(name not in known for name in self.config['outputs']): raise PackageError('Unbound DAG output')
 
