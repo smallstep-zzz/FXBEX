@@ -1,7 +1,7 @@
 # Measured optimization handoff
 
 FHA owns feature extraction, candidate translation, the official compiler and NPU
-acceptance. furyNo5 owns bounded search and scope-matched ranking. FXBEX owns
+acceptance. FuryNo5 owns bounded search and scope-matched ranking. FXBEX owns
 verified packaging, fixed-plan loading and execution receipts. A simulation or a
 microbenchmark winner cannot activate different executables in an existing package.
 Changed strides require new captured requests and a new immutable delivery.
@@ -75,4 +75,4 @@ A measured tiny-model request exposed unconditional SMI subprocesses before and
 after every call. MemoryTelemetry now caches request snapshots for5s with age
 metadata; lifecycle boundaries and force=True refresh. This removes diagnostic
 host overhead and does not alter inference, physical HBM counters or NPU evidence.
-See furyNo5 RESEARCH_VALIDATION.json for actual source/API timing scopes.
+See FuryNo5 RESEARCH_VALIDATION.json for actual source/API timing scopes.

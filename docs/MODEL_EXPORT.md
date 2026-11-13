@@ -24,7 +24,7 @@ report = build_model(
 ```
 
 The custom route exports a static functional graph with parameter/buffer tensors
-lifted as ordered runtime arguments. furyNo5 invokes the public native
+lifted as ordered runtime arguments. FuryNo5 invokes the public native
 compiler, requires one actual EDF and records binding/ABI metadata. Checkpoints
 are not serialized into the package; varying external weights still requires
 runtime validation to establish that compilation did not specialize values.
@@ -46,7 +46,7 @@ graph plan, external-weight bindings and explicit official EDF loader consumer
 are described in `GRAPH_FXB.md`; automatic Furiosa-LLM scheduling is separate.
 
 Automatic contracts and NPU execution passed for qualified 2D BF16 mm/linear.
-When the installed native_common module has no compile API, furyNo5 reuses
+When the installed native_common module has no compile API, FuryNo5 reuses
 its public TCL kernels and furiosa-tcc. Other graphs return EDF_RULE_GAP rather
 than being mislabelled a registry failure. Universal/stateful full-model
 conversion and official LLM compatibility remain separate gates.

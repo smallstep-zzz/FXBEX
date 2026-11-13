@@ -1,4 +1,4 @@
-"""Native FXB transport and explicit execution of furyNo5-owned tensor plans.
+"""Native FXB transport and explicit execution of FuryNo5-owned tensor plans.
 
 No compiler, model discovery, Python callbacks, chat scheduler or KV allocator is
 loaded from a package. State updates are functional tensor outputs committed only

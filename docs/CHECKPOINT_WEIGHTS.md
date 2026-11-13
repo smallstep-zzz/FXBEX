@@ -49,7 +49,7 @@ hashes or a defense against a concurrent hostile writer. Keep checkpoint files
 immutable while loading. The format's native FXB still stores EDF/plan metadata;
 weights remain an explicit external input.
 
-Currently supported by the native **execution-plan** consumer, which furyNo5
+Currently supported by the native **execution-plan** consumer, which FuryNo5
 produces. Legacy single-EDF graph packages need their existing tensor mapping;
 passing this provider fails explicitly rather than materializing the whole file.
 This API does not automatically replace legacy portable runners.
@@ -57,7 +57,7 @@ This API does not automatically replace legacy portable runners.
 ## Actual server5 evidence
 
 `tests/hardware/probe_checkpoint_weights.py` reused the existing small
-furyNo5 shared-linear native FXB, without recapture, compilation or producer
+FuryNo5 shared-linear native FXB, without recapture, compilation or producer
 imports. Three replays, 21 calls, CPU reference checks and reset passed.
 All four distinct steps had correlated official NPU Tasks; no CPU execution
 route was observed in that test. Metadata refusal happened before SDK Runnable

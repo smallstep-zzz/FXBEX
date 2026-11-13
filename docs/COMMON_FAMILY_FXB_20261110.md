@@ -1,9 +1,9 @@
 # Native FXB common-family validation, 2026-11-10/11
 
-**fxbX generated and executed three actual native FXBs through furyNo5's shared rules. Official readers, independent reloads and frozen-buffer rejection passed. This is small-feature acceptance, not arbitrary whole-model support.**
+**fxbX generated and executed three actual native FXBs through FuryNo5's shared rules. Official readers, independent reloads and frozen-buffer rejection passed. This is small-feature acceptance, not arbitrary whole-model support.**
 
 The existing fxbX consumer at commit `f4025ef` needed no runtime code change.
-furyNo5 owns the reusable lowering and execution contract; fxbX packages and
+FuryNo5 owns the reusable lowering and execution contract; fxbX packages and
 loads its genuine EDF/native manifest. SDK2026.4/Torch2.10, fusion8/Single,
 CPU fallback disabled. No SDK upgrade, proprietary binary analysis or model-name
 production branch was used.
@@ -34,12 +34,12 @@ with GraphFXB("common-families.fxb",
 The common fixture input contract is FP32 `[8,8]`; the stepped fixture has two
 FP32 `[1,16,32]` inputs and one `[3,1,16,32]` output. This example is not a general image/LLM
 adapter. The corresponding public reproduction scripts and small evidence are
-in furyNo5:
+in FuryNo5:
 
 - `tests/hardware/probe_common_family_fxb.py`
 - `tests/hardware/probe_bounded_trig_fxb.py`
-- [Common-mechanism report](https://github.com/smallstep-zzz/furyNo5/blob/main/docs/COMMON_MECHANISM_REPAIR_20261110.md)
-- [Small JSON receipts](https://github.com/smallstep-zzz/furyNo5/tree/main/docs/validation/common-mechanisms-20261110)
+- [Common-mechanism report](https://github.com/smallstep-zzz/FuryNo5/blob/main/docs/COMMON_MECHANISM_REPAIR_20261110.md)
+- [Small JSON receipts](https://github.com/smallstep-zzz/FuryNo5/tree/main/docs/validation/common-mechanisms-20261110)
 
 Remote artifacts remain under `/root/fxbx_tclmachine_test/` on servers25 and5.
 Large traces, EDFs, weights and generated FXB binaries are excluded from Git.
@@ -49,7 +49,7 @@ and final broad verification were excluded by the user's requested scope.
 
 Two diagnostic harnesses initially assumed a successful build retained
 `preflight.json`; the existing producer did not. Their failed logs were retained,
-and the already-created FXBs were reused for readback. furyNo5 now retains
+and the already-created FXBs were reused for readback. FuryNo5 now retains
 the admission-phase receipt before compilation on both normal and failing paths,
 and exposes its path in the build report. This fixes diagnostics without changing
 the compiled program or weakening execution gates.

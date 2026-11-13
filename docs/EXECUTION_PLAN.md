@@ -1,6 +1,6 @@
 # Shared execution plan — 0.8.1 source
 
-`build_model(torch_module,...)` delegates to furyNo5 0.5.0; fxbX does not
+`build_model(torch_module,...)` delegates to FuryNo5 0.5.0; fxbX does not
 recapture the model, generate TCL or compile during loading. String/path models
 retain the official registered build path. Explicit legacy providers retain
 their single-EDF route, rejecting constraints they cannot enforce.
