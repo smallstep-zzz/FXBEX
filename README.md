@@ -55,6 +55,39 @@ fxbx doctor
 
 `run`은 채팅 어댑터를 실행합니다. 텐서 모델은 `--input inputs.json -o result.json`을 받습니다. `chat`에서는 `/reset`, `/quit`을 사용할 수 있습니다. `serve`는 채팅 어댑터용 비스트리밍 `/v1/chat/completions`와 텐서 어댑터용 `/predict`를 localhost에 제공합니다. `fxbx ui --port 7861`은 선택 기능이며 Gradio가 필요합니다. 모든 명령은 `--help`를 지원합니다.
 
+### 이미지 저장
+
+```bash
+fxbx run sdxl-turbo -o image.png
+```
+
+PNG를 현재 폴더에 저장합니다. HTTP로 호출하는 경우에는 다음 예제를 사용합니다.
+
+```bash
+fxbx serve FLUX.2-klein-4B --port 8000
+```
+
+같은 서버의 다른 터미널에서 Python 예제를 실행합니다.
+
+```python
+from pathlib import Path
+from shutil import copyfile
+
+import requests
+
+response = requests.post(
+    "http://127.0.0.1:8000/predict",
+    json={"prompt": "A small penguin on a sunny island"},
+    timeout=300,
+)
+response.raise_for_status()
+output = Path("penguin.png")
+copyfile(response.json()["image_path"], output)
+print(output.resolve())
+```
+
+SSH 터널을 통해 내 PC에서 호출하면 `image_path`는 서버 경로입니다. `scp SERVER:/서버/이미지.png ./penguin.png`로 받습니다.
+
 ### OpenAI Python 클라이언트와 사용하기
 
 ```bash
