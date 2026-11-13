@@ -1,5 +1,5 @@
 """Fixed-plan runtime. Only built-in, installed adapters may execute a package."""
-from contextlib import ExitStack
+from contextlib import ExitStack, nullcontext
 import importlib.metadata
 import json
 import os
@@ -115,17 +115,18 @@ class Session:
             self.telemetry = MemoryTelemetry(self.report_dir)
             self.memory = self.telemetry.sample('before_load')
             # Share the canonical lock with web workers. Never assume PE partitioning.
-            import fcntl
-            from .settings import npu_lock
-            try: self.stack.enter_context(npu_lock())
+            from .settings import delegate_npu_lock, npu_lock
+            try: lease = self.stack.enter_context(npu_lock())
             except BlockingIOError: raise RuntimeError('NPU busy: unload the web model before loading FXB_EX')
             kind = self.manifest['runtime']['adapter']
             from .bundled import activate
-            adapter=self.stack.enter_context(activate(self.root,self.manifest)) or resolve_adapter(kind)
-            if kind=='runnable_dag':
-                self.adapter=adapter(self.root,weights_dir=self.weights_dir)
-            else:
-                self.adapter=adapter(self.root,self.report_dir,self.stack,weights_dir=self.weights_dir)
+            bundled = self.stack.enter_context(activate(self.root,self.manifest))
+            adapter = bundled or resolve_adapter(kind)
+            with delegate_npu_lock(lease) if bundled is not None else nullcontext():
+                if kind=='runnable_dag':
+                    self.adapter=adapter(self.root,weights_dir=self.weights_dir)
+                else:
+                    self.adapter=adapter(self.root,self.report_dir,self.stack,weights_dir=self.weights_dir)
             self.sample_memory('after_load')
             return self
         except BaseException:

@@ -4,7 +4,10 @@ import os
 import sys
 import contextlib
 import fcntl
+from contextvars import ContextVar
 from pathlib import Path
+
+_adapter_lease = ContextVar('fxbx_adapter_lease', default=None)
 
 
 def config_path():
@@ -27,10 +30,22 @@ def lock_path():
 
 
 @contextlib.contextmanager
+def delegate_npu_lock(fd):
+    """Let a bundled adapter adopt its session's lease during construction."""
+    token = _adapter_lease.set(fd)
+    try:
+        yield
+    finally:
+        _adapter_lease.reset(token)
+
+
+@contextlib.contextmanager
 def npu_lock():
     """Acquire or adopt a scheduler lease; never unlock the parent's file description."""
     path=lock_path();path.parent.mkdir(parents=True,exist_ok=True)
-    inherited=os.environ.get('FXBEX_NPU_LOCK_FD')
+    inherited=_adapter_lease.get()
+    if inherited is None:
+        inherited=os.environ.get('FXBEX_NPU_LOCK_FD')
     if inherited is not None:
         fd=os.dup(int(inherited))
         try:
