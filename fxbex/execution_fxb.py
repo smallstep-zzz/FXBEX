@@ -8,7 +8,6 @@ opaque EDF ABI alone cannot prove absence of in-place writes or storage aliases.
 from contextlib import ExitStack
 from datetime import datetime, timezone
 import hashlib
-import importlib.metadata
 import json
 import os
 from contextlib import nullcontext
@@ -20,6 +19,7 @@ import time
 from uuid import uuid4
 import zipfile
 
+from .compatibility import check_edf_versions
 from .graph_fxb import _bytes, _sha, _file_sha, _tensor_matches
 from .native_fxb import MAX_JSON_SIZE, PRODUCER_MEMBER, NativeFXBError, build_native, validate_native
 
@@ -335,9 +335,7 @@ class ExecutionFXB:
         import torch,furiosa.torch as sdk
         from furiosa.torch.config import set_cpu_fallback,get_cpu_fallback
         packages=self.plan['compatibility'];packages=packages.get('packages',packages)
-        for name,expected in packages.items():
-            if name in ('torch','furiosa-torch','furiosa-tcc') and importlib.metadata.version(name)!=expected:
-                raise ExecutionPlanError('SDK package mismatch: '+name)
+        check_edf_versions(packages, ExecutionPlanError)
         from .checkpoint import SafeTensorWeights
         streaming=isinstance(self.weights,SafeTensorWeights)
         if streaming:

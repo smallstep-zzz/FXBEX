@@ -486,8 +486,7 @@ fxbX는 모델이 요구하는 SDK 패키지를 실행용 Python에서 확인합
 FXBEX_WORKER_PYTHON=/path/to/sdk/bin/python fxbx run Julia-1 --sample
 ```
 
-패키지가 모두 설치되어 있고 버전만 다르면 아래처럼 실제 로드와 샘플 추론을 시도할 수 있습니다. 경고 뒤에 로드나 추론 오류가 나오면 해당 실행이 실패한 것입니다.
-
-```bash
-fxbx run Julia-1 --sample --allow-sdk-mismatch
-```
+버전이 다르면 경고를 표시하고 실제 적재와 실행을 시도합니다. 필수 패키지 누락,
+알려진 충돌 조합, EDF의 fusion·입출력 ABI 불일치는 여전히 차단됩니다.
+사전 컴파일된 내부 EDF를 읽을 때 `furiosa-tcc`는 빌드 정보로 사용합니다.
+기존 `--allow-sdk-mismatch` 옵션도 계속 사용할 수 있습니다.

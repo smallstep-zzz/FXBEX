@@ -121,7 +121,7 @@ class ExecutionPlanTests(unittest.TestCase):
         self.plan['tensors']['x'].update(dtype='int32',value_range={'min':0,'max_exclusive':8})
         self.export();modules,calls=self.backend()
         modules['torch'].aminmax=lambda value:(Tensor(value.value),Tensor(value.value))
-        with patch.dict(sys.modules,modules),patch('importlib.metadata.version',return_value='test'),patch('fxbex.settings.npu_lock',return_value=nullcontext()):
+        with patch.dict(sys.modules,modules),patch('importlib.metadata.version',side_effect=lambda name: 'new' if name=='furiosa-tcc' else 'test'),patch('fxbex.settings.npu_lock',return_value=nullcontext()), self.assertWarnsRegex(RuntimeWarning, 'SDK mismatch furiosa-tcc'):
             with ExecutionFXB(self.output) as model:
                 value=Tensor(8);value.dtype='torch.int32'
                 with self.assertRaisesRegex(ExecutionPlanError,'value_range'):model.predict((value,))

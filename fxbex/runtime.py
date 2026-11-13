@@ -10,6 +10,7 @@ import warnings
 import time
 from .package import extract, PackageError
 from .settings import lock_path, runs_path
+from .compatibility import version_notice
 
 
 def environment():
@@ -53,22 +54,8 @@ def package_compatibility(manifest, *, allow_sdk_mismatch=False):
             and sys.version_info[:2]==(3,11) and actual.get('furiosa-torch')=='2026.4.0'
             and actual.get('torch')=='2.10.0+cpu' and actual.get('transformers')=='5.22.1'):
         raise PackageError('Known unstable Qwen runtime combination: Python 3.11, SDK 2026.4.0, transformers 5.22.1 caused native crashes. Use the validated transformers==5.20.2 in this environment.')
-    for name, expected in required.items():
-        installed=actual.get(name)
-        if installed == expected:continue
-        if (name=='transformers' and isinstance(installed,str) and isinstance(expected,str)
-                and installed.split('.')[0].isdigit() and installed.split('.')[0]==expected.split('.')[0]):
-            notices.append(f'transformers differs: package={expected}, installed={installed}; proceeding with adapter validation; compatibility is not yet established')
-        elif allow_sdk_mismatch:
-            notices.append(
-                f'SDK mismatch {name}: package={expected}, installed={installed}; '
-                'attempting execution with this unverified combination'
-            )
-        else:
-            raise PackageError(
-                f'SDK mismatch {name} in Python {sys.executable}: package={expected}, installed={installed}. '
-                'Use the matching SDK Python or pass --allow-sdk-mismatch to attempt execution.'
-            )
+    notices.extend(version_notice(name, expected, actual[name])
+                   for name, expected in required.items() if actual[name] != expected)
     return notices
 
 

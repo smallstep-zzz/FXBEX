@@ -116,7 +116,7 @@ Model-specific exporters and capture commands belong to their adapter plugins.""
         p.add_argument('--report-dir', help='Directory for runtime logs and evidence')
         p.add_argument('--weights-dir', help='Override external checkpoint/weights directory')
         p.add_argument('--allow-sdk-mismatch', action='store_true',
-                       help='Attempt execution with installed but different SDK versions')
+                       help='Compatibility flag for older commands; version differences warn by default')
         if name != 'serve':
             p.add_argument('--input', help='JSON file: named tensors for predict, or {"messages": [...]} for chat')
             p.add_argument('-o', '--output', help='Save response JSON, or use a .png path for a PNG-generating model')

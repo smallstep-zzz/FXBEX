@@ -7,7 +7,6 @@ from collections.abc import Mapping, Sequence
 from contextlib import ExitStack
 from dataclasses import dataclass
 import hashlib
-import importlib.metadata
 import json
 from pathlib import Path
 import shutil
@@ -15,6 +14,7 @@ import tempfile
 from typing import Protocol
 import zipfile
 
+from .compatibility import check_edf_versions
 from .native_fxb import (NativeFXBError, PRODUCER_MEMBER, _contract, _name,
                          build_native, validate_native)
 
@@ -274,10 +274,7 @@ class GraphFXB:
         from furiosa.torch.config import set_cpu_fallback, get_cpu_fallback
         compatibility = self.plan['compatibility']
         packages = compatibility.get('packages', compatibility)
-        for name in ('torch', 'furiosa-torch', 'furiosa-tcc'):
-            expected = packages.get(name)
-            if not isinstance(expected, str) or importlib.metadata.version(name) != expected:
-                raise GraphFXBError(f'Graph SDK package mismatch: {name}')
+        check_edf_versions(packages, GraphFXBError)
         missing = {x['target'] for x in self.plan['inputs'] if x['kind'] != 'user_input'} - self.weights.keys()
         if missing:
             raise GraphFXBError(f'Missing external model weights/buffers: {sorted(missing)}')

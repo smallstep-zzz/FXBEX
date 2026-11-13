@@ -157,8 +157,8 @@ class GraphFXBTests(unittest.TestCase):
     def test_runtime_uses_saved_manifest_reference_and_binding_order(self):
         self.export()
         modules, calls = self.backend()
-        with patch.dict(sys.modules, modules), patch('importlib.metadata.version', return_value='test'), \
-                patch('fxbex.settings.npu_lock', return_value=nullcontext()):
+        with patch.dict(sys.modules, modules), patch('importlib.metadata.version', side_effect=lambda name: 'new' if name=='furiosa-tcc' else 'test'), \
+                patch('fxbex.settings.npu_lock', return_value=nullcontext()), self.assertWarnsRegex(RuntimeWarning, 'SDK mismatch furiosa-tcc'):
             with GraphFXB(self.output, weights={'weight': Tensor('weight')}) as model:
                 output = model.predict({'x': Tensor('input')})
                 self.assertEqual(output[0].device.type, 'cpu')
