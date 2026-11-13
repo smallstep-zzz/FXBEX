@@ -493,6 +493,8 @@ FXBEX_WORKER_PYTHON=/path/to/sdk/bin/python fxbx run Julia-1 --sample
 
 대화형 터미널에서 `run`, `chat`, `predict`, `serve`가 지원 목록의 Python
 패키지 누락을 발견하면 실행용 Python 경로와 설치 명령을 표시합니다.
-`[y/N]`에 동의하면 그 환경에 설치하고 모델 적재를 한 번 다시 시도합니다.
+`[y/N]`에 동의하면 그 환경에 설치하고 모델 적재를 다시 시도합니다. 재시도에서
+새 누락이 발견되면 별도로 동의를 받습니다. `onnx2torch`에 필요한 TorchVision을
+설치할 때는 PyTorch CPU 인덱스에서 현재 PyTorch 버전에 맞는 빌드를 찾습니다.
 스크립트와 CI에서는 명령을 안내하고 종료합니다. 드라이버와 펌웨어 설정은
 `fxbx doctor` 및 [Furiosa 설치 가이드](https://developer.furiosa.ai/v2026.4.0/en/get_started/prerequisites.html)를 참고하세요.

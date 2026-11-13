@@ -30,12 +30,19 @@ class DependencyInstall(unittest.TestCase):
                 self.assertIn('onnx==1.20.0', out.getvalue())
                 install.assert_not_called()
 
-    def test_cli_confirms_install_then_retries_load_once(self):
+    def test_onnx_converter_installs_cpu_vision_without_replacing_torch(self):
+        with patch('fxbex.dependencies.installed_version', side_effect={'torch': '2.10.0+cpu', 'torchvision': None}.get):
+            vision, converter = installation_commands({'onnx2torch': '1.5.15'})
+        self.assertEqual(vision[-3:], ['https://download.pytorch.org/whl/cpu', 'torch==2.10.0+cpu', 'torchvision'])
+        self.assertEqual(converter[-3:], ['https://pypi.org/simple', 'onnx2torch==1.5.15', 'torch==2.10.0+cpu'])
+
+    def test_cli_recovers_from_successive_missing_packages(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             session = SimpleNamespace(
                 report_dir=root, root=root, memory={}, manifest={'runtime': {'adapter': 'test'}},
-                __enter__=Mock(side_effect=[MissingPackages({'onnx': '1.20.0'}), None]),
+                __enter__=Mock(side_effect=[MissingPackages({'onnx': '1.20.0'}),
+                                            ModuleNotFoundError(name='onnx2torch'), None]),
                 __exit__=Mock(), predict=Mock(return_value={'output': 1}),
             )
             contract = {'method': 'predict', 'example_input': {}}
@@ -45,10 +52,13 @@ class DependencyInstall(unittest.TestCase):
                  patch('fxbex.schema.describe', return_value=contract), \
                  patch('fxbex.schema.resolve_sample', return_value={}), \
                  patch('fxbex.runtime.Session', return_value=session), \
-                 patch('sys.stdin', Terminal('yes\n')), redirect_stderr(Terminal()), \
+                 patch('fxbex.dependencies.installed_version', side_effect={
+                     'torch': '2.10.0+cpu', 'torchvision': '0.25.0+cpu',
+                 }.get), patch('sys.stdin', Terminal('yes\nyes\n')), redirect_stderr(Terminal()), \
                  redirect_stdout(out), patch('subprocess.run') as install:
                 self.assertEqual(main(['run', 'model']), 0)
-            self.assertEqual(session.__enter__.call_count, 2)
-            install.assert_called_once()
+            self.assertEqual(session.__enter__.call_count, 3)
+            self.assertEqual(install.call_count, 2)
+            self.assertIn('onnx2torch', install.call_args.args[0])
             self.assertEqual(install.call_args.args[0][:4], [sys.executable, '-m', 'pip', 'install'])
             session.predict.assert_called_once()

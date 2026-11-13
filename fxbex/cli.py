@@ -212,15 +212,18 @@ Model-specific exporters and capture commands belong to their adapter plugins.""
         log_path=session.report_dir/'runtime.log'
         print(f'Loading package; diagnostics: {log_path}',file=sys.stderr,flush=True)
         def invoke(callback):return _runtime_call(callback,log_path,args.verbose)
-        try:
-            _load_with_progress(lambda: invoke(session.__enter__), progress_stream)
-        except (MissingPackages, ModuleNotFoundError) as exc:
-            missing = exc if isinstance(exc, MissingPackages) else missing_import(exc)
-            if missing is None or not offer_install(missing, progress_stream):
-                raise
-            from importlib import invalidate_caches
-            invalidate_caches()
-            _load_with_progress(lambda: invoke(session.__enter__), progress_stream)
+        attempted = set()
+        while True:
+            try:
+                _load_with_progress(lambda: invoke(session.__enter__), progress_stream)
+                break
+            except (MissingPackages, ModuleNotFoundError) as exc:
+                missing = exc if isinstance(exc, MissingPackages) else missing_import(exc)
+                if missing is None or attempted.intersection(missing.missing) or not offer_install(missing, progress_stream):
+                    raise
+                attempted.update(missing.missing)
+                from importlib import invalidate_caches
+                invalidate_caches()
         try:
             print(f'NPU package ready; reports: {session.report_dir}',file=sys.stderr,flush=True)
             from .execution import memory_text

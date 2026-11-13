@@ -12,8 +12,8 @@ from .package import PackageError
 RNGD_SETUP = 'https://developer.furiosa.ai/v2026.4.0/en/get_started/prerequisites.html'
 _PYPI = frozenset({'furiosa-torch', 'furiosa-tcc', 'furiosa-kernels',
                   'furiosa-kernels-contrib', 'transformers', 'safetensors',
-                  'onnx', 'numpy', 'pillow', 'sentencepiece'})
-_IMPORTS = {name: name for name in (*_PYPI, 'torch') if '-' not in name}
+                  'onnx', 'onnx2torch', 'numpy', 'pillow', 'sentencepiece'})
+_IMPORTS = {name: name for name in (*_PYPI, 'torch', 'torchvision') if '-' not in name}
 _IMPORTS.update({'PIL': 'pillow', 'furiosa': 'furiosa-torch', 'furiosa.torch': 'furiosa-torch'})
 _VERSION = re.compile(r'[0-9][0-9A-Za-z.]*(?:\+[0-9A-Za-z.]+)?')
 
@@ -37,13 +37,25 @@ class MissingPackages(PackageError):
 def installation_commands(missing):
     commands = []
     pypi = []
+    torch_version = installed_version('torch') or missing.get('torch')
+    missing = dict(missing)
+    if 'onnx2torch' in missing:
+        if not isinstance(torch_version, str) or not _VERSION.fullmatch(torch_version):
+            return []
+        if installed_version('torchvision') is None:
+            missing.setdefault('torchvision', None)
     for name, version in missing.items():
-        if name not in _PYPI and name != 'torch':
+        if name not in _PYPI and name not in ('torch', 'torchvision'):
             return []
         if version is not None and (not isinstance(version, str) or not _VERSION.fullmatch(version)):
             return []
         requirement = f'{name}=={version}' if version else name
-        if name == 'torch':
+        if name == 'torchvision':
+            if not isinstance(torch_version, str) or not _VERSION.fullmatch(torch_version) or not torch_version.endswith('+cpu'):
+                return []
+            commands.append([sys.executable, '-m', 'pip', 'install', '--no-input', '--index-url',
+                             'https://download.pytorch.org/whl/cpu', f'torch=={torch_version}', requirement])
+        elif name == 'torch':
             if version is not None and '+' in version and not version.endswith('+cpu'):
                 return []
             commands.append([sys.executable, '-m', 'pip', 'install', '--no-input', '--index-url',
@@ -51,6 +63,8 @@ def installation_commands(missing):
         else:
             pypi.append(requirement)
     if pypi:
+        if 'onnx2torch' in missing:
+            pypi.append(f'torch=={torch_version}')
         commands.append([sys.executable, '-m', 'pip', 'install', '--no-input', '--index-url',
                          'https://pypi.org/simple', *pypi])
     return commands
