@@ -521,3 +521,15 @@ python scripts/runtime_matrix.py ./model.fxbx --env-dir ./venvs --output-dir ./r
 여부를 `summary.json`에 저장합니다. `--env`를 반복하면 일부 환경만 실행하고,
 `--timeout`은 환경별 실행 제한(초)입니다. 같은 호스트의 드라이버와 펌웨어를
 공유하며, 테스트는 기존 fxbX 장치 잠금을 사용합니다.
+
+### SDK Python 선택
+
+RNGD 모델 적재 중 필수 패키지가 빠져 있으면 fxbX가 설치된 Conda 환경을
+확인합니다. 현재 검증 범위는 Linux의 Python 3.10과 3.11이며, 다른 버전에서는
+검증된 환경을 안내합니다. 별도 위치의 venv는 상위 폴더를
+`FXBX_SDK_ENV_DIRS`에 콜론으로 구분해 지정할 수 있습니다.
+
+대화형 실행은 기존 환경 사용, 새 가상환경 생성, 명령 표시, 취소를 선택할 수
+있습니다. 비대화형 실행은 명령만 출력합니다. 이미 준비된 환경을 직접 지정하려면
+`FXBEX_WORKER_PYTHON=/path/to/venv/bin/python fxbx run MODEL --sample`을 사용하세요.
+드라이버와 시스템 라이브러리는 RNGD 호스트에서 준비해야 합니다.

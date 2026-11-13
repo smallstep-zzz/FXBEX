@@ -163,6 +163,19 @@ Model-specific exporters and capture commands belong to their adapter plugins.""
     if args.action in ('run','chat','predict','serve','describe','sample','inspect','validate'):
         from .hub import resolve_package
         args.package=str(resolve_package(args.package))
+    if args.action in ('run', 'chat', 'predict', 'serve') and Path(args.package).is_file():
+        from .package import runtime_manifest
+        from .dependencies import MissingPackages, installed_version
+        from .sdk_environment import choose_sdk
+        required = runtime_manifest(args.package)['compatibility'].get('packages', {})
+        if isinstance(required, dict) and {'furiosa-torch', 'furiosa-tcc'}.intersection(required):
+            missing_sdk = {name: value for name, value in required.items()
+                           if installed_version(name) is None}
+            if missing_sdk:
+                child_args = list(sys.argv[1:] if argv is None else argv)
+                status = choose_sdk(MissingPackages(missing_sdk), required, child_args, sys.stderr)
+                if status is not None:
+                    return status
     sample_contract=None
     if args.action=='run' and args.image and args.input:
         raise ValueError('Use --image or --input, not both')

@@ -88,7 +88,7 @@ def offer_install(error, stream):
         return False
     for command in commands:
         print(shlex.join(command), file=stream)
-    if not (sys.stdin.isatty() and stream.isatty()):
+    if not sys.stdin.isatty():
         return False
     print(error, file=stream)
     print('Install the missing Python packages above? [y/N] ', end='', file=stream, flush=True)
