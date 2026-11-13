@@ -12,7 +12,7 @@ from .package import PackageError
 RNGD_SETUP = 'https://developer.furiosa.ai/v2026.4.0/en/get_started/prerequisites.html'
 _PYPI = frozenset({'furiosa-torch', 'furiosa-tcc', 'furiosa-kernels',
                   'furiosa-kernels-contrib', 'transformers', 'safetensors',
-                  'onnx', 'onnx2torch', 'numpy', 'pillow', 'sentencepiece',
+                  'diffusers', 'accelerate', 'onnx', 'onnx2torch', 'numpy', 'pillow', 'sentencepiece',
                   'trimesh', 'scikit-image', 'einops', 'omegaconf', 'xatlas', 'moderngl'})
 _IMPORTS = {name: name for name in (*_PYPI, 'torch', 'torchvision') if '-' not in name}
 _IMPORTS.update({'PIL': 'pillow', 'furiosa': 'furiosa-torch', 'furiosa.torch': 'furiosa-torch'})

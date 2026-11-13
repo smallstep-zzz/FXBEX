@@ -94,13 +94,8 @@ def resolve_package(value, *, refresh=False):
         return target.resolve()
     try:from huggingface_hub import hf_hub_download
     except ImportError:raise RuntimeError('Install download support: pip install huggingface_hub') from None
-    from tqdm.auto import tqdm
-    class DownloadProgress(tqdm):
-        def __init__(self,*args,**kwargs):
-            kwargs['disable']=False
-            super().__init__(*args,**kwargs)
     print('Downloading model from Hugging Face (cached files are reused)...',file=sys.stderr,flush=True)
-    path=Path(hf_hub_download('/'.join(parts[:2]),'/'.join(parts[4:]),revision=parts[3],tqdm_class=DownloadProgress,force_download=refresh))
+    path=Path(hf_hub_download('/'.join(parts[:2]),'/'.join(parts[4:]),revision=parts[3],force_download=refresh))
     h=hashlib.sha256()
     with path.open('rb') as stream:
         for block in iter(lambda:stream.read(1024*1024),b''):h.update(block)
