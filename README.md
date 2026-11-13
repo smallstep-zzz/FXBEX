@@ -506,3 +506,18 @@ FXBEX_WORKER_PYTHON=/path/to/sdk/bin/python fxbx run Julia-1 --sample
 설치할 때는 PyTorch CPU 인덱스에서 현재 PyTorch 버전에 맞는 빌드를 찾습니다.
 스크립트와 CI에서는 명령을 안내하고 종료합니다. 드라이버와 펌웨어 설정은
 `fxbx doctor` 및 [Furiosa 설치 가이드](https://developer.furiosa.ai/v2026.4.0/en/get_started/prerequisites.html)를 참고하세요.
+
+### 여러 SDK 가상환경에서 같은 번들 검증
+
+신뢰하는 로컬 번들에 기본 샘플이 있으면 아래 명령으로 설치된 가상환경마다
+새 Python 프로세스를 열어 순차 실행할 수 있습니다. `--env-dir`은
+각 가상환경의 `bin/python`을 포함하는 상위 폴더입니다.
+
+```bash
+python scripts/runtime_matrix.py ./model.fxbx --env-dir ./venvs --output-dir ./runs
+```
+
+환경별 Python과 SDK 패키지 버전, CLI 결과, 소요 시간, 샘플의 NPU trace 확인
+여부를 `summary.json`에 저장합니다. `--env`를 반복하면 일부 환경만 실행하고,
+`--timeout`은 환경별 실행 제한(초)입니다. 같은 호스트의 드라이버와 펌웨어를
+공유하며, 테스트는 기존 fxbX 장치 잠금을 사용합니다.
