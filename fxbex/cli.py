@@ -198,6 +198,7 @@ Model-specific exporters and capture commands belong to their adapter plugins.""
         launch(args.port);return
     else:
         from .runtime import Session
+        from .dependencies import MissingPackages, missing_import, offer_install
         # SDK/compiler diagnostics may print; keep JSON results on stdout.
         import contextlib
         if args.action == 'predict' and not args.input:
@@ -211,7 +212,15 @@ Model-specific exporters and capture commands belong to their adapter plugins.""
         log_path=session.report_dir/'runtime.log'
         print(f'Loading package; diagnostics: {log_path}',file=sys.stderr,flush=True)
         def invoke(callback):return _runtime_call(callback,log_path,args.verbose)
-        _load_with_progress(lambda: invoke(session.__enter__), progress_stream)
+        try:
+            _load_with_progress(lambda: invoke(session.__enter__), progress_stream)
+        except (MissingPackages, ModuleNotFoundError) as exc:
+            missing = exc if isinstance(exc, MissingPackages) else missing_import(exc)
+            if missing is None or not offer_install(missing, progress_stream):
+                raise
+            from importlib import invalidate_caches
+            invalidate_caches()
+            _load_with_progress(lambda: invoke(session.__enter__), progress_stream)
         try:
             print(f'NPU package ready; reports: {session.report_dir}',file=sys.stderr,flush=True)
             from .execution import memory_text

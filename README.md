@@ -490,3 +490,9 @@ FXBEX_WORKER_PYTHON=/path/to/sdk/bin/python fxbx run Julia-1 --sample
 알려진 충돌 조합, EDF의 fusion·입출력 ABI 불일치는 여전히 차단됩니다.
 사전 컴파일된 내부 EDF를 읽을 때 `furiosa-tcc`는 빌드 정보로 사용합니다.
 기존 `--allow-sdk-mismatch` 옵션도 계속 사용할 수 있습니다.
+
+대화형 터미널에서 `run`, `chat`, `predict`, `serve`가 지원 목록의 Python
+패키지 누락을 발견하면 실행용 Python 경로와 설치 명령을 표시합니다.
+`[y/N]`에 동의하면 그 환경에 설치하고 모델 적재를 한 번 다시 시도합니다.
+스크립트와 CI에서는 명령을 안내하고 종료합니다. 드라이버와 펌웨어 설정은
+`fxbx doctor` 및 [Furiosa 설치 가이드](https://developer.furiosa.ai/v2026.4.0/en/get_started/prerequisites.html)를 참고하세요.

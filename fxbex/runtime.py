@@ -11,13 +11,13 @@ import time
 from .package import extract, PackageError
 from .settings import lock_path, runs_path
 from .compatibility import version_notice
+from .dependencies import MissingPackages, RNGD_SETUP, installed_version
 
 
 def environment():
     versions = {}
     for name in ('furiosa-torch', 'furiosa-tcc', 'torch', 'transformers'):
-        try: versions[name] = importlib.metadata.version(name)
-        except importlib.metadata.PackageNotFoundError: versions[name] = None
+        versions[name] = installed_version(name)
     return versions
 
 
@@ -27,6 +27,8 @@ def doctor():
         device = {'returncode': p.returncode, 'status': p.stdout.strip(), 'error': p.stderr.strip()}
     except (OSError, subprocess.TimeoutExpired) as exc:
         device = {'error': str(exc)}
+    if device.get('returncode') != 0:
+        device['setup_guide'] = RNGD_SETUP
     return {'packages': environment(), 'device': device, 'format': 'FXB_EX',
             'note': 'Detection is not NPU execution acceptance; packages require matching SDK.'}
 
@@ -43,13 +45,14 @@ def package_compatibility(manifest, *, allow_sdk_mismatch=False):
     actual = environment()
     notices = []
     required = manifest['compatibility'].get('packages', {})
-    missing = [f'{name}=={expected}' for name, expected in required.items() if actual.get(name) is None]
+    if not isinstance(required, dict):
+        raise PackageError('compatibility.packages must be an object')
+    for name in required:
+        if name not in actual:
+            actual[name] = installed_version(name)
+    missing = {name: expected for name, expected in required.items() if actual[name] is None}
     if missing:
-        raise PackageError(
-            f'Missing required packages in Python {sys.executable}: {", ".join(missing)}. '
-            'Use a compatible SDK Python with fxbX installed '
-            '(set FXBEX_WORKER_PYTHON to its executable).'
-        )
+        raise MissingPackages(missing)
     if (manifest.get('model',{}).get('name')=='RedHatAI/Qwen3.5-9B-FP8-dynamic'
             and sys.version_info[:2]==(3,11) and actual.get('furiosa-torch')=='2026.4.0'
             and actual.get('torch')=='2.10.0+cpu' and actual.get('transformers')=='5.22.1'):

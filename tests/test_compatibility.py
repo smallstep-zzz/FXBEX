@@ -26,7 +26,7 @@ class Compatibility(unittest.TestCase):
 
  def test_opt_in_still_reports_all_missing_packages(self):
   manifest={'compatibility':{'packages':{'furiosa-tcc':'2026.4.0','torch':'2.10.0+cpu'}}}
-  with patch('fxbex.runtime.environment',return_value={}):
+  with patch('fxbex.runtime.environment',return_value={}), patch('fxbex.runtime.installed_version',return_value=None):
    with self.assertRaisesRegex(ValueError,'Python .*furiosa-tcc==2026.4.0, torch==2.10.0'):
     package_compatibility(manifest,allow_sdk_mismatch=True)
 
