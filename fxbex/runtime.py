@@ -90,9 +90,10 @@ class Session:
             self.telemetry = MemoryTelemetry(self.report_dir)
             self.memory = self.telemetry.sample('before_load')
             # Share the canonical lock with web workers. Never assume PE partitioning.
-            import fcntl
+            import os
+            from unittest.mock import patch
             from .settings import npu_lock
-            try: self.stack.enter_context(npu_lock())
+            try: lease_fd = self.stack.enter_context(npu_lock())
             except BlockingIOError: raise RuntimeError('NPU busy: unload the web model before loading FXB_EX')
             kind = self.manifest['runtime']['adapter']
             from .bundled import activate
@@ -100,7 +101,8 @@ class Session:
             if kind=='runnable_dag':
                 self.adapter=adapter(self.root,weights_dir=self.weights_dir)
             else:
-                self.adapter=adapter(self.root,self.report_dir,self.stack,weights_dir=self.weights_dir)
+                with patch.dict(os.environ, {'FXBEX_NPU_LOCK_FD': str(lease_fd)}):
+                    self.adapter=adapter(self.root,self.report_dir,self.stack,weights_dir=self.weights_dir)
             self.sample_memory('after_load')
             return self
         except BaseException:
