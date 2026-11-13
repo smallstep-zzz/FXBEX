@@ -31,7 +31,7 @@ def _official_build(model, output, *, concurrency, options):
 def build_model(model, output, *, example_inputs=None, contract_provider=None,
                 source_metadata=None, concurrency=4, work_dir=None,
                 state_inputs=None,state_updates=None,user_output_indices=None,verification=None,**options):
-    """Build a registered model, or package TCLMachine's static execution plan.
+    """Build a registered model, or package furyNo5's static execution plan.
 
     A HF ID/local asset directory uses the official architecture-aware compiler.
     A torch module delegates capture, partitioning and EDF compilation to TCLMachine.
@@ -55,7 +55,7 @@ def build_model(model, output, *, example_inputs=None, contract_provider=None,
                 or set(verification)-required-{'repeats','replay_timeout'}):
             raise ValueError('verification requires validation_inputs/atol/rtol and optional repeats/replay_timeout')
         if isinstance(model,(str,os.PathLike)) or contract_provider is not None:
-            raise ValueError('Producer-owned verification requires the TCLMachine Torch route')
+            raise ValueError('Producer-owned verification requires the furyNo5 Torch route')
     output.parent.mkdir(parents=True,exist_ok=True)
     work=Path(work_dir).absolute() if work_dir else output.parent/(output.name+'.build')
     work.mkdir(parents=True,exist_ok=False)

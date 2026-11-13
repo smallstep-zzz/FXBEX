@@ -25,8 +25,8 @@ scheduler. A native archive is not an automatic LLM-model registry extension.
 ## Ownership of the execution connection
 
 1. Torch export records actual graph, user inputs, parameters, buffers and output
-   tree. TCLMachine binds these without inspecting checkpoint binaries.
-2. When the installed SDK lacks `native_common.compiler.compile`, TCLMachine
+   tree. furyNo5 binds these without inspecting checkpoint binaries.
+2. When the installed SDK lacks `native_common.compiler.compile`, furyNo5
    uses its existing finite public TCL rules and installed `furiosa-tcc` to emit
    a **genuine EDF**. Current fallback scope is one static contiguous BF16 2D
    `mm` or `linear`, including optional bias. Multi-op graphs, unhandled dtypes,
