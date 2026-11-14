@@ -6,19 +6,34 @@ import zipfile
 
 PRODUCER_MEMBER = 'fxbex.provenance.json'
 MAX_JSON_SIZE = 4 * 1024**2
+MAX_EXECUTION_PLAN_SIZE = 64 * 1024**2
+MAX_PRODUCER_SIZE = MAX_EXECUTION_PLAN_SIZE + MAX_JSON_SIZE
 
 
 class NativeFXBError(ValueError):
     """The native archive contract or official reader gate failed."""
 
 
-def _json(data):
-    if len(data) > MAX_JSON_SIZE:
+def _json(data, *, max_size=MAX_JSON_SIZE):
+    if len(data) > max_size:
         raise NativeFXBError('Native JSON exceeds size limit')
     try:
         return json.loads(data)
     except (ValueError, UnicodeError) as exc:
         raise NativeFXBError(f'Invalid native JSON: {exc}') from exc
+
+
+def _producer_json(data):
+    producer = _json(data, max_size=MAX_PRODUCER_SIZE)
+    if not isinstance(producer, dict) or producer.get('producer') != 'fxbex':
+        raise NativeFXBError('Invalid FXBEX producer metadata')
+    if len(data) > MAX_JSON_SIZE:
+        if not isinstance(producer.get('execution_plan'), dict):
+            raise NativeFXBError('Large producer metadata requires an execution plan')
+        provenance = {key: value for key, value in producer.items() if key != 'execution_plan'}
+        if len(json.dumps(provenance, separators=(',', ':')).encode()) > MAX_JSON_SIZE:
+            raise NativeFXBError('Producer metadata outside the execution plan exceeds 4 MiB')
+    return producer
 
 
 def _name(name):
@@ -103,11 +118,9 @@ def validate_native(path, *, verify_official=True):
             producer = None
             if PRODUCER_MEMBER in members:
                 expected.add(PRODUCER_MEMBER)
-                if members[PRODUCER_MEMBER].file_size > MAX_JSON_SIZE:
+                if members[PRODUCER_MEMBER].file_size > MAX_PRODUCER_SIZE:
                     raise NativeFXBError('Native JSON exceeds size limit')
-                producer = _json(archive.read(PRODUCER_MEMBER))
-                if not isinstance(producer, dict) or producer.get('producer') != 'fxbex':
-                    raise NativeFXBError('Invalid FXBEX producer metadata')
+                producer = _producer_json(archive.read(PRODUCER_MEMBER))
             if set(members) != expected:
                 raise NativeFXBError('Native archive members do not match manifest EDF references and producer metadata')
             if any(members[name].file_size == 0 for name in files):

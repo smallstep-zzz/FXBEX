@@ -135,14 +135,14 @@ class GraphFXB:
     """Explicit single-EDF consumer; not Furiosa-LLM architecture dispatch."""
     def __new__(cls,path,*,weights=None,device='furiosa:0',max_request_states=1):
         if cls is GraphFXB:
-            from .native_fxb import MAX_JSON_SIZE
+            from .native_fxb import MAX_PRODUCER_SIZE, _producer_json
             execution=False
             # Route by versioned transport schema, never model name/architecture.
             try:
                 with zipfile.ZipFile(path) as archive:
                     info=archive.getinfo(PRODUCER_MEMBER)
-                    if info.file_size<=MAX_JSON_SIZE:
-                        producer=json.loads(archive.read(info))
+                    if info.file_size<=MAX_PRODUCER_SIZE:
+                        producer=_producer_json(archive.read(info))
                         execution=isinstance(producer,dict) and 'execution_plan' in producer
             except (OSError,zipfile.BadZipFile,KeyError,ValueError):
                 pass  # The existing integrity reader returns the detailed error.
