@@ -7,7 +7,7 @@ import weakref
 
 from fxbex.memory import (TensorLifetime, analyze, dag_plan, stateful_plan,
                           tensor_bytes, inspect_archive)
-from fxbex.package import PackageError, build
+from fxbex.package import PackageError
 
 
 SPEC = {'shape': [1024], 'dtype': 'bfloat16'}
@@ -101,26 +101,3 @@ class MemoryTests(unittest.TestCase):
         self.assertEqual(plan['estimate']['persistent_current_logical_bytes'], 24 * 65536)
         with self.assertRaisesRegex(PackageError, 'configured budget'):
             stateful_plan(10, states, policy={'budget_bytes': 1024})
-
-    def test_build_includes_recomputed_plan_and_small_metadata_analysis(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / 'source'
-            root.mkdir()
-            execution, config, index = fixture()
-            index['weights'] = []
-            execution['steps'][0]['inputs'] = ['x']
-            documents = {'execution_plan.json': execution, 'runtime_config.json': config,
-                         'weights_index.json': index, 'memory_plan.json': {},
-                         'manifest.json': {'model': {'name': 'test'}, 'runtime': {'adapter': 'runnable_dag'}, 'compatibility': {}}}
-            for name, value in documents.items():
-                (root / name).write_text(json.dumps(value))
-            (root / 'a.edf').write_bytes(b'fixture, not an NPU executable')
-            package = build(root, Path(directory) / 'model.fxbex')
-            result = inspect_archive(package)
-            self.assertEqual(result['kind'], 'dag-logical-memory-v1')
-            self.assertIn('metadata only', result['integrity_scope'])
-            self.assertEqual(analyze(root)['last_use'], result['last_use'])
-            (root / 'memory_plan.json').write_text(json.dumps({'policy': {'budget_bytes': 1}}))
-            from fxbex.runtime import RunnableDAG
-            with self.assertRaisesRegex(PackageError, 'configured budget'):
-                RunnableDAG(root)  # Reject before SDK import, kernel load or weight upload.

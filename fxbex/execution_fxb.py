@@ -6,22 +6,18 @@ after stream completion. The producer must establish functional kernel inputs:
 opaque EDF ABI alone cannot prove absence of in-place writes or storage aliases.
 """
 from contextlib import ExitStack
-from datetime import datetime, timezone
 import hashlib
 import json
 import os
 from contextlib import nullcontext
 from pathlib import Path
-import shutil
-import tempfile
 import threading
 import time
-from uuid import uuid4
 import zipfile
 
 from .compatibility import check_edf_versions
 from .graph_fxb import _bytes, _sha, _file_sha, _tensor_matches
-from .native_fxb import MAX_JSON_SIZE, PRODUCER_MEMBER, NativeFXBError, build_native, validate_native
+from .native_fxb import MAX_JSON_SIZE, PRODUCER_MEMBER, NativeFXBError, validate_native
 
 
 class ExecutionPlanError(NativeFXBError):
@@ -234,35 +230,6 @@ def validate_execution_plan(plan, *, archived=False):
     if used!=set(kernels):fail('Unreferenced kernels are not allowed')
     _memory_gate(plan)
     return plan
-
-
-def export_execution_plan(plan, output, *, verify_official=True):
-    """Package a producer's qualified tensor plan; do not discover/compile kernels."""
-    plan=validate_execution_plan(plan)
-    staged_plan=json.loads(_bytes(plan));paths={}
-    for index,(name,kernel) in enumerate(staged_plan['kernels'].items()):
-        source=Path(kernel.pop('edf_path'))
-        if source.is_symlink() or not source.is_file() or source.suffix!='.edf' or _file_sha(source)!=kernel['edf_sha256']:
-            raise ExecutionPlanError('Expected unchanged genuine EDF producer artifact')
-        member=f'edfs/kernel-{index:04d}.edf';kernel['member']=member;paths[member]=(source,kernel['edf_sha256'])
-    validate_execution_plan(staged_plan,archived=True)
-    fingerprint=_sha(staged_plan)
-    manifest={'format_version':2,'uuid':str(uuid4()),'created_at':datetime.now(timezone.utc).isoformat(),
-        'versions':{'furiosa_compiler':plan['compiler_identity']},
-        'model':{'architecture':plan['source_metadata']['architecture'],'fxbx_execution_fingerprint':fingerprint},
-        'parallel_config':{'tensor_parallel_size':8,'pipeline_parallel_size':1},'kernels':{}}
-    for name,kernel in staged_plan['kernels'].items():
-        manifest['kernels'][name]=[{'bucket':{'tokenwise':{'input_size':1}},'file':kernel['member']}]
-    with tempfile.TemporaryDirectory(prefix='fxbx-execution-') as directory:
-        root=Path(directory);(root/'manifest.json').write_bytes(_bytes(manifest))
-        for member,(source,expected) in paths.items():
-            target=root/member;target.parent.mkdir(exist_ok=True,parents=True);shutil.copyfile(source,target)
-            if _file_sha(target)!=expected:
-                raise ExecutionPlanError('EDF changed during staging')
-        result=build_native(root,output,verify_official=verify_official,
-            producer_metadata={'execution_plan':staged_plan,'execution_plan_sha256':fingerprint,
-                               'official_llm_dispatch':False,'explicit_consumer_required':True})
-    result['gates']['execution_plan']='passed';return result
 
 
 def _archive_plan(archive):

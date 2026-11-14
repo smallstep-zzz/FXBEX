@@ -9,7 +9,7 @@ import tarfile
 import zipfile
 
 FORBIDDEN_SUFFIXES = (
-    ".fxbex", ".fxb", ".runnable", ".edf", ".safetensors",
+    ".fxbx", ".fxbex", ".fxb", ".runnable", ".edf", ".safetensors",
     ".pt", ".bin", ".log", ".so", ".dylib", ".dll", ".pyc",
 )
 FORBIDDEN_NAMES = {".env", ".pypirc", "id_rsa", "id_ed25519"}
@@ -37,8 +37,12 @@ def audit(path: Path) -> None:
     assert any(name.endswith('/fxbx/__init__.py') or name == 'fxbx/__init__.py' for name in names), (
         f'{path}: public fxbx module is missing'
     )
+    producer_modules = {'model_export.py', 'static_graph_contract.py', 'provenance.py', 'capture.py'}
     for entry in names:
         name = Path(entry).name
+        parts = Path(entry).parts
+        if 'tplmachine' in parts or 'fxb_export' in parts or ('fxbex' in parts and name in producer_modules):
+            raise ValueError(f"{path}: private authoring module: {entry}")
         if name in FORBIDDEN_NAMES or name.startswith(".env.") or entry.endswith(FORBIDDEN_SUFFIXES):
             raise ValueError(f"{path}: forbidden packaged file: {entry}")
 

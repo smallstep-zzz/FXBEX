@@ -1,5 +1,6 @@
 import contextlib
 import io
+import hashlib
 import json
 from pathlib import Path
 import tempfile
@@ -8,7 +9,6 @@ import zipfile
 from unittest.mock import patch
 
 from fxbex.cli import main
-from fxbex.package import build, PackageError
 from fxbex.validation import validate
 
 
@@ -37,8 +37,20 @@ class CliTests(unittest.TestCase):
             code = main(list(map(str, args)))
         return code, out.getvalue(), err.getvalue()
 
-    def test_build_alias_inspect_and_integrity_only(self):
-        self.assertEqual(self.invoke('build', self.source, '-o', self.package)[0], 0)
+    def make_package(self):
+        members = {p.name: p.read_bytes() for p in self.source.iterdir()}
+        manifest = json.loads(members.pop('manifest.json'))
+        manifest.update(schema_version=1, format='FXB_EX', standalone=False, files={
+            name: {'sha256': hashlib.sha256(data).hexdigest(), 'size': len(data)}
+            for name, data in members.items()
+        })
+        with zipfile.ZipFile(self.package, 'w') as archive:
+            archive.writestr('manifest.json', json.dumps(manifest))
+            for name, data in members.items():
+                archive.writestr(name, data)
+
+    def test_inspect_and_integrity_only(self):
+        self.make_package()
         self.assertEqual(json.loads(self.invoke('inspect', self.package)[1])['model']['name'], 'demo')
         memory = json.loads(self.invoke('inspect', self.package, '--memory')[1])['memory_plan']
         self.assertEqual(memory['kind'], 'dag-logical-memory-v1')
@@ -49,12 +61,6 @@ class CliTests(unittest.TestCase):
         self.assertIsNone(json.loads(out)['statically_ready'])
         self.assertFalse(json.loads(out)['inference_validated'])
 
-    def test_build_defaults_to_fxbx(self):
-        self.assertEqual(self.invoke("build", str(self.source))[0], 0)
-        output = self.source.with_suffix(".fxbx")
-        self.assertTrue(output.is_file())
-        self.assertEqual(self.invoke("inspect", str(output))[0], 0)
-
     def test_missing_file_no_traceback(self):
         code, _, err = self.invoke('validate', self.package)
         self.assertEqual(code, 1)
@@ -62,7 +68,7 @@ class CliTests(unittest.TestCase):
         self.assertNotIn('Traceback', err)
 
     def test_corrupt_package_no_traceback(self):
-        build(self.source, self.package)
+        self.make_package()
         with zipfile.ZipFile(self.package) as archive:
             members = {name: archive.read(name) for name in archive.namelist()}
         members['kernel.edf'] = b'broken kernel'
@@ -79,12 +85,13 @@ class CliTests(unittest.TestCase):
         with contextlib.redirect_stdout(out), self.assertRaises(SystemExit) as raised:
             main(['--help'])
         self.assertEqual(raised.exception.code, 0)
-        self.assertIn('build ./compiled_model -o model.fxbx', out.getvalue())
+        self.assertNotIn('build', out.getvalue())
         self.assertIn('--port 8000', out.getvalue())
+        self.assertNotIn(' build ', out.getvalue())
         self.assertNotIn('capture-qwen', out.getvalue())
 
     def test_static_validation_no_adapter_instantiation(self):
-        build(self.source, self.package)
+        self.make_package()
         with patch('fxbex.runtime.check_compatibility'), patch('fxbex.runtime.resolve_adapter') as adapter, patch('fxbex.runtime.doctor', return_value={'device': {'returncode': 0, 'status': 'RNGD ready'}}):
             result = validate(self.package)
         self.assertTrue(result['statically_ready'])
@@ -92,31 +99,9 @@ class CliTests(unittest.TestCase):
         adapter.return_value.assert_not_called()
 
     def test_missing_sdk_and_device_fail_cli(self):
-        build(self.source, self.package)
+        self.make_package()
         with patch('fxbex.runtime.check_compatibility', side_effect=ValueError('Missing SDK')), patch('fxbex.runtime.resolve_adapter'), patch('fxbex.runtime.doctor', return_value={'device': {'error': 'missing'}}):
             code, out, _ = self.invoke('validate', self.package)
         self.assertEqual(code, 1)
         self.assertIn('Missing SDK', out)
         self.assertFalse(json.loads(out)['statically_ready'])
-
-    def test_external_hash_and_forward_binding_fail(self):
-        external = self.root / 'w.bin'
-        external.write_bytes(b'weights')
-        (self.source / 'weights_index.json').write_text(json.dumps({'weights': [{'external_path': str(external), 'sha256': '0' * 64, 'tensors': ['weight']}]}))
-        plan = json.loads((self.source / 'execution_plan.json').read_text())
-        plan['steps'][0]['inputs'] = ['not_defined']
-        (self.source / 'execution_plan.json').write_text(json.dumps(plan))
-        with self.assertRaisesRegex(PackageError, 'forward DAG input'):
-            build(self.source, self.package)
-        plan['steps'][0]['inputs'] = ['x', 'weight']
-        (self.source / 'execution_plan.json').write_text(json.dumps(plan))
-        build(self.source, self.package)
-        with patch('fxbex.runtime.check_compatibility'), patch('fxbex.runtime.resolve_adapter'), patch('fxbex.runtime.doctor', return_value={'device': {'returncode': 0, 'status': 'RNGD'}}):
-            result = validate(self.package)
-        self.assertFalse(result['valid'])
-        self.assertIn('checksum mismatch', str(result['errors']))
-        self.assertIn('memory_plan', result['checks'])
-
-
-if __name__ == '__main__':
-    unittest.main()

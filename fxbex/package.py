@@ -1,9 +1,7 @@
 """Model-independent FXB_EX archives; this is not Furiosa's official FXB format."""
 from contextlib import contextmanager
 import hashlib
-import io
 import json
-import os
 from pathlib import Path, PurePosixPath
 import stat
 import tempfile
@@ -134,6 +132,11 @@ def _validate(archive, max_total_size, max_json_size, *, verify_hashes=True):
     return manifest
 
 
+def build(*args, **kwargs):
+    """Compatibility import for adapters embedded in earlier model releases."""
+    raise PackageError("This runtime cannot create model packages")
+
+
 def validate(path, *, max_total_size=DEFAULT_MAX_TOTAL_SIZE, max_json_size=DEFAULT_MAX_JSON_SIZE):
     """Verify member safety, bounded sizes, required JSONs and all SHA-256 checksums.
 
@@ -175,116 +178,3 @@ def extract(path, *, max_total_size=DEFAULT_MAX_TOTAL_SIZE, max_json_size=DEFAUL
                 yield root
     except (zipfile.BadZipFile, RuntimeError, NotImplementedError) as exc:
         raise PackageError(f'Unreadable archive: {exc}') from exc
-
-
-def build(source, output, standalone=False, *, max_total_size=DEFAULT_MAX_TOTAL_SIZE, max_json_size=DEFAULT_MAX_JSON_SIZE, source_url=None, source_revision=None):
-    """Build atomically without overwriting; source is an unpacked package tree.
-
-    Source manifest supplies model, compatibility and runtime. Integrity entries and
-    standalone are generated. weights_index uses {"weights": [{"path": "weights/a"}]}
-    for internal weights or {"external_path": "/deployment/a"} for external weights.
-    In standalone mode external files are streamed into weights/ and their index
-    entries are rewritten in the archive only. Relative external paths resolve
-    against source; explicit external symlinks are resolved (e.g. HF cache blobs).
-    """
-    source = Path(source).resolve()
-    output = Path(output).absolute()
-    if not output.suffix:
-        output = output.with_suffix('.fxbx')
-    if not source.is_dir():
-        raise PackageError('Source must be a directory')
-    if output.resolve().is_relative_to(source):
-        raise PackageError('Output must be outside the source directory')
-    if output.exists() or output.is_symlink():
-        raise FileExistsError(output)
-    manifest_path = source / 'manifest.json'
-    if manifest_path.is_symlink() or not manifest_path.is_file():
-        raise PackageError('Source requires a regular manifest.json')
-    if manifest_path.stat().st_size > max_json_size:
-        raise PackageError('Manifest exceeds JSON size limit')
-    manifest = _json(manifest_path.read_bytes(), 'manifest.json')
-    from .provenance import source_metadata
-    manifest['provenance']=source_metadata(source_url,source_revision,manifest.get('provenance'))
-    from .buildbundle import validate as validate_bundle
-    validate_bundle(source,manifest)
-    manifest.update(schema_version=1, format='FXB_EX', standalone=bool(standalone), files={})
-    inputs = {}
-    for path in sorted(source.rglob('*')):
-        if path.is_symlink():
-            raise PackageError(f'Source symlinks are forbidden: {path}')
-        if path.is_dir():
-            continue
-        if not path.is_file():
-            raise PackageError(f'Source must contain regular files: {path}')
-        name = _name(path.relative_to(source).as_posix())
-        if name != 'manifest.json':
-            inputs[name] = (path, None)
-    if standalone:
-        index_path = source / 'weights_index.json'
-        if not index_path.is_file() or index_path.stat().st_size > max_json_size:
-            raise PackageError('Missing or oversized weights_index.json')
-        index = _json(index_path.read_bytes(), 'weights_index.json')
-        # Validate the original references before replacing external entries.
-        _weights(index, {'standalone': False, 'files': inputs})
-        for weight in index['weights']:
-            if 'external_path' not in weight:
-                continue
-            external = Path(weight['external_path'])
-            basename = weight.get('name', external.name)
-            _name(basename)
-            if '/' in basename:
-                raise PackageError(f'Weight name must be a basename: {basename}')
-            name = 'weights/' + basename
-            if name in inputs:
-                raise PackageError(f'Weight path collision: {name}')
-            external = (external if external.is_absolute() else source / external).resolve()
-            if not external.is_file():
-                raise PackageError(f'Missing external weight file: {external}')
-            inputs[name] = (external, weight.get('sha256'))
-            del weight['external_path']
-            weight['path'] = name
-        inputs['weights_index.json'] = (json.dumps(index, sort_keys=True).encode(), None)
-    if manifest['runtime']['adapter'] == 'runnable_dag':
-        from .memory import dag_plan
-        def document(name):
-            item = inputs[name][0]
-            if isinstance(item, bytes):
-                data = item
-            else:
-                if item.stat().st_size > max_json_size:
-                    raise PackageError(f'Oversized memory metadata: {name}')
-                data = item.read_bytes()
-            return _json(data, name)
-        memory = dag_plan(document('execution_plan.json'), document('runtime_config.json'),
-                          document('weights_index.json'), document('memory_plan.json'))
-        data = json.dumps(memory, sort_keys=True).encode()
-        if len(data) > max_json_size:
-            raise PackageError('Generated memory plan exceeds JSON size limit')
-        inputs['memory_plan.json'] = (data, None)
-    output.parent.mkdir(parents=True, exist_ok=True)
-    fd, temporary = tempfile.mkstemp(prefix='.fxbex-', dir=output.parent)
-    os.close(fd)
-    try:
-        total = 0
-        with zipfile.ZipFile(temporary, 'w', compression=zipfile.ZIP_STORED, allowZip64=True) as archive:
-            for name, (item, expected_digest) in inputs.items():
-                digest = hashlib.sha256()
-                size = 0
-                with (io.BytesIO(item) if isinstance(item, bytes) else item.open('rb')) as stream:
-                    with archive.open(name, 'w', force_zip64=True) as dest:
-                        while chunk := stream.read(CHUNK):
-                            size += len(chunk)
-                            total += len(chunk)
-                            if total > max_total_size:
-                                raise PackageError('Source exceeds total size limit')
-                            dest.write(chunk)
-                            digest.update(chunk)
-                if expected_digest is not None and digest.hexdigest() != expected_digest:
-                    raise PackageError(f'External weight checksum mismatch: {name}')
-                manifest['files'][name] = {'sha256': digest.hexdigest(), 'size': size}
-            archive.writestr('manifest.json', json.dumps(manifest, sort_keys=True, indent=2) + '\n')
-        validate(temporary, max_total_size=max_total_size, max_json_size=max_json_size)
-        os.link(temporary, output)  # Atomic publication with no overwrite.
-        return output
-    finally:
-        os.unlink(temporary)

@@ -5,18 +5,13 @@ They use an explicit fxbX consumer, not Furiosa-LLM architecture dispatch.
 """
 from collections.abc import Mapping, Sequence
 from contextlib import ExitStack
-from dataclasses import dataclass
 import hashlib
 import json
 from pathlib import Path
-import shutil
-import tempfile
-from typing import Protocol
 import zipfile
 
 from .compatibility import check_edf_versions
-from .native_fxb import (NativeFXBError, PRODUCER_MEMBER, _contract, _name,
-                         build_native, validate_native)
+from .native_fxb import (NativeFXBError, PRODUCER_MEMBER, _contract, _name, validate_native)
 
 
 class GraphFXBError(NativeFXBError):
@@ -40,43 +35,6 @@ def _file_sha(path):
         for block in iter(lambda: stream.read(1024**2), b''):
             result.update(block)
     return result.hexdigest()
-
-
-class NativeContractProvider(Protocol):
-    def provide(self, *, model_metadata: Mapping, edf_export: Mapping) -> Mapping:
-        """Return manifest, kernel_name, bucket, member, source, model_metadata_sha256.
-
-        Providers are trusted host code responsible for obtaining the real model
-        fingerprint and registering this EDF through a supported native producer.
-        """
-
-
-class OfficialNativeContractProvider:
-    def provide(self, *, model_metadata, edf_export):
-        raise GraphFXBError(
-            'EXPORT_BRIDGE_GAP: the inspected official SDK exposes build_fxb(model_path, ...) '
-            'but no public custom-graph manifest/fingerprint registration API. Supply an '
-            'authentic NativeContractProvider; arbitrary model metadata cannot replace it.')
-
-
-@dataclass
-class ExistingNativeContract:
-    """Explicit host-supplied native contract; never derived from a model name."""
-    manifest: dict
-    model_metadata: dict
-    kernel_name: str
-    bucket: dict
-    member: str
-    source: dict
-    device_config: dict | None = None
-
-    def provide(self, *, model_metadata, edf_export):
-        if _sha(model_metadata) != _sha(self.model_metadata):
-            raise GraphFXBError('Native contract belongs to different model metadata')
-        return {'manifest': self.manifest, 'kernel_name': self.kernel_name,
-                'bucket': self.bucket, 'member': self.member, 'source': self.source,
-                'device_config': self.device_config,
-                'model_metadata_sha256': _sha(self.model_metadata)}
 
 
 def _spec(spec):
@@ -120,7 +78,7 @@ def _bindings(inputs, outputs, abi):
 
 def _registration(contract, metadata):
     if not isinstance(contract, dict) or contract.get('model_metadata_sha256') != _sha(metadata):
-        raise GraphFXBError('Native provider did not bind the target model metadata')
+        raise GraphFXBError('Native contract does not match the model metadata')
     manifest = contract.get('manifest')
     files, count = _contract(manifest)
     member = _name(contract.get('member'))
@@ -135,57 +93,6 @@ def _registration(contract, metadata):
     if not architecture or manifest['model']['architecture'] != architecture:
         raise GraphFXBError('Real model architecture must match the native provider fingerprint')
     return manifest, {'name': name, 'bucket': bucket, 'file': member}
-
-
-def export_graph(edf_export, output, *, model_metadata, contract_provider=None,
-                 verify_official=True):
-    """Assemble an EDF export with an automatic static or supplied native contract."""
-    if edf_export.get('input_constraints'):
-        raise GraphFXBError('Input value constraints require the canonical execution-plan consumer')
-    # Resolve before staging: an absent public native bridge must not emit a fake FXB.
-    if contract_provider is None:
-        from .static_graph_contract import StaticGraphContractProvider
-        provider=StaticGraphContractProvider()
-    else:provider=contract_provider
-    contract = provider.provide(model_metadata=model_metadata, edf_export=edf_export)
-    contract = json.loads(_bytes(contract))
-    metadata = json.loads(_bytes(model_metadata))
-    manifest, kernel = _registration(contract, metadata)
-    inputs, outputs, abi = (edf_export.get(key) for key in ('inputs', 'outputs', 'abi'))
-    _bindings(inputs, outputs, abi)
-    source = Path(edf_export['edf_path'])
-    if source.is_symlink() or not source.is_file() or source.suffix != '.edf':
-        raise GraphFXBError('Expected a genuine compiled .edf file')
-    digest = _file_sha(source)
-    if digest != edf_export.get('edf_sha256'):
-        raise GraphFXBError('Exported EDF checksum mismatch')
-    plan = json.loads(_bytes({
-        'schema': 'fxbex.graph-plan.v1', 'model_metadata': metadata,
-        'model_metadata_sha256': _sha(metadata), 'native_manifest_sha256': _sha(manifest),
-        'kernel': kernel, 'edf_sha256': digest, 'inputs': inputs, 'outputs': outputs,
-        'abi': abi, 'compatibility': edf_export.get('compatibility', {}),
-        'device_config': contract.get('device_config'),
-        'expected_num_fusion': edf_export.get('expected_num_fusion'),
-        'validation': edf_export.get('validation', {}),
-        'target_npu': edf_export.get('target_npu'),
-        'compiler_config': edf_export.get('compiler_config'),
-        'output_tree_spec': edf_export.get('output_tree_spec'),
-        'source_identity': edf_export.get('source_identity', {}),
-        'graph_metadata': edf_export.get('graph_metadata', {}),
-        'native_contract_source': contract['source']}))
-    with tempfile.TemporaryDirectory(prefix='fxbex-graph-') as temporary:
-        root = Path(temporary)
-        (root / 'manifest.json').write_bytes(_bytes(manifest))
-        destination = root / kernel['file']
-        destination.parent.mkdir(parents=True)
-        shutil.copyfile(source, destination)
-        if _file_sha(destination) != digest:
-            raise GraphFXBError('EDF changed during staging')
-        report = build_native(root, output, verify_official=verify_official,
-                              producer_metadata={'graph_plan': plan, 'graph_plan_sha256': _sha(plan)})
-    report['graph_plan'] = plan
-    report['gates']['graph_plan'] = 'passed'
-    return report
 
 
 def read_graph_plan(path, *, verify_official=False):

@@ -1,13 +1,7 @@
-"""Write weightless FXB archives from an existing native manifest and EDFs.
-
-This preserves a native producer's execution contract; it cannot translate an
-FXBEX Runnable graph into Furiosa-LLM kernels or invent an architecture fingerprint.
-"""
+"""Validate native FXB archives and SDK reader compatibility."""
 import json
-import os
 from pathlib import Path, PurePosixPath
 import stat
-import tempfile
 import zipfile
 
 PRODUCER_MEMBER = 'fxbex.provenance.json'
@@ -133,55 +127,3 @@ def validate_native(path, *, verify_official=True):
                       'internal_metadata_reader': reader if producer else 'not_applicable',
                       'model_compatibility': 'not_run', 'runtime_load': 'not_run',
                       'npu_execution': 'not_run'}}
-
-
-def build_native(source_dir, output, *, verify_official=True, producer_metadata=None):
-    """Archive native manifest+EDFs unchanged, add producer info, never overwrite.
-
-    ``producer_metadata`` is experimental FXBEX metadata in a separate ZIP entry,
-    not part of the official manifest or fingerprint. Reader acceptance does not
-    establish that the full runtime supports this extension.
-    """
-    from . import __version__
-    source, output = Path(source_dir).resolve(), Path(output).absolute()
-    if not source.is_dir():
-        raise NativeFXBError('Source must be an extracted native artifact directory')
-    custom_plan = isinstance((producer_metadata or {}).get('execution_plan'), dict)
-    if output.suffix != '.fxb' and not (custom_plan and output.suffix == '.fxbx'):
-        raise NativeFXBError('Native output must use .fxb; custom execution plans may use .fxbx')
-    if output.exists() or output.is_symlink():
-        raise FileExistsError(output)
-    manifest_path = source / 'manifest.json'
-    if not manifest_path.is_file() or manifest_path.is_symlink():
-        raise NativeFXBError('Missing regular native manifest.json')
-    if manifest_path.stat().st_size > MAX_JSON_SIZE:
-        raise NativeFXBError('Native JSON exceeds size limit')
-    manifest_bytes = manifest_path.read_bytes()
-    files, _ = _contract(_json(manifest_bytes))
-    for name in files:
-        path = source / name
-        if (not path.is_file() or not path.stat().st_size
-                or any((source.joinpath(*PurePosixPath(name).parts[:i])).is_symlink()
-                       for i in range(1, len(PurePosixPath(name).parts) + 1))):
-            raise NativeFXBError(f'Missing regular native EDF or symlink in path: {name}')
-    metadata = dict(producer_metadata or {})
-    metadata.update({'schema': 'fxbex.producer.v1', 'producer': 'fxbex',
-                     'version': __version__, 'operation': 'archive_existing_native_artifact'})
-    try:
-        metadata_bytes = json.dumps(metadata, ensure_ascii=False, allow_nan=False).encode()
-    except (ValueError, TypeError) as exc:
-        raise NativeFXBError(f'Invalid producer metadata: {exc}') from exc
-    _json(metadata_bytes)
-    output.parent.mkdir(parents=True, exist_ok=True)
-    with tempfile.TemporaryDirectory(prefix='.native-fxb-', dir=output.parent) as temporary:
-        staged = Path(temporary) / output.with_suffix('.fxb').name
-        with zipfile.ZipFile(staged, 'w', compression=zipfile.ZIP_STORED, allowZip64=True) as archive:
-            archive.writestr('manifest.json', manifest_bytes)
-            for name in sorted(files):
-                archive.write(source / name, name)
-            archive.writestr(PRODUCER_MEMBER, metadata_bytes)
-        report = validate_native(staged, verify_official=verify_official)
-        # A hard link publishes atomically and fails if another producer won.
-        os.link(staged, output)
-    report['path'] = str(output)
-    return report

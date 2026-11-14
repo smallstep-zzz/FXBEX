@@ -1,9 +1,9 @@
-"""Copy this page; change PACKAGE and model-specific controls only."""
+"""Run an existing model package in Gradio. Set PACKAGE before starting."""
 from pathlib import Path
 import gradio as gr
 from fxbex.ui import build_ui
 
-PACKAGE = Path('fxbex/model.fxbex')
+PACKAGE = Path('fxbex/model.fxbx')
 MODE = 'chat'  # 'predict' for named tensor JSON; custom controls below for images etc.
 
 # Agent extension: decode/encode the model's real inputs and outputs here.
@@ -13,7 +13,7 @@ MODE = 'chat'  # 'predict' for named tensor JSON; custom controls below for imag
 #     timing = gr.Textbox(label='Execution time')
 #     gr.Button('Run').click(lambda x: run('predict', x), inputs, [output, timing])
 
-with gr.Blocks(title='FXBEX model sample') as app:
+with gr.Blocks(title='fxbX model sample') as app:
     unload = build_ui(default_package=str(PACKAGE), package_dir=PACKAGE.parent,
                       mode=MODE)  # controls=model_controls for a custom model UI
 app.unload(unload)

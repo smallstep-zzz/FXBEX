@@ -6,4 +6,4 @@ prune examples
 prune reports
 prune dist
 prune build
-global-exclude *.fxbex *.fxb *.runnable *.edf *.safetensors *.pt *.bin *.log *.pyc
+global-exclude *.fxbx *.fxbex *.fxb *.runnable *.edf *.safetensors *.pt *.bin *.log *.pyc

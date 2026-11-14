@@ -135,7 +135,8 @@ def _request(ep, config, task_name, torch):
 
 
 @contextmanager
-def _session(root, recording, guard_native=True):
+def replay(root, *, guard_native=True):
+    """Restore exact captured requests with compiler entry points blocked by default."""
     torch = importlib.import_module('torch')
     compiler = importlib.import_module('furiosa.torch.compiler')
     sdk = importlib.import_module('furiosa.torch')
@@ -143,22 +144,16 @@ def _session(root, recording, guard_native=True):
     root = Path(root)
     plan_path = root / 'execution_plan.json'
     compatibility = _compatibility(torch, sdk)
-    if recording:
-        if plan_path.exists():
-            raise ReplayError('Refusing to overwrite an existing execution plan')
-        (root / 'edfs').mkdir(parents=True, exist_ok=True)
-        plan = {'format': 'sdk-runnable', 'version': 1, 'compatibility': compatibility, 'steps': []}
-    else:
-        plan = json.loads(plan_path.read_text())
-        if plan.get('format') != 'sdk-runnable' or plan.get('version') != 1:
-            raise ReplayError('Unsupported Runnable plan format or version')
-        recorded = plan.get('compatibility')
-        if not isinstance(recorded, dict):
-            raise ReplayError('Missing Runnable runtime compatibility metadata')
-        expected, actual = _runtime_identity(recorded), _runtime_identity(compatibility)
-        different = sorted(key for key in expected.keys() | actual.keys() if expected.get(key) != actual.get(key))
-        if different:
-            raise ReplayError('Runnable runtime compatibility mismatch: ' + ', '.join(different))
+    plan = json.loads(plan_path.read_text())
+    if plan.get('format') != 'sdk-runnable' or plan.get('version') != 1:
+        raise ReplayError('Unsupported Runnable plan format or version')
+    recorded = plan.get('compatibility')
+    if not isinstance(recorded, dict):
+        raise ReplayError('Missing Runnable runtime compatibility metadata')
+    expected, actual = _runtime_identity(recorded), _runtime_identity(compatibility)
+    different = sorted(key for key in expected.keys() | actual.keys() if expected.get(key) != actual.get(key))
+    if different:
+        raise ReplayError('Runnable runtime compatibility mismatch: ' + ', '.join(different))
     records = {}
     for record in plan['steps']:
         key = record['key']
@@ -174,21 +169,6 @@ def _session(root, recording, guard_native=True):
         effective_config = compiler_config if compiler_config is not None else sdk.config.get_compiler_config()
         args = _request(ep, effective_config, task_name, torch)
         key = _hash(_json(args).encode())
-        if recording:
-            stats.compile_calls += 1
-            runnable = original(ep, compiler_config, task_name=task_name)
-            data = bytes(runnable.serialize())
-            record = {'key': key, 'path': f'edfs/{key}.runnable', 'sha256': _hash(data), 'args': args}
-            if key in records and records[key] != record:
-                raise ReplayError('Identical request produced different runnable bytes')
-            if key not in records:
-                path = root / record['path']
-                if path.exists() and path.read_bytes() != data:
-                    raise ReplayError('Conflicting existing runnable file')
-                path.write_bytes(data)
-                records[key] = record
-                plan['steps'].append(record)
-            return runnable
         if key not in records:
             raise ReplayError(f'No recorded runnable for request {key}; compilation is forbidden')
         record = records[key]
@@ -208,25 +188,13 @@ def _session(root, recording, guard_native=True):
     patches = [(compiler, 'compile', original)]
     try:
         compiler.compile = compile
-        if not recording and guard_native:
+        if guard_native:
             native = importlib.import_module('furiosa.torch._C')
             for name in ('compile', 'compile_raw_dfg'):
                 if hasattr(native.compiler, name):
                     patches.append((native.compiler, name, getattr(native.compiler, name)))
                     setattr(native.compiler, name, forbidden)
         yield stats
-        if recording:
-            plan_path.write_text(_json(plan) + '\n')
     finally:
         for obj, name, value in reversed(patches):
             setattr(obj, name, value)
-
-
-def capture(root):
-    """Capture public compile calls and write an execution plan on successful exit."""
-    return _session(root, True)
-
-
-def replay(root, *, guard_native=True):
-    """Restore exact captured requests; tracing/lowering still occurs, compilation cannot."""
-    return _session(root, False, guard_native)

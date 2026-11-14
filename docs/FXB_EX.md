@@ -23,28 +23,12 @@ fxbex ui --port 7861
 
 `serve` implements non-streaming `/v1/chat/completions`, `/v1/models`, `/status`, and `/predict`. It is a serialized single-model local service, not a complete OpenAI API. Clients must supply conversation history. The terminal/UI preserve their own history. UI supports chat packages; generic tensor packages use `predict`. Image generation adapters and cross-process model-manager commands are not implemented in v0.1.
 
-## Build
+## Runtime adapters
 
-```bash
-fxbex build compiled_model --output model.fxbex
-fxbex build compiled_model --output model-standalone.fxbex --standalone
-```
+- `runnable_dag` deserializes the SDK runnables stored in the package and executes their declared tensor plan.
+- `qwen35_replay` reuses the recorded runnables for the exact request contracts. A request that does not match the saved contract fails.
 
-Source contains `manifest.json`, `execution_plan.json`, `weights_index.json`, `memory_plan.json`, `runtime_config.json`, and kernel files. Manifest provides `model.name`, `compatibility`, and a built-in `runtime.adapter`. Builder creates checksums/sizes for every payload, refuses overwrite and never imports code from the package. External weights are explicit index entries `{name, external_path, sha256}`; standalone build streams them into `weights/`, updates the archived index, and leaves the source unchanged. Hashes establish integrity, not publisher authenticity: only use packages from trusted developers. Inspection/validation reads payloads incrementally, not into an LLM or one large memory buffer.
-
-Supported adapter contracts:
-
-- `runnable_dag`: plan `format=runnable-dag-v1`, ordered `steps` with id/artifact/input names/output names. Runtime config has typed `inputs` (shape/dtype) and output names. Deserializes SDK runnables directly, then executes the tensor DAG. Internal/external `torch.load(weights_only=True)` tensor dictionaries can supply named constants. Current version retains intermediate tensors through each prediction; automatic memory planning is not implemented.
-- `qwen35_replay`: pinned existing text-only Qwen runtime and external checkpoint. Captures compiler requests as exact graph/shape/dtype/stride/constants/config contracts, stores serialized runnables, and replaces compiler calls with exact recorded lookups on reload. It still performs Python model construction, graph capture/lowering and FP8-to-BF16 host weight preparation. It does not promise instant loading or independent execution without the installed project adapter. Every request miss fails; Python-visible native compiler entrypoints are blocked. Runtime source/SDK hashes detect patched implementation differences.
-
-Qwen developer command:
-
-```bash
-fxbex capture-qwen --source reports/rngd_porting/runs/NEW_CAPTURE \
-  --output /root/rea_image_gen/FXB/RedHatAI--Qwen3.5-9B-FP8-dynamic__text-bf16__fusion8__ctx512__sdk2026.4.0.fxbex
-```
-
-For a relocated lightweight checkpoint use `chat/run/serve --weights-dir /path/to/pinned/snapshot`; all file hashes must still match. Qwen has a 512-token total context capacity and text-only BF16 execution. Full FP8 compute, multimodal input and arbitrary context shapes are not covered.
+Use `chat/run/serve --weights-dir /path/to/pinned/snapshot` to locate external weights when needed. The required hashes are verified.
 
 ## Acceptance gates
 
@@ -59,5 +43,3 @@ The reused Qwen diagnostic wrapper still labels graph preparation `NPU COMPILE S
 See `FXB_EX_VALIDATION.json` for measured values and report paths. A 2-kernel DAG package produced bitwise-equal CPU results after reload, with 4 NPU tasks, zero SDK CPU routes and zero compiler calls (warm device execution ~0.29–0.43 ms). The Qwen package contains 25 distinct serialized runnable contracts, about4.3MB excluding its external checkpoint. Fresh-process Qwen replay served 511 recorded compiler requests with zero new compiler calls. Reload acceptance: cosine0.9999294, RMSE0.0447029, top1 match, 1,562 NPU tasks, zero SDK CPU routes and zero unknown graphs. API conversation returned4 then12; all three independent repeated prompts returned4. With verbose trace diagnostics enabled, load took190.5s, API requests8.49/17.34s and repeats8.76–8.90s. This is text-only fixed-context acceptance, not universal Qwen or cross-model certification.
 
 Actual Gradio package UI acceptance also passed; see `FXB_EX_UI_VALIDATION.json`. Load212.7s, answers4→12 with history, independent repeated answers4, request times3.48–3.58s after load (follow-up6.94s), and unload succeeded. The UI uses a separate worker process for reliable device release and a per-client `gr.State` for model history; Gradio6 display messages are not passed directly as model input. The first UI trial exposed that display/history-format mismatch; separating state fixed it, and the full UI test was rerun. UI remains available on server127.0.0.1:7861 with no model resident after testing. Mac tunnel: `ssh -F /Users/dong-jin/Documents/GitHub/furiosa/.ssh/config -N -L 7861:127.0.0.1:7861 furiosa-npu`.
-
-Reproduction: `python3.10 -m unittest discover -s tests -p 'test_fxbex_*.py'` (20 unit tests). `tests/run_fxbex_roundtrip.py` exercises the DAG package; `tests/run_fxbex_qwen_reload.py` checks fresh Qwen/API replay; `tests/run_fxbex_ui.py` checks the running UI lifecycle. NPU integration scripts require the canonical device to be free; do not run them concurrently with performance tests. Future work: direct whole-model execution-plan reconstruction to reduce the191–213s load, image-generation adapters, broader shape/context acceptance, and automatic memory planning. These are not marked implemented.

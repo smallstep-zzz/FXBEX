@@ -39,16 +39,3 @@ def validate(root,manifest):
     if stateful and acceptance['state_validation']!='passed':
         raise PackageError('BuildBundle stateful model requires state validation')
     return {'content_id':expected,'status':'validated','current_request_npu_execution':'unknown'}
-
-
-def prepare_source(root):
-    """Freeze the same public metadata that package.build will generate before binding."""
-    root=Path(root);index=json.loads((root/'weights_index.json').read_text())
-    if any('external_path' in w for w in index['weights']):
-        raise PackageError('BuildBundle requires already internalized weights')
-    (root/'weights_index.json').write_bytes(json.dumps(index,sort_keys=True).encode())
-    manifest=json.loads((root/'manifest.json').read_text())
-    if manifest['runtime']['adapter']=='runnable_dag':
-        from .memory import analyze
-        memory=analyze(root)
-        (root/'memory_plan.json').write_bytes(json.dumps(memory,sort_keys=True).encode())

@@ -1,12 +1,11 @@
-"""Independent FXBEX package builder and installed-adapter runtime."""
-__version__ = "0.8.8"
+"""Model package download and execution runtime."""
+__version__ = "0.9.0"
 
 from .llm import LLM
 from .model import Model, YOLO, ObjectDetection, ImageGeneration
-__all__ = ['Model', 'LLM', 'YOLO', 'ObjectDetection', 'ImageGeneration','hug','describe','example_inputs','as_torch','GraphFXB','build_model','build_program','ExecutionFXB','SafeTensorWeights']
+__all__ = ['Model', 'LLM', 'YOLO', 'ObjectDetection', 'ImageGeneration','hug','describe','example_inputs','as_torch','GraphFXB','ExecutionFXB','SafeTensorWeights']
 
 from .graph_fxb import GraphFXB
-from .model_export import build_model,build_program
 from .execution_fxb import ExecutionFXB
 from .checkpoint import SafeTensorWeights
 
