@@ -17,7 +17,8 @@ import zipfile
 
 from .compatibility import check_edf_versions
 from .graph_fxb import _bytes, _sha, _file_sha, _tensor_matches
-from .native_fxb import MAX_JSON_SIZE, PRODUCER_MEMBER, NativeFXBError, validate_native
+from .native_fxb import (MAX_EXECUTION_PLAN_SIZE, MAX_JSON_SIZE, MAX_PRODUCER_SIZE,
+                         PRODUCER_MEMBER, NativeFXBError, _producer_json, validate_native)
 
 
 class ExecutionPlanError(NativeFXBError):
@@ -93,16 +94,25 @@ def _memory_gate(plan,*,clone_persistent_outputs=False):
     # reset keeps the committed states alive until all replacement zeros finish.
     peak=sum(sizes[n] for n in persistent)+sum(sizes[n] for n in persistent if specs[n]['kind']=='state')
     for entry in plan['entries'].values():
-        live=persistent|set(entry['inputs']);last=_last_uses(entry)
-        retain=set(entry['outputs'])|set(entry['state_updates'].values())
-        peak=max(peak,sum(sizes[n] for n in live))
-        for index,step in enumerate(entry['steps']):
-            live.update(step['outputs']);peak=max(peak,sum(sizes[n] for n in live))
-            for name in step['inputs']+step['outputs']:
-                if name not in persistent|retain and last.get(name,index)<=index:live.discard(name)
+        live = persistent | set(entry['inputs'])
+        live_bytes = sum(sizes[name] for name in live)
+        last = _last_uses(entry)
+        retain = persistent | set(entry['outputs']) | set(entry['state_updates'].values())
+        peak = max(peak, live_bytes)
+        for index, step in enumerate(entry['steps']):
+            for name in step['outputs']:
+                if name not in live:
+                    live.add(name)
+                    live_bytes += sizes[name]
+            peak = max(peak, live_bytes)
+            for name in step['inputs'] + step['outputs']:
+                if name in live and name not in retain and last.get(name, index) <= index:
+                    live.remove(name)
+                    live_bytes -= sizes[name]
         if clone_persistent_outputs:
-            exported_aliases=persistent|set(entry['state_updates'].values())
-            peak=max(peak,sum(sizes[n] for n in live)+sum(sizes[n] for n in entry['outputs'] if n in exported_aliases))
+            exported_aliases = persistent | set(entry['state_updates'].values())
+            peak = max(peak, live_bytes + sum(sizes[name] for name in entry['outputs']
+                                             if name in exported_aliases))
     try:return check_budget(peak,plan.get('memory_policy'))
     except ValueError as exc:raise ExecutionPlanError(str(exc)) from exc
 
@@ -110,7 +120,7 @@ def _memory_gate(plan,*,clone_persistent_outputs=False):
 def validate_execution_plan(plan, *, archived=False):
     """Validate transport/dataflow, without deriving model semantics or compiling."""
     raw=_bytes(plan)
-    if len(raw)>MAX_JSON_SIZE:raise ExecutionPlanError('Execution plan exceeds native JSON limit')
+    if len(raw)>MAX_EXECUTION_PLAN_SIZE:raise ExecutionPlanError('Execution plan exceeds 64 MiB JSON limit')
     plan=json.loads(raw)
     if not isinstance(plan,dict):raise ExecutionPlanError('Execution plan must be a mapping')
     def fail(message):raise ExecutionPlanError(message)
@@ -234,14 +244,14 @@ def validate_execution_plan(plan, *, archived=False):
 
 def _archive_plan(archive):
     """Read the binding from the same open archive whose EDFs will be loaded."""
-    def document(name):
+    def document(name, limit=MAX_JSON_SIZE, decode=json.loads):
         try:
-            if archive.getinfo(name).file_size>MAX_JSON_SIZE:raise ExecutionPlanError('Native JSON exceeds size limit')
-            return json.loads(archive.read(name))
+            if archive.getinfo(name).file_size>limit:raise ExecutionPlanError('Native JSON exceeds size limit')
+            return decode(archive.read(name))
         except (KeyError,ValueError,UnicodeError,zipfile.BadZipFile) as exc:
             if isinstance(exc,ExecutionPlanError):raise
             raise ExecutionPlanError('Invalid execution archive document: '+name) from exc
-    producer=document(PRODUCER_MEMBER)
+    producer=document(PRODUCER_MEMBER, MAX_PRODUCER_SIZE, _producer_json)
     if not isinstance(producer,dict) or producer.get('producer')!='fxbex':raise ExecutionPlanError('Missing fxbX execution producer')
     plan=validate_execution_plan(producer.get('execution_plan'),archived=True)
     digest=_sha(plan)
@@ -452,8 +462,12 @@ class ExecutionFXB:
                         if not isinstance(result,(tuple,list)):result=[result]
                         if len(result)!=len(step['outputs']):raise ExecutionPlanError('Kernel output arity mismatch')
                         for name,value in zip(step['outputs'],result):
-                            if (not _tensor_matches(value,self.plan['tensors'][name],self.torch)
-                                    or value.device.type!='furiosa'):raise ExecutionPlanError('NPU output metadata mismatch: '+name)
+                            spec=self.plan['tensors'][name]
+                            if (not _tensor_matches(value,spec,self.torch)
+                                    or value.device.type!='furiosa'):
+                                raise ExecutionPlanError(f"NPU output metadata mismatch: {name}; "
+                                                         f"expected={spec}; got shape={value.shape}, "
+                                                         f"dtype={value.dtype}, stride={value.stride()}, device={value.device}")
                             tensors[name]=value
                         del result,value
                         for name in step['inputs']+step['outputs']:
