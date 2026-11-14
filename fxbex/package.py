@@ -146,17 +146,6 @@ def validate(path, *, max_total_size=DEFAULT_MAX_TOTAL_SIZE, max_json_size=DEFAU
         raise PackageError(f'Unreadable archive: {exc}') from exc
 
 
-def runtime_manifest(path):
-    """Read bounded manifest metadata for runtime selection."""
-    with zipfile.ZipFile(path) as archive:
-        info = archive.getinfo('manifest.json')
-        if info.file_size > DEFAULT_MAX_JSON_SIZE:
-            raise PackageError('JSON exceeds size limit: manifest.json')
-        manifest = _json(archive.read(info), 'manifest.json')
-        _manifest(manifest)
-        return manifest
-
-
 def inspect(path, **limits):
     """Return the manifest only after full archive validation."""
     return validate(path, **limits)
