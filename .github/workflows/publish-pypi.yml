@@ -71,3 +71,21 @@ jobs:
           path: dist/
       - name: Publish via PyPI trusted publishing (OIDC)
         uses: pypa/gh-action-pypi-publish@release/v1
+
+  verify-public-install:
+    needs: publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Verify a fresh public pip installation
+        env:
+          EXPECTED_VERSION: ${{ inputs.confirm_version }}
+        run: python scripts/check_pypi_install.py "$EXPECTED_VERSION"

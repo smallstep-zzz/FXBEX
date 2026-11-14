@@ -57,18 +57,21 @@ with modified files; bump the version for subsequent releases.
 
 ## 3. Verify the published package
 
-After the PyPI project page exists, use a **clean environment**:
+The workflow is complete when all `verify-public-install` jobs pass.
+Each job starts with a fresh environment, runs `pip install fxbx --upgrade --no-cache-dir`
+against the default public index, checks the installed version against the release,
+and runs `pip check` and `fxbx --help`. A bounded retry covers index visibility delays.
+Wait for this check before announcing the release or updating install instructions.
+
+To repeat the same check from a release host:
 
 ```bash
-python3 -m venv /tmp/fxbex-pypi-check
-/tmp/fxbex-pypi-check/bin/python -m pip install --index-url https://pypi.org/simple fxbex==0.3.0
-/tmp/fxbex-pypi-check/bin/python -c "from fxbex import LLM; print(LLM)"
-/tmp/fxbex-pypi-check/bin/fxbex --help
+python scripts/check_pypi_install.py <release-version>
 ```
 
-Repeat this verification for each future release.
-`import`, `--help` and unit tests **do not validate actual NPU inference**:
-runtime use requires a compatible Furiosa SDK, driver, weight files and adapter.
+A PyPI project page confirms upload. The install check confirms that the public
+index delivers the release for the tested Python versions. NPU inference needs a
+separate SDK and hardware test.
 
 ## 4. Local preflight (optional; run outside the NPU SDK environment)
 
